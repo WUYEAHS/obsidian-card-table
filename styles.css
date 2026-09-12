@@ -1,0 +1,678 @@
+/* ============================================================
+   Card Journal Board / 卡片日誌看板  0.3.0
+   ------------------------------------------------------------
+   這一整份是從 `日誌看板.md` 原版的 CSS 區塊「原封不動」搬過來的,
+   class 名稱也一樣 —— 兩邊要一起改的時候才對得起來。
+
+   ⚠ 有兩條規則是一路踩出來的,不要拿掉:
+
+   1) `overflow-anchor: none`
+      編修框長高的時候,瀏覽器會一直重新挑捲動錨點、微調捲動位置,
+      Mac(尤其是勾了「總是顯示捲軸」)上的捲軸滑塊就會瘋狂跳動。
+   2) 最底下永遠有一條固定高度 26px 的版本列,而且尺寸不會變。
+      它就是那個「不會動的錨點」。刪掉它,①又會回來。
+
+   還有:看板裡面不要有第二層捲軸。`overflow-x:auto` 會連帶把
+   `overflow-y` 變成 auto;`overflow:hidden` 在規格上仍然是捲動容器,
+   要用 `overflow:clip`。但 clip 在表單控制項(textarea)上不一定吃得住,
+   所以 textarea 用 hidden 再把 ::-webkit-scrollbar 關掉。
+   ============================================================ */
+
+/* ---- plugin 版的捲動:唯一一層 ----
+   dataviewjs 版是「外面那一層筆記」在捲,看板自己完全不捲。
+   plugin 沒有外面那一層,所以看板自己就是那唯一的捲動容器
+   —— 沒設好的話,只看得到一個畫面高度的卡片,底下的整個拉不到(0.3.0 就是這樣壞的)。
+
+   規則沒變,只是搬了一層:
+     ・只有 .tk-board 這一層在捲,裡面每一塊還是 overflow:clip
+     ・overflow-y 用 scroll 不是 auto(auto = 需要才出現,所以會閃)
+     ・scrollbar-gutter:stable —— 捲軸出現不會把內容擠窄、文字不會重新折行
+     ・overflow-anchor:none + 最底下固定 26px 的版本列當錨點 */
+/* ⚠⚠ 這一格特別注意:Obsidian 的 `contentEl` **本身就是** `.view-content`,
+   所以下面兩條規則作用在同一個元素上(它同時有 view-content 和 tk-board 兩個 class)。 */
+.workspace-leaf-content[data-type="card-table"] .view-content { padding:0; }
+.tk-board {
+  width:100%; max-width:100%;
+  height:100%; box-sizing:border-box;
+  /* ⚠ 一定要 block,不可以 flex —— 見下面那段說明 */
+  display:block;
+  overflow-y:scroll; overflow-x:clip;
+  scrollbar-gutter:stable;
+  overscroll-behavior:contain;
+}
+/* ⚠⚠⚠ 為什麼根不可以是 flex(踩過兩次,寫清楚)
+   把根設成 `display:flex; flex-direction:column` 之後,底下每一塊都變成 flex item,
+   預設 `flex-shrink:1`。flex item 本來有「最小內容尺寸」擋著不會被壓扁,
+   但只要那一塊的 overflow 不是 visible(我們給 .tk-塊 設了 clip),
+   它的自動最小尺寸就掉成 0 —— 表格於是被壓成剩下的高度、內容被裁掉,
+   整個看板的高度剛好等於容器高度,「沒有東西溢出、也就捲不動」。
+   看到的就是「只剩兩張卡片,而且拉不動」。
+   所以根一律 block,間距用 margin 不用 gap。 */
+.tk-board > * { margin-bottom:12px; }
+.tk-board > *:last-child { margin-bottom:0; }
+/* 每一塊只擋橫向溢出。⚠ 不可以寫 `overflow:clip`(連縱向一起裁 = 上面那個坑) */
+.tk-board .tk-塊 { overflow-x:clip; }
+
+.tk-board .tk-空隱:empty {
+  display:none !important;
+}
+.tk-board .tk-換行 {
+  display:none;
+}
+.tk-board table {
+  table-layout:fixed;
+  border-collapse:collapse;
+  margin:0 !important;
+  width:100%;
+  border:1px solid var(--background-modifier-border);
+}
+.tk-board .tk-塊 > div {
+  margin:0;
+}
+.tk-board thead th, .tk-board tbody td {
+  border:1px solid var(--background-modifier-border);
+}
+.tk-board tbody td {
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.tk-board tbody tr:hover {
+  background:var(--background-modifier-hover);
+}
+.tk-board tbody tr td:first-child {
+  position:relative;
+}
+.tk-board .tk-色條 {
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+}
+.tk-board td[data-col='分類'], .tk-board td[data-col='日期'] {
+  text-align:center;
+}
+.tk-board .卡片內文 {
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.tk-board .tk-上排, .tk-board .tk-文區,.tk-board .tk-留區, .tk-board .tk-編盒, .tk-board .tk-寫位,.tk-board .tk-題行, .tk-board .tk-欄框 {
+  overflow:clip !important;
+  overscroll-behavior:contain;
+}
+.tk-board textarea {
+  overflow:hidden !important;
+  overflow-y:hidden !important;
+  scrollbar-width:none;
+}
+.tk-board textarea::-webkit-scrollbar {
+  display:none !important;
+  width:0 !important;
+  height:0 !important;
+}
+.tk-board .tk-可捲 {
+  overflow:auto !important;
+}
+.tk-board, .tk-board * {
+  overflow-anchor:none;
+}
+.markdown-preview-view:has(.tk-board), .markdown-reading-view:has(.tk-board),.cm-scroller:has(.tk-board), .view-content:has(.tk-board) {
+  scrollbar-gutter:stable;
+}
+.tk-board, .tk-board .tk-上排, .tk-board .tk-文區 {
+  scrollbar-gutter:stable;
+}
+.tk-board .tk-更多 {
+  position:absolute;
+  right:0;
+  bottom:0;
+  z-index:2;
+  padding:0 9px;
+  font-size:0.8em;
+  line-height:1.7;
+  border-radius:8px;
+  cursor:pointer;
+  white-space:nowrap;
+  color:var(--text-muted);
+  background:var(--background-secondary);
+  border:1px solid var(--background-modifier-border);
+}
+.tk-board .tk-更多:hover {
+  color:var(--text-accent);
+  border-color:var(--text-accent);
+}
+.tk-board .tk-動作 {
+  opacity:0.5;
+  transition:opacity .12s ease;
+}
+.tk-board .tk-文編 {
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .12s ease;
+}
+.tk-board .tk-文區:hover .tk-文編, .tk-board .tk-文編:focus-visible {
+  opacity:1;
+  pointer-events:auto;
+}
+.tk-board .tk-留具 {
+  opacity:0;
+  transition:opacity .12s ease;
+}
+@keyframes tk-脈動 {
+0%,100% {
+  opacity:0.42;
+}
+50% {
+  opacity:1;
+}
+}
+.tk-board .tk-傳送中 {
+  animation:tk-脈動 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion:reduce) {
+.tk-board .tk-傳送中 {
+  animation:none;
+  opacity:0.7;
+}
+}
+.tk-board .tk-留:hover .tk-留具, .tk-board .tk-留:focus-within .tk-留具 {
+  opacity:1;
+}
+.tk-board tbody tr:hover .tk-動作, .tk-board .tk-動作:focus-within {
+  opacity:1;
+}
+.tk-board tbody tr:hover .tk-釘 {
+  opacity:1 !important;
+}
+@media (min-width: 701px) {
+.tk-board tbody td:first-child .tk-釘 {
+  position:absolute;
+  left:9px;
+  top:6px;
+  z-index:2;
+}
+}
+@media (max-width: 700px) {
+.tk-board table, .tk-board tbody {
+  display:block;
+  width:100%;
+}
+.tk-board table {
+  border:0;
+}
+.tk-board thead {
+  display:none;
+}
+.tk-board tbody tr {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-start;
+  gap:3px 8px;
+  border:1px solid var(--background-modifier-border);
+  border-left:3px solid transparent;
+  border-radius:10px;
+  background:var(--background-primary);
+  margin-bottom:9px;
+  padding:9px 11px;
+}
+.tk-board tbody tr.tk-todo {
+  border-left-color:var(--tk-sec, var(--background-modifier-border));
+}
+.tk-board tbody td {
+  display:block;
+  padding:0 !important;
+  border:0 !important;
+  text-align:left !important;
+  vertical-align:middle !important;
+}
+.tk-board tbody td[data-col]:before {
+  content:none !important;
+}
+.tk-board .tk-色條 {
+  display:none !important;
+}
+.tk-board tbody td[data-col='融合'] {
+  order:0;
+  flex:0 0 auto;
+  align-self:flex-start;
+}
+.tk-board tbody tr {
+  align-items:center;
+}
+.tk-board tbody td[data-col='日期'], .tk-board tbody td[data-col='補日期'],  .tk-board tbody td[data-col='內容'], .tk-board .tk-上排, .tk-board .tk-文欄    {
+  display:contents !important;
+}
+.tk-board .tk-釘列 {
+  order:0;
+  flex:0 0 auto;
+  height:auto !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+.tk-board .tk-釘 {
+  opacity:1 !important;
+}
+.tk-board tbody td[data-col='分類'] {
+  order:1;
+  flex:0 0 auto;
+  width:auto;
+  padding-left:0 !important;
+  border-left:0 !important;
+}
+.tk-board tbody td[data-col='分類'] > div {
+  flex-direction:row !important;
+  gap:7px !important;
+  min-height:0 !important;
+}
+.tk-board .tk-date {
+  order:2;
+  flex:0 0 auto;
+  width:auto !important;
+}
+.tk-board .tk-日鈕 {
+  order:2;
+  flex:0 0 auto;
+  margin-top:0 !important;
+}
+.tk-board .tk-循排 {
+  order:2;
+  flex:0 0 auto;
+}
+.tk-board .tk-補排 {
+  order:2;
+  flex-direction:row !important;
+}
+.tk-board tbody td[data-col='距今'] {
+  order:3;
+  flex:0 0 auto;
+}
+.tk-board .tk-題行 {
+  display:contents;
+}
+.tk-board .tk-題左 {
+  order:3;
+  flex:0 1 auto;
+  min-width:0;
+}
+.tk-board .tk-題右 {
+  order:3;
+  flex:0 0 auto;
+  margin-left:auto !important;
+}
+.tk-board .tk-動作 {
+  opacity:1 !important;
+}
+.tk-board .tk-文編 {
+  opacity:1 !important;
+  pointer-events:auto !important;
+}
+.tk-board .tk-留具 {
+  opacity:1 !important;
+}
+.tk-board .tk-留區, .tk-board .tk-寫位 {
+  order:5;
+  flex:1 1 100%;
+  min-width:0;
+  width:100%;
+}
+.tk-board .tk-文區, .tk-board .tk-留區 {
+  padding-right:58px !important;
+}
+.tk-board .tk-編盒 textarea {
+  padding-right:58px !important;
+}
+.tk-board .tk-文區, .tk-board .tk-編盒 {
+  order:5;
+  flex:1 1 100%;
+  min-width:0;
+  width:100%;
+  margin-top:2px;
+}
+.tk-board tbody td[data-col='內容'] button {
+  opacity:1 !important;
+}
+.tk-board tbody td[data-col='設為當日'] {
+  order:7;
+  flex:0 0 auto;
+  margin-top:5px;
+}
+.tk-board .tk-date {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.tk-board .tk-循排 > div {
+  margin-top:0 !important;
+  padding-top:0 !important;
+  border-top:0 !important;
+}
+.tk-board .tk-date-bar {
+  width:10px !important;
+  height:1px !important;
+}
+.tk-board tbody button {
+  min-height:26px;
+  padding:3px 10px !important;
+  font-size:0.85em !important;
+  line-height:1.4 !important;
+}
+.tk-board .tk-期間格 {
+  order:1;
+  flex:1 1 auto !important;
+  min-width:0 !important;
+}
+.tk-board .tk-期間格 > div:first-child {
+  flex:0 0 84px !important;
+  width:84px !important;
+}
+.tk-board .tk-期間格 > div:nth-child(2) {
+  flex:1 1 auto !important;
+  width:auto !important;
+  min-width:96px !important;
+}
+.tk-board .tk-顯示格 {
+  order:2;
+  margin-left:0 !important;
+  flex:0 1 122px !important;
+}
+.tk-board .tk-顯示格 > div {
+  flex:1 1 auto !important;
+  width:auto !important;
+}
+.tk-board .tk-換行 {
+  display:block;
+  flex:1 0 100%;
+  height:0;
+  margin:0;
+  padding:0;
+  order:3;
+}
+.tk-board .tk-統計格 {
+  order:4;
+  flex:1 1 0 !important;
+  min-width:0 !important;
+  padding:6px 4px !important;
+}
+.tk-board .tk-工具格 {
+  order:5;
+  flex:1 1 0 !important;
+  min-width:74px !important;
+  width:auto !important;
+}
+.tk-board .tk-本體 {
+  flex-direction:row !important;
+  flex-wrap:wrap;
+  align-items:flex-start;
+}
+.tk-board .tk-行, .tk-board .tk-新增列 .tk-群 {
+  display:contents !important;
+}
+.tk-board .tk-主題框 {
+  order:1;
+  flex:1 1 100% !important;
+  width:100% !important;
+}
+.tk-board .tk-新增列 .tk-常用主題 {
+  display:none !important;
+}
+.tk-board .tk-內容框 {
+  order:2;
+  flex:1 1 100% !important;
+  width:100% !important;
+  min-width:0 !important;
+}
+.tk-board .tk-分類框 {
+  order:3;
+  flex:0 0 62px !important;
+}
+.tk-board .tk-指派框 {
+  order:4;
+  flex:1 1 90px !important;
+  min-width:0 !important;
+}
+.tk-board .tk-送出欄 {
+  order:5;
+  flex:0 0 150px !important;
+  width:150px !important;
+}
+.tk-board .tk-送出欄 button {
+  padding:7px 6px !important;
+  font-size:0.88em !important;
+  white-space:nowrap !important;
+}
+.tk-board button {
+  min-height:30px;
+}
+.tk-board select, .tk-board input[type=date] {
+  min-height:32px;
+}
+}
+
+/* ============================================================
+   plugin 自己多出來的一點點
+   ============================================================ */
+/* 版本列:固定 26px,永遠存在,尺寸不會變 —— 它就是捲動錨點,不要刪 */
+.tk-board .tk-版本列 { overflow-anchor:none; }
+/* 表格裡的小按鈕不要被 Obsidian 的預設樣式撐大 */
+.tk-board tbody button { box-shadow:none; }
+.tk-board .tk-統計格 button { box-shadow:none; }
+
+/* ============================================================
+   260911v1
+   ============================================================ */
+/* ⚠ 留言和內容要能「點住拖曳選字複製」,所以不可以 user-select:none。
+   收合是靠 JS 判斷「有沒有選到字 / 有沒有拖過」來決定算不算點擊(見 掛收合)。 */
+.tk-board .tk-文區, .tk-board .tk-留區, .tk-board .卡片內文, .tk-board .tk-留文 {
+  user-select: text; -webkit-user-select: text; cursor: auto;
+}
+/* 「查看更多 / 還有 N 則」接在最後一行的尾端,自己才是可以點的那一小塊 */
+.tk-board .tk-更多 {
+  position: static !important; margin-left: 8px; user-select: none;
+  padding: 0 8px; font-size: 0.78em; line-height: 1.6; border-radius: 8px;
+  white-space: nowrap; vertical-align: baseline;
+}
+/* 主題右邊那顆獨立的「✎ 改主題」,滑到那一列才亮起來 */
+.tk-board .tk-改題 { opacity: 0; transition: opacity .12s ease; }
+.tk-board tbody tr:hover .tk-改題, .tk-board .tk-改題:focus-visible { opacity: 1; }
+@media (max-width: 700px) { .tk-board .tk-改題 { opacity: 1; } }
+/* 剛動過的那一列淡淡亮一下,知道自己按的是哪一張 */
+.tk-board tbody tr.tk-剛動過 { box-shadow: inset 0 0 0 1px var(--text-accent); }
+
+/* ============================================================
+   0.9.0 新增
+   ============================================================ */
+
+/* ---- 圖示 ----
+   0.9.0 起卡片上的小圖示全部走 Obsidian 內建的 Lucide(setIcon),
+   不再用 emoji。emoji 在 Windows 上是彩色點陣字、比周圍的字大一圈,
+   而且沒辦法跟著文字顏色走 —— 一排動作鈕裡有一顆彩色的就特別髒。
+   ⚠ 線寬統一 1.75,不要讓主題自己決定(同一列裡粗細不一樣非常明顯)。 */
+.tk-board .cjb-ico { display:inline-flex; align-items:center; justify-content:center; line-height:0; }
+.tk-board .cjb-ico svg { width:100%; height:100%; stroke-width:1.75; }
+.tk-board .tk-改題 { opacity:0.55; transition:opacity .12s ease, color .12s ease; }
+.tk-board tbody tr:hover .tk-改題 { opacity:1; }
+.tk-board .tk-改題:hover { color:var(--text-accent) !important; opacity:1; }
+
+/* ---- 動作之後「卡片在這裡」的高亮 ----
+   打勾、封存、改日期、改分類都會讓卡片跳到另一段去。畫面自己捲過去之後,
+   如果沒有任何標記,使用者根本分不出剛剛那張是哪一列。
+   所以捲到定位之後閃一下:一層會自己淡掉的重點色。
+   ⚠ 用 background-image(漸層)不要用 background-color ——
+     background-color 會被 tbody tr:hover 的規則蓋掉,滑鼠剛好停在上面就不會閃。
+   ⚠ 只動 opacity / background-image,不動 layout,才不會在捲動中掉格。 */
+@keyframes tk-閃現 {
+  0%   { opacity:0; }
+  12%  { opacity:0.22; }
+  45%  { opacity:0.22; }
+  100% { opacity:0; }
+}
+.tk-board tbody tr.tk-閃 > td { position:relative; }
+.tk-board tbody tr.tk-閃 > td::after {
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none;
+  background:var(--text-accent);
+  opacity:0;
+  animation:tk-閃現 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.tk-board tbody tr.tk-閃 > td:first-child::after { border-radius:3px 0 0 3px; }
+.tk-board tbody tr.tk-閃 > td:last-child::after  { border-radius:0 3px 3px 0; }
+/* 關掉動畫(或系統要求減少動態)的人:不閃,改成停一下下的上下實線,一樣指得出是哪一列 */
+.tk-board tbody tr.tk-定位 > td {
+  box-shadow:inset 0 1px 0 var(--text-accent), inset 0 -1px 0 var(--text-accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-board tbody tr.tk-閃 > td::after { animation:none; opacity:0.16; }
+}
+
+/* ============================================================
+   1.0 新增
+   ============================================================ */
+
+/* ---- 按鈕的圓角 ----
+   ⚠ 踩到的坑:動作鈕是 10px 的膠囊(inline style 寫的 border-radius),
+   但 Obsidian 主題自己有一條 `button:hover { background: ... }`,
+   那個底色用的是**主題的** --radius-s,不是我們寫的 10px ——
+   所以滑過去的瞬間,底色會從膠囊的兩端角落溢出來一小塊。
+   解法有兩層:① 把 hover 的底色改成由我們自己畫(用 currentColor 的淡色),
+   ② background-clip:padding-box 讓底色不要畫到 border 底下。
+   兩層都要,只做一層在某些主題上還是會露出來。 */
+/* ---- 膠囊鈕 ----
+   ⚠ 這些鈕是 div + role="button",**故意不是 <button>**(理由寫在 main.js 的 膠囊())。
+   主題對 button 有一整套自己的規則:背景色、背景漸層、box-shadow、它自己的圓角變數。
+   我們寫 border-radius:10px,它的 hover 底色卻用主題的圓角去畫,
+   滑過去的瞬間底色就從膠囊兩端的角落溢出來一小塊。
+   一條一條用 !important 去壓永遠壓不完(壓了 radius 還有 background-image、還有 shadow),
+   所以乾脆換掉標籤 —— 主題的 button 規則碰不到 div,長相完全由這裡決定。 */
+.tk-board .tk-膠囊 {
+  box-sizing:border-box;
+  user-select:none;
+  -webkit-user-select:none;
+  background-color:transparent;
+  background-image:none;
+  background-clip:padding-box;
+  transition:background-color .12s ease, color .12s ease, border-color .12s ease;
+}
+.tk-board .tk-膠囊:hover {
+  /* currentColor 的 14% —— 每顆鈕滑過去都是自己的顏色變淡,不是主題那一片灰。
+     ⚠ 底色一定要由 CSS 出,inline style 寫 background 會贏過這一條,滑過去就沒反應。 */
+  background-color:color-mix(in srgb, currentColor 14%, transparent);
+  border-color:currentColor;
+}
+@supports not (background: color-mix(in srgb, red 10%, transparent)) {
+  .tk-board .tk-膠囊:hover { background-color:var(--background-modifier-hover); }
+}
+.tk-board .tk-膠囊:active { transform:translateY(1px); }
+.tk-board .tk-膠囊:focus-visible {
+  outline:2px solid var(--text-accent);
+  outline-offset:2px;
+}
+/* 動作組本身不可以有底色 —— 理由寫在 main.js 的 畫卡片工具() */
+.tk-board .tk-動作 { background:transparent !important; }
+
+/* ---- 封存確認的倒數條 ----
+   按了「封存」會變成「確定?」,這條從滿到空走 2.6 秒。走完 = 你不想封存了,自己收回去。
+   ⚠ 只動 transform,不動 width —— 動 width 每一格都要重新排版,在長清單上會頓。 */
+@keyframes tk-倒數走 { from { transform:scaleX(1); } to { transform:scaleX(0); } }
+.tk-board .tk-倒數 {
+  position:absolute;
+  inset:0;
+  transform-origin:left center;
+  background:color-mix(in srgb, var(--color-red, #e05252) 22%, transparent);
+  animation:tk-倒數走 2.6s linear forwards;
+  pointer-events:none;
+}
+@supports not (background: color-mix(in srgb, red 10%, transparent)) {
+  .tk-board .tk-倒數 { background:var(--background-modifier-hover); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-board .tk-倒數 { animation-duration:2.6s; }
+}
+
+/* ---- 已完成 ----
+   淡化 = 整列退到背景,劃掉 = 內容打一條線。設定裡可以各自關掉。
+   ⚠ 滑鼠移上去要回到完全可讀 —— 淡化是為了「掃過去時不搶眼」,
+     不是為了「要看的時候看不清楚」。 */
+.tk-board tbody tr.tk-完淡 > td { opacity:0.55; transition:opacity .12s ease; }
+.tk-board tbody tr.tk-完淡:hover > td { opacity:1; }
+.tk-board tbody tr.tk-完劃 .卡片內文,
+.tk-board tbody tr.tk-完劃 .tk-主題 {
+  text-decoration:line-through;
+  /* 線本身要比字淡,不然整列看起來像被劃花了 */
+  text-decoration-color:color-mix(in srgb, currentColor 45%, transparent);
+  text-decoration-thickness:1px;
+}
+/* 留言不劃掉 —— 留言是「後來發生的事」,不會因為卡片做完就作廢 */
+.tk-board tbody tr.tk-完劃 .tk-留區 .卡片內文 { text-decoration:none; }
+
+/* ---- 已封存 ----
+   整列去彩度 + 淡化。封存區的卡片跟還在跑的卡片混在同一份清單裡的時候,
+   光靠一個「🗄 已封存」的小字根本看不出來。
+   ⚠ grayscale 要下在 td 不是 tr:filter 下在 tr 上,
+     Chrome 會把整列變成新的 containing block,絕對定位的色條就飛掉了。 */
+.tk-board tbody tr.tk-封存 > td {
+  filter:grayscale(1);
+  opacity:0.5;
+  transition:opacity .12s ease, filter .12s ease;
+}
+.tk-board tbody tr.tk-封存:hover > td { opacity:0.92; filter:grayscale(0.55); }
+
+/* ---- 行內 Markdown ---- */
+.tk-board .cjb-code {
+  font-family:var(--font-monospace);
+  font-size:0.88em;
+  padding:0.1em 0.35em;
+  border-radius:4px;
+  background:var(--background-modifier-border);
+}
+.tk-board .cjb-mark { background:var(--text-highlight-bg); border-radius:2px; padding:0 0.1em; }
+.tk-board .cjb-del { opacity:0.6; }
+
+/* 導覽列/工具列那些還是 <button> 的鈕:不強迫改圓角,但至少不要讓主題的背景漸層
+   蓋過我們的圓角(漸層那一層不吃 border-radius,角落就會露出一小塊)。 */
+.tk-board button { background-clip:padding-box; background-image:none !important; }
+
+/* ---- 封存與已完成的底色 ----
+   兩種都是「不用再管了」的卡片,但意思不一樣:
+     已完成 = 做完了,是好事,給它一點點綠;
+     已封存 = 收起來了,不再參與,整列退成灰。
+   ⚠ 底色用半透明疊在列上,不要用實色 —— 深色和淺色主題的底不一樣,
+     實色在其中一邊一定會太突兀。
+   ⚠ 寫在 tr:hover 規則的後面,不然滑過去底色會被 hover 蓋掉、兩種狀態又變得一樣。 */
+.tk-board tbody tr.tk-完淡 > td,
+.tk-board tbody tr.tk-完劃 > td {
+  background-color:color-mix(in srgb, var(--color-green, #3aa76d) 7%, transparent);
+}
+.tk-board tbody tr.tk-封存 > td {
+  background-color:color-mix(in srgb, var(--text-faint) 12%, transparent);
+}
+.tk-board tbody tr.tk-完淡:hover > td,
+.tk-board tbody tr.tk-完劃:hover > td {
+  background-color:color-mix(in srgb, var(--color-green, #3aa76d) 13%, transparent);
+}
+.tk-board tbody tr.tk-封存:hover > td {
+  background-color:color-mix(in srgb, var(--text-faint) 20%, transparent);
+}
+@supports not (background: color-mix(in srgb, red 10%, transparent)) {
+  .tk-board tbody tr.tk-完淡 > td, .tk-board tbody tr.tk-完劃 > td { background-color:rgba(58,167,109,0.08); }
+  .tk-board tbody tr.tk-封存 > td { background-color:rgba(128,128,128,0.12); }
+}
+
+/* 量游標用的鏡子 —— 永遠看不見,但要跟 textarea 同樣的排版規則 */
+.tk-鏡 { position:absolute; visibility:hidden; pointer-events:none; z-index:-1; }
+
+/* ---- 編修框 ----
+   1.3 起編輯時看得到一個框(跟留言的輸入框同一套),不然進不進編輯模式幾乎看不出來。
+   ⚠ 內容比主題再縮排一點就夠了 —— 不必在文字裡塞項目符號,
+     那會變成使用者要自己管的字(刪一半、貼上時多一顆)。 */
+.tk-board .tk-編框 {
+  border:1px solid var(--text-accent);
+  border-radius:7px;
+  background:var(--background-primary);
+  padding:6px 6px 6px 0;
+  margin:2px 0 4px;
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--text-accent) 14%, transparent);
+}
+@supports not (background: color-mix(in srgb, red 10%, transparent)) {
+  .tk-board .tk-編框 { box-shadow:none; }
+}
