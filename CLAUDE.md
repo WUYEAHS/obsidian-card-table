@@ -58,23 +58,70 @@ C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\card-table  →  這個 rep
 
 | 位置 | 格式 | 例 |
 | --- | --- | --- |
-| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260912v4` |
-| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.2` |
-| `manifest.json` 的 `version` | semver | `1.4.2` |
+| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260913v1` |
+| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.3` |
+| `manifest.json` 的 `version` | semver | `1.4.3` |
 
-semver 升版時,`versions.json` 也要加一筆 `"新版本": "最低 Obsidian 版本"`。
-發版本身交給 `.github/workflows/release.yml`:推一個純版本號的 tag(`1.4.2`,**不加 v**)
+semver 升版時,`versions.json` 也要加一筆 `"新版本": "最低 Obsidian 版本"`,
+`CHANGELOG.md` 也要加一段 `## 新版本`(release 的說明是從那裡撈的)。
+發版本身交給 `.github/workflows/release.yml`:推一個純版本號的 tag(`1.4.3`,**不加 v**)
 就會自動建 release、附上三個檔案、產生 artifact attestation。
 
 ## CSS:`!important` 不是隨便加的,不要順手清掉
 
-`styles.css` 裡還有 71 個 `!important`,其中 68 個在 `@media (max-width: 700px)` 區塊裡。
-**它們不能拿掉**,而且理由跟「權重沒調好」無關:桌機版的排版有很大一部分是
-`st()` **直接寫成元素的 inline style**(text-align、padding、width、flex…),
-inline 贏過任何選擇器權重,窄螢幕要改掉它們只剩 `!important` 一條路。
+`styles.css` 裡還有 78 個 `!important`,絕大多數在 `@media (max-width: 700px)` 區塊裡。
+**不要整批清掉**。它們存在有兩個不同的原因,而且只有第一個能靠重構解決:
 
-1.4.2 實測過:整份 CSS 的 `!important` 全部拿掉 → 桌機版 0 處差異,窄螢幕版 193 處跑掉。
-真正的解法是把那些 inline style 搬進 class,那是一次大改。
+1. **對抗 `st()` 寫成 inline style 的排版。** inline 贏過任何選擇器權重,
+   窄螢幕要改掉它們就只剩 `!important`。
+   1.4.2 實測過:整份 CSS 的 `!important` 全部拿掉 → 桌機版 0 處差異,窄螢幕版 193 處跑掉。
+   **這一類可以修**:把那個值從 `st()` 搬進 class,兩邊就能用正常權重分勝負。
+   1.4.3 這樣處理掉 8 個(格子的 padding / 對齊、釘列的高度),做法看
+   `styles.css` 的 `td[data-col]` 那幾條。搬的時候**權重要對齊**:
+   桌機那條寫 `td[data-col='日期']`,窄螢幕那條就也要帶 `[data-col]`,
+   不然 (0,2,1) 壓不過 (0,3,1)。
+
+2. **對抗使用者的佈景主題。** 這一類**拿不掉,也不該拿掉**。
+   1.4.3 踩到的實例:主題用
+   `.col-lines table:not(.calendar) tbody > tr > td:not(:last-child)`(權重 0,3,4)
+   畫表格欄位分隔線,窄螢幕把表格攤平成卡片之後,那幾條線變成卡片裡莫名的細線。
+   審核建議的「用提高權重取代 `!important`」在這裡行不通 ——
+   使用者裝什麼主題事先不知道,沒有一個權重是保證夠高的。
+   要判斷是哪一種,用這段列出所有命中某元素又設了該屬性的規則:
+
+```js
+[...document.styleSheets].forEach(sh => { try { [...sh.cssRules].forEach(r => {
+  if (r.cssRules) [...r.cssRules].forEach(x => { if (x.selectorText && el.matches(x.selectorText)) console.log(x.selectorText, x.style.cssText); });
+  else if (r.selectorText && el.matches(r.selectorText)) console.log(r.selectorText, r.style.cssText);
+}); } catch (e) {} });
+```
+
+## 改版面之前先知道這三個坑
+
+1. **CSS 寫了規則,但 class 根本沒掛上去。** `tk-釘列`、`tk-循排`、`tk-補排` 都發生過:
+   styles.css 有整段規則,main.js 卻沒 `addClass`,於是那段是死的,而且**沒有人會發現** ——
+   直到某天補上 class,版面突然變了。加新的版位規則時,順手確認元素真的有那個 class。
+2. **窄螢幕靠 `order` 排版,而 flex 是「先斷行、後壓縮」。** 一行差 2px 就會整塊掉到下一行,
+   而不是把可壓縮的那塊擠小。所以「某些卡片的按鈕在右上角、某些在左下角」這種
+   不一致,幾乎都是某一行剛好差幾 px —— 去找那一行最不重要的東西把它藏掉或縮掉,
+   不要只調某一格的寬度。
+3. **中英文的字寬差很多。** 欄寬不要寫死,放進字典讓它跟著語言走
+   (`T.日期欄寬`、`T.補日期欄寬`、`T.分類欄寬` 就是這樣來的)。
+
+## 版面改完一定要跑這個
+
+```powershell
+.\tools\check4.ps1
+```
+
+它會把 **中文/英文 × 桌機 1280 / 手機 420** 四種組合各掃一遍,報告三件事:
+元素裝不下自己的內容、文字被切掉、跑出板子的左右邊界。**四份都要是空的**才算過。
+改任何寬度、字級、flex 之後都跑一次 —— 這是唯一抓得到「英文被切掉」「手機溢出」
+的方法,靠眼睛看一定會漏(1.4.3 就是這樣抓到三個自己改出來的回歸)。
+
+需要 Obsidian 開著、CLI 裝好,而且 vault 裡有一份 `ZZ-css-fixture.md`
+(涵蓋置頂/逾期/完成/區間/循環/無日期/長期/無指派人/封存各一張;內容看 tools/check.js)。
+⚠ `check4.ps1` **只能用 ASCII**:PowerShell 5.1 會用 ANSI 讀 .ps1,裡面有中文就整個壞掉。
 
 同一個坑還有兩個變形,改窄螢幕版面的時候要記得:
 

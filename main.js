@@ -27,8 +27,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Workspace
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260912v4";
-const 插件版本 = "1.4.2";
+const 看板版本 = "260913v1";
+const 插件版本 = "1.4.3";
 
 /* ---- 外掛自己的圖示 ----
    以前分頁和左側欄都借用 Lucide 的 layout-list,那是一個「清單」,
@@ -84,7 +84,8 @@ const 字典 = {
     defaultRange: "打開看板時先看哪一段", defaultRangeDesc: "每次開看板的預設篩選範圍",
     colors: "顏色",
     calendar: "行事曆", pickStart: "點一天當開始", pickEnd: "再點一天當結束", close: "收起",
-    週名: ["日", "一", "二", "三", "四", "五", "六"], 日期欄寬: 110,
+    週名: ["日", "一", "二", "三", "四", "五", "六"],
+    日期欄寬: 110, 補日期欄寬: 84, 分類欄寬: 72,
     everyShort: "每NU", everyLong: "每 N L循環",
     unitDay: "天", unitWeek: "週", unitMonth: "月",
     longDay: "天", longWeek: "週", longMonth: "個月",
@@ -129,6 +130,9 @@ const 字典 = {
     dupWarn: "這一行跟另一張卡片一模一樣,之後會分不出誰是誰",
     boardReady: "✓ 已建立 1 2 3 4 5 五個分區",
     jumpAdd: "新增卡片", jumpAddDesc: "新增完把畫面帶到那張卡片並閃一下",
+    editPos: "按下編輯之後,那張卡片停在哪裡",
+    editPosDesc: "內容很長的時候,編修框會一次撐開很多行。不處理的話瀏覽器會把畫面拉到框的底部。",
+    editPosKeep: "原地不動（預設）", editPosTop: "拉到最上面", editPosNone: "交給瀏覽器",
     doneLook: "已完成的卡片長相", doneLookDesc: "做完的跟還沒做的要一眼分得出來",
     doneBoth: "淡化 + 劃掉", doneFade: "只淡化", doneStrike: "只劃掉", doneNone: "不變",
     saving: "儲存中…", saveFailed: "沒存進去,字還在框裡,再按一次儲存",
@@ -143,7 +147,10 @@ const 字典 = {
   "en": {
     board: "Card Journal Board", today: "Today", week: "This week", month: "This month",
     all: "All", overdue: "Overdue", search: "Search title or content…",
-    assignee: "Assignee", none: "Unassigned", noCards: "No cards in this range",
+    /* ⚠ 這個字會出現在兩個很窄的地方:新增列的欄框標籤,以及沒有指派人的卡片上那個
+       「＋ …」提示。"Assignee" 兩邊都塞不下(分類欄要撐到 88px 才不會被切)。
+       設定頁那些位置寬鬆的地方仍然用完整的 Assignees / Manage assignees。 */
+    assignee: "Who", none: "Unassigned", noCards: "No cards in this range",
     edit: "Edit", save: "Save", cancel: "Cancel", comment: "Comment", pin: "Pin",
     done: "Done", placeholder: "Leave a note for everyone…", cards: "",
     justNow: "just now", minsAgo: "m ago", hoursAgo: "h ago",
@@ -172,7 +179,8 @@ const 字典 = {
     defaultRange: "Range on open", defaultRangeDesc: "Which filter the board starts on",
     colors: "Colours",
     calendar: "Calendar", pickStart: "Click a day to start", pickEnd: "Click another day to end", close: "Close",
-    週名: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], 日期欄寬: 132,
+    週名: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    日期欄寬: 132, 補日期欄寬: 112, 分類欄寬: 72,
     everyShort: "every N U", everyLong: "repeats every N L",
     unitDay: "d", unitWeek: "w", unitMonth: "mo",
     longDay: "days", longWeek: "weeks", longMonth: "months",
@@ -217,6 +225,9 @@ const 字典 = {
     dupWarn: "This line is identical to another card, they will be hard to tell apart later",
     boardReady: "✓ Created sections 1 2 3 4 5",
     jumpAdd: "Adding a card", jumpAddDesc: "After adding, scroll to the new card and flash it",
+    editPos: "Where a card sits when you start editing",
+    editPosDesc: "A long card opens a tall editor. Left alone, the browser scrolls to the bottom of it.",
+    editPosKeep: "Leave it where it is (default)", editPosTop: "Pull it to the top", editPosNone: "Let the browser decide",
     doneLook: "How done cards look", doneLookDesc: "Done and not-done should read apart at a glance",
     doneBoth: "Fade + strike through", doneFade: "Fade only", doneStrike: "Strike through only", doneNone: "No change",
     saving: "Saving…", saveFailed: "Not saved. Your text is still here, press save again",
@@ -236,6 +247,11 @@ let 目前app = null;
    不然會出現「CSS 以為是手機、JS 以為是桌機」的半套版面。 */
 function 是窄螢幕() {
   try { return window.matchMedia("(max-width: 700px)").matches; }
+  catch (e) { return false; }
+}
+/* 真的只有一支手機那麼寬。⚠ 同樣要跟 styles.css 的 @media (max-width: 470px) 對齊。 */
+function 是很窄螢幕() {
+  try { return window.matchMedia("(max-width: 470px)").matches; }
   catch (e) { return false; }
 }
 function 是Mac() {
@@ -288,6 +304,11 @@ const 預設設定 = {
   跳轉_完成到未完成: true,
   跳轉_設回今日: true,
   跳轉_新增: true,
+  /* 按下「編輯」之後,那一張要停在畫面的哪裡。
+     原位 = 停在原本的高度,畫面完全不動(預設)
+     頂端 = 把那一列拉到看板上緣,長內容從第一行開始看
+     不動 = 交給瀏覽器 —— 內容一長它會把畫面拉到編修框底部 */
+  編輯位置: "原位",
   排序: "編修",          // 編修 = 最近新增/編修的排最上面(預設);顏色 = 日期 → 分類順序
   版本: 插件版本
 };
@@ -975,7 +996,9 @@ const 露幾則留言 = 2;      // 平常只露這麼多則,其餘收起來
      日期欄 112→110 ‧ 分類欄 78→72 ‧ 統計格 96→98 ‧ 格高 68→60
      動作留寬 150→145 ‧ 主題膠囊 22→24 ‧ 留言露 3→2 則 ‧ 反悔 3→2 秒 */
 const 格寬 = 98, 格高 = 60, 年格寬 = 98;
-const 分類欄寬 = 72, 主題高 = 24;
+const 主題高 = 24;
+/* 分類欄寬跟著語言走(T.分類欄寬):沒有指派人的卡片會在這一欄顯示「＋指派人」,
+   英文的 "+ Assignee" 比中文寬,寫死 72 會被切掉。 */
 /* ⚠ 日期欄寬度跟著語言走,放在字典裡(T.日期欄寬)。
    中文的「26-09-12(六)」剛好塞得進 110,英文的星期是三個字母,
    「26-09-12(Sat)」要 115 才不會被切掉 —— 以前寫死 110,英文介面的日期左右都被削掉一塊。 */
@@ -2205,7 +2228,11 @@ class 看板視圖 extends TextFileView {
          ② 右欄**永遠不准 wrap** —— 分類和指派人是一組,擠不下就讓標籤出省略號,
             絕對不可以變成上下兩行(外層那一圈 wrap 還在,窄螢幕時整組會掉到下一列,
             那個才是我們要的換行)。 */
-    const 列間隔 = 8, 右欄寬 = 196;
+    /* 右欄要裝得下「分類 + 指派人」兩個框,而且兩種語言都不能換行。
+       下限是英文的 Section(73) + 間隔(8) + Assignee(101) = 182,所以 186 是貼著底線的值。
+       ⚠ 要再調小之前先量:styles.css 那邊有 .tk-欄框 標籤的省略號當保險,
+         但標籤一旦開始出現「…」就代表這裡已經過窄了。 */
+    const 列間隔 = 8, 右欄寬 = 186;
     const 左群 = "display:flex;gap:" + 列間隔 + "px;align-items:stretch;flex-wrap:wrap;" +
       "flex:1 1 250px;min-width:0;max-width:100%;";
     const 右群 = "display:flex;gap:" + 列間隔 + "px;align-items:stretch;flex-wrap:nowrap;" +
@@ -2222,7 +2249,10 @@ class 看板視圖 extends TextFileView {
 
     // 第一列左群:主題 + 常用主題
     const 第一左 = 主題行.createDiv(); 第一左.addClass("tk-群"); st(第一左, 左群);
-    const 題框 = this.建框(第一左, T.topic, "flex:1 1 130px;min-width:104px;");
+    /* ⚠ flex-grow 給 0:主題框只要放得下一行標題就夠了,不需要跟著視窗一起長。
+       它會長大的話,右邊的「常用主題」就只剩一半,能露出來的主題膠囊變很少 ——
+       而那一排才是真正每天在點的東西。 */
+    const 題框 = this.建框(第一左, T.topic, "flex:0 1 196px;min-width:96px;");
     題框.parentElement.addClass("tk-主題框");
     st(題框, "display:flex;align-items:center;width:100%;");
     /* ⚠ 主題框同時就是搜尋框(準則:同一個功能只給一個入口)——
@@ -2384,7 +2414,7 @@ class 看板視圖 extends TextFileView {
     const 有人 = !!選.value;
     const pc = 有人 ? this.插件.人色(選.value) : null;
     st(選, "padding:3px 6px;font-size:0.85em;border-radius:5px;cursor:pointer;" +
-      "flex:1 1 auto;min-width:0;width:100%;" +
+      "flex:1 1 auto;min-width:0;width:100%;max-width:96px;" +
       (有人 ? "font-weight:700;color:" + pc + ";border:1px solid " + pc + ";" : ""));
     選.onchange = () => {
       s.新指派 = 選.value || null;
@@ -2821,8 +2851,8 @@ class 看板視圖 extends TextFileView {
     // 融合模式:每一列最前面多一個勾選欄(把「完成」勾選換掉,兩個勾選並排會分不清在勾什麼)
     const 欄們 = this.狀態.融合中
       ? [[T.mergeCol, "40px", "center"], [T.colDate, T.日期欄寬 + "px", "center"],
-         [T.colSection, 分類欄寬 + "px", "center"], [T.colBody, "", "left"]]
-      : [[T.colDate, T.日期欄寬 + "px", "center"], [T.colSection, 分類欄寬 + "px", "center"],
+         [T.colSection, T.分類欄寬 + "px", "center"], [T.colBody, "", "left"]]
+      : [[T.colDate, T.日期欄寬 + "px", "center"], [T.colSection, T.分類欄寬 + "px", "center"],
          [T.colBody, "", "left"]];
     欄們.forEach(([字, 寬, 對]) => {
         const th = 頭列.createEl("th", { text: 字 });
@@ -2856,7 +2886,10 @@ class 看板視圖 extends TextFileView {
     const 表 = 身外.createEl("table");
     st(表, "width:100%;margin:0;table-layout:fixed;border-collapse:collapse;font-size:1.02em;");
     const 頭列 = 表.createEl("thead").createEl("tr");
-    [[T.fillDate, "100px", "center"], [T.colSection, 分類欄寬 + "px", "center"], [T.colBody, "", "left"]]
+    /* 補日期欄:鈕變小了,欄寬跟著收 —— 100px 的空欄在畫面上只是一塊空白。
+       ⚠ 寬度要跟著語言走:「設為今日」四個中文字比 "Move to today" 短得多,
+         寫死一個數字一定會有一邊被切掉(1.4.3 就先切到英文那邊)。 */
+    [[T.fillDate, T.補日期欄寬 + "px", "center"], [T.colSection, T.分類欄寬 + "px", "center"], [T.colBody, "", "left"]]
       .forEach(([字, 寬, 對]) => {
         const th = 頭列.createEl("th", { text: 字 });
         st(th, "text-align:" + 對 + ";padding:6px 8px;white-space:nowrap;" +
@@ -2920,6 +2953,37 @@ class 看板視圖 extends TextFileView {
     出.onclick = (e) => this.開輸出選單(e);
   }
 
+  /* 真手機寬度:一張卡片右上角只留一顆「⋯」,裡面是封存 / 留言 / 刪除。 */
+  畫卡片工具選單(盒, k, 已封存, 具樣) {
+    const T = this.T, s = this.狀態;
+    const 更 = 膠囊(盒, "");
+    st(更, 具樣("var(--text-muted)"));
+    圖(更, "ellipsis", 14);
+    更.title = T.tools;
+    更.onclick = (e) => {
+      e.stopPropagation();
+      const m = new Menu();
+      m.addItem((i) => i
+        .setTitle(已封存 ? T.unarchive : T.archive)
+        .setIcon(已封存 ? "archive-restore" : "archive")
+        .onClick(async () => { await this.切封存(k, 已封存); }));
+      if (已封存) {
+        m.addSeparator();
+        m.addItem((i) => i.setTitle(T.deleteCard).setIcon("trash-2")
+          .onClick(() => this.問刪除(k)));
+      } else {
+        m.addItem((i) => i.setTitle(T.comment).setIcon("message-square")
+          .onClick(async () => {
+            if (s.編修) await this.收掉編修();   // 編修框要被換掉了,先把字寫進去
+            s.寫留言 = (s.寫留言 === k.鍵) ? null : k.鍵;
+            s.編修 = null;
+            this.重畫清單();
+          }));
+      }
+      m.showAtMouseEvent(e);
+    };
+  }
+
   /* 窄螢幕的工具列:一顆「⋯」裝下全部。
      ⚠ 排序在這裡不是下拉而是三個帶勾的選項 —— 選單裡再塞一個 <select> 很難按。 */
   畫工具選單(群) {
@@ -2956,7 +3020,6 @@ class 看板視圖 extends TextFileView {
   }
 
   畫融合勾(格, k) {
-    st(格, "padding:7px 4px;vertical-align:middle;text-align:center;");
     const box = 格.createEl("input", { type: "checkbox" });
     box.checked = !!this.狀態.融合選[k.鍵];
     box.onclick = (e) => {
@@ -3096,8 +3159,10 @@ class 看板視圖 extends TextFileView {
     欄.push(["內容", "left", (格) => this.畫內文(格, k, 列)]);
     欄.forEach(([名, 對, 產]) => {
       const 格 = 列.createEl("td");
-      格.setAttribute("data-col", 名);       // 窄螢幕堆疊時當欄位標籤用
-      st(格, "padding:7px 8px;vertical-align:top;text-align:" + 對 + ";");
+      /* 窄螢幕堆疊時當欄位標籤用,而且 1.4.3 起**每一格的 padding 和對齊都靠它挑**
+         —— 不要再用 st() 寫成 inline style(見 styles.css 的 td[data-col]),
+         inline 會讓窄螢幕只能用 !important 去蓋。 */
+      格.setAttribute("data-col", 名);
       產(格);
     });
     this.掛色條(列, k);                       // 分類色線永遠貼在整列最前面那格的左緣
@@ -3127,10 +3192,10 @@ class 看板視圖 extends TextFileView {
   /* ---- 日期欄:置頂鈕釘在左上角,日期置中,逾期多一顆「設為今日」 ---- */
   畫日期格(格, k, 列) {
     const T = this.T;
-    st(格, "padding:7px 6px;vertical-align:middle;text-align:center;position:relative;");
+    // padding / 對齊 / position 都在 styles.css 的 td[data-col='日期']
     // 📌 用絕對定位鎖死在左上角 —— 單日/區間、有沒有「設為今日」,它都待在同一個位置
     const 釘列 = 格.createDiv();
-    st(釘列, "height:19px;");
+    釘列.addClass("tk-釘列");     // 高度在 styles.css —— 別寫成 inline,窄螢幕要蓋掉它
     const 釘 = 釘列.createDiv();
     釘.addClass("tk-釘");
     /* ⚠ 沒置頂的也要看得到,只是淡淡的 —— 全部藏起來的話,
@@ -3143,8 +3208,10 @@ class 看板視圖 extends TextFileView {
     釘.title = k.置頂 ? T.unpin : T.pin;
     釘.onclick = (e) => { e.stopPropagation(); this.切置頂(k); };
 
+    /* ⚠ 字級 0.8 不是隨便挑的:日期欄是 110px,扣掉格子和盒子的 padding 只剩 90px,
+       而 0.88em 的「26-09-13(日)」量出來 95px —— 會貼著框、英文的 (Wed) 更擠。 */
     const 醒目 = (日) => "font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.35;" +
-      "font-size:0.88em;font-weight:600;text-align:center;" +
+      "font-size:0.8em;font-weight:600;text-align:center;" +
       (日 === this.今 ? "color:var(--text-accent);" : "");
     const 盒 = 格.createDiv();
     盒.addClass("tk-date");
@@ -3164,6 +3231,10 @@ class 看板視圖 extends TextFileView {
     }
     if (k.循環 && !k.完成) {
       const 排 = 格.createDiv();
+      /* ⚠ class 一定要加。窄螢幕靠 order 排卡片,沒有 class 就拿不到 order(=0),
+         這一排會排到日期**前面**去 —— 循環卡片的日期位置就跟其他卡片對不齊。
+         (styles.css 裡的 .tk-循排 在 1.4.3 之前一直是死規則,就是因為這裡沒掛。) */
+      排.addClass("tk-循排");
       st(排, "margin-top:5px;display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;");
       /* 循環膠囊:圓框中間一點(circle-dot)+ 每N週。點下去就是改循環的面板。
          ⚠ 以前這裡只有一顆「延」,看不出這張是循環卡、也看不出隔多久一次,
@@ -3189,7 +3260,11 @@ class 看板視圖 extends TextFileView {
     if (this.是逾期(k)) {
       const 今鈕 = 膠囊(格, T.setToday);
       今鈕.addClass("tk-日鈕");
-      st(今鈕, "margin-top:5px;font-size:0.66em;height:19px;min-height:0;padding:0 7px;" +
+      /* ⚠ 膠囊() 建的是 div,是 block-level。掛在 flex 容器裡會自己縮成內容寬,
+         但這一顆的父層是 <td>,不指定就直接撐滿整欄(量到 97px / 110px 欄)——
+         那看起來就是一個大框,而不是一顆小標籤。 */
+      st(今鈕, "display:inline-flex;align-items:center;justify-content:center;width:auto;" +
+        "margin-top:5px;font-size:0.66em;height:19px;min-height:0;padding:0 7px;" +
         "border-radius:9px;cursor:pointer;box-shadow:none;white-space:nowrap;" +
         "color:var(--color-red, #e05252);" +
         "border:1px solid var(--color-red, #e05252);");
@@ -3214,9 +3289,12 @@ class 看板視圖 extends TextFileView {
   // 「未寫日期」表專用的第一欄:一顆「設為今日」,按了就排進今天
   畫補日期格(格, k) {
     const T = this.T;
-    st(格, "padding:7px 6px;vertical-align:middle;text-align:center;");
+    /* ⚠ 這顆不要做大。它只是「補一個日期」的捷徑,做成一顆顯眼的大鈕之後,
+       整欄看起來像是這張表最重要的東西 —— 尺寸跟逾期那顆(tk-日鈕)對齊就好。 */
     const 鈕 = 膠囊(格, T.setToday);
-    st(鈕, "font-size:0.7em;height:22px;min-height:0;padding:0 9px;border-radius:11px;" +
+    // 同上:膠囊是 div,不指定 inline-flex 就會撐滿整個 <td>
+    st(鈕, "display:inline-flex;align-items:center;justify-content:center;width:auto;" +
+      "font-size:0.66em;height:19px;min-height:0;padding:0 7px;border-radius:9px;" +
       "cursor:pointer;box-shadow:none;white-space:nowrap;" +
       "color:var(--text-accent);border:1px solid var(--text-accent);");
     鈕.title = "把這張排進今天(" + this.今 + ")";
@@ -3240,7 +3318,6 @@ class 看板視圖 extends TextFileView {
      格子一矮(卡片只有一行的時候)那一層就壓到中間的完成圓點上。
      上下排 + gap 就不會有這個問題,而且圓點永遠在正中間。 */
   畫分類格(格, k, 列) {
-    st(格, "padding:7px 6px;vertical-align:middle;text-align:center;");
     const 盒 = 格.createDiv();
     st(盒, "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
       "gap:5px;width:100%;min-height:48px;");
@@ -3336,7 +3413,10 @@ class 看板視圖 extends TextFileView {
       st(空, "cursor:pointer;color:var(--text-faint);opacity:0.35;font-size:0.72em;" +
         "padding:0 4px;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;");
       圖(空, "plus", 11);
-      空.createSpan({ text: T.assignee });
+      /* 字掛 class:真手機寬度會把它收掉,只留 ＋ 圖示。
+         「＋ 指派人」比一個名字寬,會把卡片右上角的「⋯」擠到第二行,
+         而有指派人的卡片不會 —— 同一份清單裡版位就對不齊了。 */
+      空.createSpan({ text: T.assignee, cls: "tk-無人字" });
       空.onmouseenter = () => { 空.style.opacity = "1"; };
       空.onmouseleave = () => { 空.style.opacity = "0.35"; };
       空.onclick = (e) => { e.stopPropagation(); this.改指派(e, k); };
@@ -3348,7 +3428,6 @@ class 看板視圖 extends TextFileView {
   畫內文(格, k, 列) {
     const T = this.T, s = this.狀態;
     格.empty();
-    st(格, "padding:7px 8px;vertical-align:top;text-align:left;");
     const 上排 = 格.createDiv();
     上排.addClass("tk-上排");
     st(上排, "display:flex;align-items:flex-start;gap:6px;");
@@ -3514,10 +3593,25 @@ class 看板視圖 extends TextFileView {
         if (this.編修卡 && this.編修卡.鍵 !== k.鍵) { await this.收掉編修(); this.畫(); }
         s.編修 = k.鍵; s.寫留言 = null;
         this.編修卡 = k;
+        /* ⚠⚠ 先記住這一列現在在畫面的哪個高度,重畫完再調回去。
+           編修框是 textarea 撐出來的,內容一長它就從兩行變成二十行;
+           Chromium 看到「正在聚焦而且剛剛變高」的元素,會自己把它捲進畫面 ——
+           實測:捲動位置 584 → 834,那一列的頂端從 +243 被推到 -7,
+           使用者看到的就是「一按編輯,畫面跳到卡片最下面」。 */
+        const 列 = (e.currentTarget && e.currentTarget.closest) ? e.currentTarget.closest("tr") : null;
+        const 原頂 = 列 ? Math.round(列.getBoundingClientRect().top - this.contentEl.getBoundingClientRect().top) : null;
         this.就地重畫(e, k);          // ⚠ 只換那一格 —— 重畫整份清單會讓畫面自己跳走
+        this.編修就位(k.鍵, 原頂);
       };
       return;
     }
+
+    /* ⚠ 真手機寬度:封存和留言收進一顆「⋯」,釘在卡片右上角。
+       兩顆(封存的卡片是三顆)26px 的鈕排在日期和指派人旁邊,在 300 出頭的板子上
+       會把那一行擠到換行,而且每張卡片擠的位置還不一樣 —— 版位就散了。
+       ⚠ 選單裡的封存不再做「按兩次確認」。那個確認是為了「手滑點到旁邊的小鈕」,
+         而從選單裡選一項本來就是兩步,而且封存可回復(取消封存就在同一個選單)。 */
+    if (是很窄螢幕()) { this.畫卡片工具選單(盒, k, 已封存, 具樣); return; }
 
     /* ⚠ 1.2 拿掉了編修時的「取消」。隨打隨存之後,取消是一句謊話 ——
        字早就寫進檔案了,按下去也退不回來。真正的退路是那顆「復原」。 */
@@ -3970,6 +4064,31 @@ class 看板視圖 extends TextFileView {
     st(取, "padding:1px 7px;font-size:0.72em;line-height:1.5;cursor:pointer;flex:0 0 auto;box-shadow:none;");
     取.onclick = (ev) => { ev.stopPropagation(); this.畫(); };
   }
+  /* 進入編修之後,把那一列拉回該在的位置。
+     設定「編輯位置」決定該在哪:
+       原位(預設)= 停在按下編輯之前的那個高度,畫面完全不動
+       頂端      = 把那一列的頂端貼到看板上緣,長內容從第一行開始看
+       不動      = 什麼都不做,交給瀏覽器(1.4.3 之前的行為)
+     ⚠ 要連續校正好幾幀,不能只調一次:撐高、聚焦、瀏覽器把聚焦元素捲進畫面
+       這三件事不在同一幀發生,只調一次會被後面那一下蓋掉(實測是在 150–250ms 之間)。 */
+  編修就位(鍵, 原頂) {
+    const 模式 = this.插件.設定.編輯位置 || "原位";
+    if (模式 === "不動" || 原頂 === null || 原頂 === undefined) return;
+    const 目標 = (模式 === "頂端") ? 6 : 原頂;
+    const ce = this.contentEl;
+    const 截止 = Date.now() + 500;
+    const 調 = () => {
+      if (!ce || !ce.isConnected) return;
+      const 列 = this.找列(鍵);
+      if (列) {
+        const 差 = Math.round(列.getBoundingClientRect().top - ce.getBoundingClientRect().top - 目標);
+        if (差) ce.scrollTop += 差;
+      }
+      if (Date.now() < 截止) window.requestAnimationFrame(調);
+    };
+    window.requestAnimationFrame(調);
+  }
+
   /* 只重畫「這一張卡片的內容欄」,不動整份清單。
      按編輯 / 開留言框都走這裡 —— 重畫整份清單會讓捲動位置對不回去,
      看起來就是「按了編輯畫面自己跳走」。 */
@@ -5010,6 +5129,15 @@ class 設定頁 extends PluginSettingTab {
         .addToggle(t => t.setValue(this.插件.設定[k] !== false)
           .onChange(async (v) => { this.插件.設定[k] = v; await this.插件.存設定(); }));
     });
+
+    new Setting(c).setName(T.editPos).setDesc(T.editPosDesc)
+      .addDropdown(d => {
+        d.addOption("原位", T.editPosKeep);
+        d.addOption("頂端", T.editPosTop);
+        d.addOption("不動", T.editPosNone);
+        d.setValue(this.插件.設定.編輯位置 || "原位");
+        d.onChange(async (v) => { this.插件.設定.編輯位置 = v; await this.插件.存設定(); });
+      });
 
     c.createEl("p", { cls: "cjb-淡", text: T.board + " " + 插件版本 });
   }

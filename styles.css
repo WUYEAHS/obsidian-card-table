@@ -76,11 +76,48 @@
   overflow-wrap:anywhere;
   word-break:break-word;
 }
+/* ⚠ 1.4.3:格子的 padding / 對齊本來是 st() 一格一格寫成 inline style 的。
+   inline 贏過任何選擇器,所以窄螢幕要攤平就只能用 !important 去壓。
+   搬進 class 之後,窄螢幕那邊用同權重的選擇器就蓋得掉,不必再 !important。
+   ⚠ 每一欄的選擇器都帶 [data-col],權重要跟窄螢幕那邊一致,不然又會壓不過去。 */
+.tk-board tbody td[data-col] {
+  padding:7px 8px;
+  vertical-align:top;
+  text-align:left;
+}
+.tk-board tbody td[data-col='日期'],
+.tk-board tbody td[data-col='補日期'],
+.tk-board tbody td[data-col='分類'] {
+  padding:7px 6px;
+  vertical-align:middle;
+  text-align:center;
+}
+.tk-board tbody td[data-col='日期'] {
+  position:relative;
+}
+.tk-board tbody td[data-col='融合'] {
+  padding:7px 4px;
+  vertical-align:middle;
+  text-align:center;
+}
 .tk-board tbody tr:hover {
   background:var(--background-modifier-hover);
 }
 .tk-board tbody tr td:first-child {
   position:relative;
+}
+/* 📌 那一列的高度。⚠ 1.4.3 之前這是 st() 寫的 inline style,而且 main.js 根本沒把
+   `tk-釘列` 這個 class 加上去 —— 窄螢幕那條對應的規則因此一直是死的。 */
+.tk-board .tk-釘列 {
+  height:19px;
+}
+/* ⚠ 指派人的下拉本來吃 Obsidian 的預設高度 32px,而同一排的主題輸入框 24、
+   分類圓點 22、常用主題膠囊 20 —— 它一個人把整排撐到 61px,
+   於是圓點和膠囊在各自的框裡都偏上,看起來像沒對齊。拉成 24 跟主題輸入框一致。
+   (窄螢幕要留回 32px 的點擊面積,在下面的 media query 裡改回去。) */
+.tk-board .tk-指派框 select {
+  height:24px;
+  min-height:0;
 }
 .tk-board .tk-色條 {
   position:absolute;
@@ -99,10 +136,12 @@
   overflow:clip;
   overscroll-behavior:contain;
 }
+/* ⚠ 1.4.3 拿掉了 `scrollbar-width:none`。它跟底下那條 ::-webkit-scrollbar 做同一件事,
+   而 Obsidian 只跑在 Chromium 上,webkit 那條一定吃得到 —— 留著是多的,
+   而且 scrollbar-width 在審核的相容性檢查裡會被標成「部分支援」。 */
 .tk-board textarea {
   overflow:hidden;
   overflow-y:hidden;
-  scrollbar-width:none;
 }
 .tk-board textarea::-webkit-scrollbar {
   display:none;
@@ -215,6 +254,12 @@
 }
 .tk-board table {
   border:0;
+  /* ⚠ 窄螢幕的 table 已經是 display:block,collapse 沒有意義了,
+     但只要它還在,儲存格的 border 就會去跟「列」的邊框合併 ——
+     列在這裡是卡片的外框(1px),於是每個儲存格都報出半條 0.5px 的框,
+     卡片裡就多了幾道看不出從哪來的細線。改成 separate 把這條路整個切掉。 */
+  border-collapse:separate;
+  border-spacing:0;
 }
 .tk-board thead {
   display:none;
@@ -234,12 +279,25 @@
 .tk-board tbody tr.tk-todo {
   border-left-color:var(--tk-sec, var(--background-modifier-border));
 }
-.tk-board tbody td {
+/* padding / 對齊:1.4.3 把它們從 inline style 搬進 class 之後,
+   這裡用同權重(帶 [data-col])的選擇器就蓋得掉,不必再 !important。 */
+.tk-board tbody tr td,
+.tk-board tbody tr td[data-col] {
   display:block;
-  padding:0 !important;
+  padding:0;
+  text-align:left;
+  vertical-align:middle;
+}
+/* ⚠⚠ border 的 !important **拿不掉**,而且理由跟 inline style 無關:
+   佈景主題會畫表格的欄位分隔線。實測踩到的是
+     `.col-lines table:not(.calendar) tbody > tr > td:not(:last-child)`
+   權重 (0,3,4),比這裡任何合理的選擇器都高。
+   窄螢幕的「表格」已經攤平成一張張卡片,那幾條欄位線會變成卡片裡莫名其妙的細線。
+   審核建議「用提高權重取代 !important」在這一條行不通 ——
+   使用者裝什麼主題我們事先不知道,沒有一個權重是保證夠高的。 */
+.tk-board tbody tr td,
+.tk-board tbody tr td[data-col] {
   border:0 !important;
-  text-align:left !important;
-  vertical-align:middle !important;
 }
 .tk-board tbody td[data-col]:before {
   content:none !important;
@@ -261,34 +319,37 @@
 .tk-board .tk-釘列 {
   order:0;
   flex:0 0 auto;
-  height:auto !important;
-  margin:0 !important;
-  padding:0 !important;
+  height:auto;
+  margin:0;
+  padding:0;
 }
 .tk-board .tk-釘 {
   opacity:1 !important;
 }
-.tk-board tbody td[data-col='分類'] {
-  order:1;
-  flex:0 0 auto;
-  width:auto;
-  padding-left:0 !important;
-  border-left:0 !important;
-}
-.tk-board tbody td[data-col='分類'] > div {
-  flex-direction:row !important;
-  gap:7px !important;
-  min-height:0 !important;
-}
+/* ============================================================
+   窄螢幕的卡片版位 —— 每一塊都有固定的位置,不要讓內容長短去決定順序
+   ------------------------------------------------------------
+   第一行: 📌 · 日期 · 循環/補日期 · ⭕指派人 ......... 訊息 · 動作
+   第二行: 主題(獨佔一整行)
+   之後  : 留言 / 內容
+
+   ⚠ 日期排在指派人**前面**。反過來的話,指派人名字長短會推著日期跑,
+     每張卡片的日期都在不同的 x —— 掃過一整排卡片時完全對不齊。
+     日期是這個外掛的主軸,它要永遠在同一個位置。
+   ⚠ 主題用 flex:1 1 100% 強制自己獨佔一行。之前它是 flex:0 1 auto,
+     所以短主題會跟日期擠在第一行、長主題又被擠到第二行 —— 每張卡片長得都不一樣。
+   ============================================================ */
 .tk-board .tk-date {
-  order:2;
+  order:1;
   flex:0 0 auto;
   width:auto !important;
 }
+/* ⚠ 逾期卡片的「設為今日」在手機上收掉。點日期本來就會開日期編輯,同一件事不需要
+   兩個入口;而每張逾期卡片多一顆膠囊,整排卡片的高度就都不一樣。
+   ⚠「未寫日期」那一區的「補日期」**留著** —— 那一區沒有日期欄可以點,拿掉就沒入口了。
+   ⚠ 這裡的 !important 拿不掉:那顆鈕身上有 st() 寫的 inline display:inline-flex。 */
 .tk-board .tk-日鈕 {
-  order:2;
-  flex:0 0 auto;
-  margin-top:0 !important;
+  display:none !important;
 }
 .tk-board .tk-循排 {
   order:2;
@@ -298,8 +359,30 @@
   order:2;
   flex-direction:row !important;
 }
-.tk-board tbody td[data-col='距今'] {
+/* padding-left / border-left 不用再寫了 —— 上面那兩條通用的 td 規則已經蓋掉整組。
+   ⚠ 要能縮:指派人名字可以很長,不加上限它會把右邊那組動作鈕整個擠掉。 */
+.tk-board tbody td[data-col='分類'] {
   order:3;
+  flex:0 1 auto;
+  width:auto;
+  min-width:0;
+  max-width:44%;
+}
+.tk-board tbody td[data-col='分類'] > div {
+  flex-direction:row !important;
+  gap:7px !important;
+  min-height:0 !important;
+  min-width:0;
+}
+/* 名字太長就出省略號,不要推動別人 */
+.tk-board tbody td[data-col='分類'] > div > div {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tk-board tbody td[data-col='距今'] {
+  order:4;
   flex:0 0 auto;
 }
 /* ⚠⚠ 1.4.2 修:這裡漏了 !important(隔壁的 .tk-上排、.tk-文欄 都有)。
@@ -310,13 +393,16 @@
 .tk-board .tk-題行 {
   display:contents !important;
 }
+/* 主題:固定獨佔第二行。⚠ 不要改回 flex:0 1 auto —— 那會讓短主題黏在日期後面、
+   長主題掉到下一行,每張卡片的主題位置都不一樣。 */
 .tk-board .tk-題左 {
-  order:3;
-  flex:0 1 auto;
+  order:7;
+  flex:1 1 100%;
+  width:100%;
   min-width:0;
 }
 .tk-board .tk-題右 {
-  order:3;
+  order:7;
   flex:0 0 auto;
   margin-left:auto !important;
 }
@@ -330,8 +416,11 @@
 .tk-board .tk-留具 {
   opacity:1 !important;
 }
+/* ⚠ 留言和內容排在最後(8)。它們跟 tk-題訊 撞過號(都是 5),
+   結果 order:6 的「⋯」被排到內容後面 —— 跑到卡片最底下去了。
+   留區和內盒都給 8,誰先誰後交給 DOM 順序(留言在內容上方,那是原本的設計)。 */
 .tk-board .tk-留區, .tk-board .tk-寫位 {
-  order:5;
+  order:8;
   flex:1 1 100%;
   min-width:0;
   width:100%;
@@ -344,16 +433,30 @@
 }
 /* ⚠ tk-內盒 才是真正被排序的那一層(.tk-文區 在它裡面,隔了一層,order 寫了沒用)。 */
 .tk-board .tk-文區, .tk-board .tk-編盒, .tk-board .tk-內盒 {
-  order:5;
+  order:8;
   flex:1 1 100%;
   min-width:0;
   width:100%;
   margin-top:2px;
 }
-/* 標題那一行的三塊(主題 / 狀態小字 / 動作鈕)排在一起,不要散開 */
-.tk-board .tk-題訊, .tk-board .tk-題具 {
-  order:3;
+/* 狀態小字(留言數、最後動過)和動作鈕:固定貼在第一行的最右邊。
+   margin-left:auto 下在前面那一塊,兩塊就會一起被推到右邊並且保持相鄰。 */
+/* ⚠ margin-left:auto 要下在**最後那一塊**(動作鈕),不是下在它前面那塊。
+   auto margin 會把剩下的空白全部吃掉,下在 tk-題訊 上的話,
+   它後面的動作鈕就再也排不進這一行,只能換行 —— 「⋯」會掉到卡片左下角。 */
+/* ⚠ 這一塊(留言則數、最後動過的時間)要**可以被壓縮**。
+   它是第一行裡最不重要的東西,量出來整行只差 2px 就放得下 ——
+   不讓它縮的話,那 2px 會把右上角的「⋯」整顆擠到第二行去。 */
+.tk-board .tk-題訊 {
+  order:5;
+  flex:0 1 auto;
+  min-width:0;
+  overflow:hidden;
+}
+.tk-board .tk-題具 {
+  order:6;
   flex:0 0 auto;
+  margin-left:auto;
 }
 .tk-board tbody td[data-col='內容'] button {
   opacity:1 !important;
@@ -402,26 +505,35 @@
   flex:1 1 100% !important;
   width:100% !important;
   min-width:0 !important;
+  /* ⚠ 一定要能換行。整整一列在 520px 的面板上放得下三組(年 84 + 日 96 + 週月 118),
+     但真的手機只有 300 出頭 —— 放不下又不准換行,就會再被 overflow:hidden 裁掉一次。
+     允許換行之後,週/月 會自己掉到第二行並撐滿,而不是被切掉。 */
+  flex-wrap:wrap !important;
 }
+/* 年那一格:裡面是「◀ 2026 ▶」,量出來要 78,84 會差 3px 把箭頭切掉一點 */
 .tk-board .tk-期間格 > div:first-child {
-  flex:0 0 84px !important;
-  width:84px !important;
+  flex:0 0 92px !important;
+  width:92px !important;
 }
 .tk-board .tk-期間格 > div:nth-child(2) {
   flex:1 1 auto !important;
   width:auto !important;
   min-width:96px !important;
 }
-/* 週/月那一組本來是寫死 118px,一列獨佔之後讓它跟著長,按起來比較好按 */
+/* 週/月:放得下就跟年、日同一行,放不下就自己掉到第二行並撐滿整列 */
 .tk-board .tk-期間格 > div:nth-child(3) {
-  flex:1 1 auto !important;
+  flex:1 1 118px !important;
   width:auto !important;
   min-width:118px !important;
 }
+/* ⚠ 窄螢幕的排序:期間格(1) → 全部/已逾期、長期(4) → 工具(5) → 顯示格(6)。
+   「未完成／已完成／含封存」是**篩選開關**不是數字,把它排在最右邊、而且不給它長大,
+   中間那幾格數字才不會被推得偏右。1.4.3 之前它 order:2 排在最前面又 flex:1,
+   於是它最寬、而「全部／已逾期」被擠到中間偏右,看起來像沒對齊。 */
 .tk-board .tk-顯示格 {
-  order:2;
+  order:6;
   margin-left:0 !important;
-  flex:1 1 116px !important;
+  flex:0 1 124px !important;
 }
 .tk-board .tk-顯示格 > div {
   flex:1 1 auto !important;
@@ -472,9 +584,10 @@
   width:100% !important;
   min-width:0 !important;
 }
+/* ⚠ 不要寫死 62px —— 英文的 Section 放不進去會變成「Se…」。跟桌機一樣讓它跟著標籤走。 */
 .tk-board .tk-分類框 {
   order:3;
-  flex:0 0 62px !important;
+  flex:0 0 auto !important;
 }
 .tk-board .tk-指派框 {
   order:4;
@@ -518,6 +631,51 @@
 .tk-board select, .tk-board input[type=date] {
   min-height:32px;
 }
+/* 手機上點擊面積要回來 —— 桌機那條把它壓成 24 了 */
+.tk-board .tk-指派框 select {
+  height:32px;
+  min-height:32px;
+}
+}
+
+/* ============================================================
+   真正的手機寬度(不是分割面板)
+   ------------------------------------------------------------
+   700px 那一段是「窄」,這一段是「真的只有一支手機那麼寬」。
+   量出來的門檻:板子大約 380px 以下,
+   「未完成／已完成／含封存」+「全部／已逾期」+「長期」三格擠同一列,
+   中間那格只分到 56px,而它的內容要 102px —— 又被 overflow:hidden 裁掉。
+   所以這裡讓篩選開關自己佔一整列,三塊各自站好,彼此不搶。
+   ============================================================ */
+@media (max-width: 470px) {
+  /* ⚠ 卡片第一行固定成:📌 · 日期 · ⭕指派人 ......... ⋯
+     狀態小字(留言則數、最後動過的時間)在這個寬度收起來。
+     理由是 flex **先斷行、後壓縮**:量出來整行只差 2px,
+     有留言的卡片就把「⋯」擠到第二行,沒留言的又留在第一行 ——
+     同一份清單裡兩種卡片的右上角在不同位置,那比少看到一個數字更難用。
+     留言則數在下面的留言區本來就看得到,編輯時間是細節,手機上不值一個版位。
+     ⚠ !important 拿不掉:那一塊身上有 st() 寫的 inline display:flex。 */
+  .tk-board .tk-題訊 {
+    display:none !important;
+  }
+  /* 沒有指派人時的「＋ 指派人」只留 ＋,理由同上:它比一個名字寬,會擠掉「⋯」 */
+  .tk-board tbody td[data-col='分類'] .tk-無人字 {
+    display:none;
+  }
+  /* 循環那一排(每N週 · 延)排到主題那一行去,不要跟日期搶第一行的寬度 */
+  .tk-board .tk-循排 {
+    order:7;
+    margin-top:0 !important;
+  }
+  .tk-board .tk-顯示格 {
+    flex:1 1 100% !important;
+    width:100% !important;
+  }
+  /* 剩下兩格數字就對半分,不必再互相擠 */
+  .tk-board .tk-塊 .tk-統計格:not(.tk-期間格) {
+    flex:1 1 40% !important;
+    min-width:0 !important;
+  }
 }
 
 /* ============================================================
@@ -598,6 +756,34 @@
 @media (prefers-reduced-motion: reduce) {
   .tk-board tbody tr.tk-閃 > td::after { animation:none; opacity:0.16; }
 }
+/* ⚠⚠ 窄螢幕要把閃光整個搬到「列」上,不能留在格子上。
+   窄螢幕的 td 有好幾個是 `display:contents` —— 那種元素**不產生盒子**,
+   所以 `position:relative` 對它無效,它的 ::after 用 `inset:0` 就會往上找,
+   對齊到更外層那個有定位的祖先,結果整個畫面被蓋上一層高亮
+   (1.4.3 之前的「手機高亮會全部畫面都高亮」就是這個)。
+   列在窄螢幕是實實在在的一個卡片盒子,掛在它身上才對得準。 */
+@media (max-width: 700px) {
+  .tk-board tbody tr.tk-閃 > td::after { content:none; }
+  .tk-board tbody tr.tk-閃 > td { position:static; }
+  .tk-board tbody tr.tk-閃 { position:relative; }
+  .tk-board tbody tr.tk-閃::after {
+    content:"";
+    position:absolute; inset:0;
+    pointer-events:none;
+    background:var(--text-accent);
+    opacity:0;
+    border-radius:10px;
+    animation:tk-閃現 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  /* 減少動態的那條實線也一樣:格子沒有盒子,box-shadow 畫不出來 */
+  .tk-board tbody tr.tk-定位 > td { box-shadow:none; }
+  .tk-board tbody tr.tk-定位 {
+    box-shadow:inset 0 0 0 2px var(--text-accent);
+  }
+}
+@media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+  .tk-board tbody tr.tk-閃::after { animation:none; opacity:0.16; }
+}
 
 /* ============================================================
    1.0 新增
@@ -671,10 +857,11 @@
 .tk-board tbody tr.tk-完淡:hover > td { opacity:1; }
 .tk-board tbody tr.tk-完劃 .卡片內文,
 .tk-board tbody tr.tk-完劃 .tk-主題 {
+  /* ⚠ 1.4.3:本來是 text-decoration-color / -thickness 兩個 longhand,
+     用來讓刪除線比字淡一點。那兩個在審核的相容性檢查裡是「部分支援」,
+     而且它們只是修飾 —— 改用整列淡化(下面的 tk-完淡)就看得出做完了,
+     不差這條線的顏色。留 line-through 本身就夠。 */
   text-decoration:line-through;
-  /* 線本身要比字淡,不然整列看起來像被劃花了 */
-  text-decoration-color:color-mix(in srgb, currentColor 45%, transparent);
-  text-decoration-thickness:1px;
 }
 /* 留言不劃掉 —— 留言是「後來發生的事」,不會因為卡片做完就作廢 */
 .tk-board tbody tr.tk-完劃 .tk-留區 .卡片內文 { text-decoration:none; }

@@ -45,6 +45,23 @@ jobs:
             manifest.json
             styles.css
 
+      # release 沒有說明的話,使用者在更新清單上只看得到一個版本號。
+      # 從 CHANGELOG.md 撈這一版那一段;撈不到就退回 GitHub 自動產生的。
+      - name: Build release notes
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          if [ -f CHANGELOG.md ] && grep -q "^## $VERSION\$" CHANGELOG.md; then
+            awk -v v="## $VERSION" '
+              $0 == v { on = 1; next }
+              on && /^## / { exit }
+              on { print }
+            ' CHANGELOG.md > RELEASE_NOTES.md
+          fi
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "no CHANGELOG entry for $VERSION - falling back to generated notes"
+            rm -f RELEASE_NOTES.md
+          fi
+
       # ⚠ 一定要三個**獨立附件**。GitHub 自動附的 source zip 不算,
       #   Obsidian 不會去解壓縮。
       - name: Publish release
@@ -52,8 +69,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            # 已經建好的 release:只有撈得到說明才去改它,
+            # ⚠ 不要對 edit 用 --generate-notes,舊版 gh 沒有這個旗標。
+            if [ -f RELEASE_NOTES.md ]; then
+              gh release edit "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+            fi
             gh release upload "$GITHUB_REF_NAME" \
               main.js manifest.json styles.css --clobber
+          elif [ -f RELEASE_NOTES.md ]; then
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$GITHUB_REF_NAME" \
+              --notes-file RELEASE_NOTES.md \
+              main.js manifest.json styles.css
           else
             gh release create "$GITHUB_REF_NAME" \
               --title "$GITHUB_REF_NAME" \

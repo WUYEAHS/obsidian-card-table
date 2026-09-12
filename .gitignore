@@ -7,3 +7,9 @@ Thumbs.db
 
 # 如果之後加了打包流程才會用到
 node_modules/
+
+# 圖片壓縮工具下載回來的 zip —— 解開的檔案已經在 docs/ 裡了,不必再存一份
+docs/*.zip
+
+# 發版時由 CHANGELOG.md 產生,只活在 CI 裡
+RELEASE_NOTES.md

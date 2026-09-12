@@ -1,7 +1,7 @@
 {
   "id": "card-table",
   "name": "Card Table",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "minAppVersion": "1.6.0",
   "description": "Read one markdown note as a table of task cards. Inspired by the kanban table way of working, but dates, assignees, pins, comments and repeats all stay as plain text inside the note.",
   "author": "JJ",
