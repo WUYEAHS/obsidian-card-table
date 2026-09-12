@@ -1,5 +1,5 @@
 
-
+# Card Table
 Read one markdown note as a table of task cards.
 
 Inspired by the kanban table way of working — but there is no board file, no database and
@@ -10,8 +10,6 @@ and edit by hand.
 <img width="90%" alt="note-and-board" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
 <img width="90%" alt="note-and-board" src="https://github.com/user-attachments/assets/eda91189-0003-4d9f-a2c2-c552a8676c19" />
 
-
-# Card Table
 
 ```markdown
 ## 1
