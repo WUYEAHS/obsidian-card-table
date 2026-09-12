@@ -6,6 +6,9 @@ Inspired by the kanban table way of working — but there is no board file, no d
 no hidden index. Dates, assignees, pins, comments and repeats are all **plain text inside
 the note**. Turn the plugin off and the note is still an ordinary task list you can read
 and edit by hand.
+<img width="2474" height="1258" alt="note-and-board" src="https://github.com/user-attachments/assets/2c752d0d-fb0b-4290-bdfe-0b3100e4811e" />
+<img width="2474" height="1183" alt="board" src="https://github.com/user-attachments/assets/c5bfd542-c3cf-4f31-be48-fd76bbef9cc1" />
+
 
 ```markdown
 ## 1
