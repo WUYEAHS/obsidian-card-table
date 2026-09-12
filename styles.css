@@ -115,9 +115,12 @@
 .tk-board, .tk-board * {
   overflow-anchor:none;
 }
-.markdown-preview-view:has(.tk-board), .markdown-reading-view:has(.tk-board),.cm-scroller:has(.tk-board), .view-content:has(.tk-board) {
-  scrollbar-gutter:stable;
-}
+/* ⚠ 1.4.2 刪掉了這裡的四條 `:has(.tk-board)` 規則。
+   它們是 dataviewjs 時代的殘留 —— 那時候看板長在一篇「被渲染的筆記」裡面,
+   所以要去找外面那層 .markdown-preview-view / .cm-scroller 幫它留捲軸空間。
+   plugin 版沒有那一層:`.tk-board` **自己就是** `.view-content`,
+   實測那四個選擇器 match 到 0 個元素,而下面這條已經直接設在 .tk-board 上了。
+   `:has` 會讓瀏覽器對整棵樹做大範圍的樣式失效重算,留著只有成本沒有作用。 */
 .tk-board, .tk-board .tk-上排, .tk-board .tk-文區 {
   scrollbar-gutter:stable;
 }
@@ -201,7 +204,7 @@
      桌機版的排版有很大一部分是 main.js 的 st() **直接寫在元素上的 inline style**
      (text-align、padding、width、flex…)。inline style 贏過任何選擇器權重,
      所以窄螢幕要改掉它們,除了 !important 沒有別的辦法。
-   1.4.2 實測過:把整份 CSS 的 !important 全部拿掉,桌機版 0 處差異,
+   1.4.2 實測過:把整份 CSS 的 `!important` 全部拿掉,桌機版 0 處差異,
      窄螢幕版 193 處跑掉(display:contents 變 flex、text-align 從 left 變回 center …)。
    真正的解法是把那些 inline style 搬進 class,那是一次大改,不是這一版的事。
    ============================================================ */
@@ -355,10 +358,13 @@
 .tk-board tbody td[data-col='內容'] button {
   opacity:1 !important;
 }
+/* ⚠ 窄螢幕把「設為今日」收起來。它是逾期卡片才會出現的一顆膠囊,
+   在手機上會讓那一列多長一截、而且每張逾期卡片都多一顆,整片看起來很雜。
+   同樣的事在日期欄點一下就能做,所以這裡不必再放一顆。
+   (底下「未寫日期」那一區的「補日期」不受影響 —— 那是替沒有日期的卡片補上日期,
+    沒有別的入口,不能收。) */
 .tk-board tbody td[data-col='設為當日'] {
-  order:7;
-  flex:0 0 auto;
-  margin-top:5px;
+  display:none !important;
 }
 .tk-board .tk-date {
   display:flex;

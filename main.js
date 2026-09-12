@@ -97,7 +97,7 @@ const 字典 = {
     clearSearch: "清空主題和內容,回到平常的看板（Esc）",
     expandAll: "全部展開", collapseAll: "收回",
     sortEdited: "新增/編輯順序", sortColor: "分類顏色順序",
-    merge: "融合", mergeCol: "融合", mergeDo: "融合成一張",
+    tools: "更多功能", merge: "融合", mergeCol: "融合", mergeDo: "融合成一張",
     mergeHint: "勾好要合併的卡片（已選 N 張）", merged: "✓ N 張已合併成一張",
     exportWord: "輸出", exportPng: "長圖 PNG（白底）", exportPdf: "列印 / 存成 PDF（白底）",
     exporting: "輸出中…", exported: "✓ 已輸出", exportFail: "輸出失敗,改用「列印 / 存成 PDF」試試",
@@ -185,7 +185,7 @@ const 字典 = {
     clearSearch: "Clear title and body, back to the plain board (Esc)",
     expandAll: "Expand all", collapseAll: "Collapse",
     sortEdited: "Recently edited", sortColor: "Date then section",
-    merge: "Merge", mergeCol: "Merge", mergeDo: "Merge into one",
+    tools: "More", merge: "Merge", mergeCol: "Merge", mergeDo: "Merge into one",
     mergeHint: "Tick the cards to merge (N selected)", merged: "✓ Merged N cards into one",
     exportWord: "Export", exportPng: "Long image PNG (white)", exportPdf: "Print / save as PDF (white)",
     exporting: "Exporting…", exported: "✓ Exported", exportFail: "Export failed — try Print / save as PDF",
@@ -232,6 +232,12 @@ const 字典 = {
 /* onload 的時候放進來。快捷鍵要去問 app.hotkeyManager,而處理鍵盤的是一個
    掛在 window 上的普通函式,拿不到 this —— 所以這裡留一個給它用。 */
 let 目前app = null;
+/* 窄螢幕。⚠ 門檻要跟 styles.css 的 @media (max-width: 700px) **同一個數字**,
+   不然會出現「CSS 以為是手機、JS 以為是桌機」的半套版面。 */
+function 是窄螢幕() {
+  try { return window.matchMedia("(max-width: 700px)").matches; }
+  catch (e) { return false; }
+}
 function 是Mac() {
   try { return /mac|iphone|ipad/i.test(window.navigator.platform || window.navigator.userAgent || ""); }
   catch (e) { return false; }
@@ -2868,6 +2874,11 @@ class 看板視圖 extends TextFileView {
     st(群, "display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap;");
     群.onclick = (e) => e.stopPropagation();
 
+    /* ⚠ 窄螢幕:四顆工具鈕加一個下拉,接在「本日 26-09-12(六) 2 張」後面一定排不下,
+       於是折成第二排 —— 手機上那是一整行高度被一組不常按的東西吃掉。
+       全部收進一顆「⋯」。功能一個都沒少,只是換成選單。 */
+    if (是窄螢幕()) { this.畫工具選單(群); return; }
+
     const 展 = 群.createEl("button");
     st(展, "padding:2px 8px;font-size:0.74em;line-height:1.5;cursor:pointer;border-radius:6px;" +
       "white-space:nowrap;flex:0 0 auto;box-shadow:none;" +
@@ -2907,6 +2918,41 @@ class 看板視圖 extends TextFileView {
     圖鈕(出, "download", T.exportWord, 13);
     出.title = "把現在篩出來的這幾張輸出成圖或 PDF(白底,可以列印、可以傳給別人)";
     出.onclick = (e) => this.開輸出選單(e);
+  }
+
+  /* 窄螢幕的工具列:一顆「⋯」裝下全部。
+     ⚠ 排序在這裡不是下拉而是三個帶勾的選項 —— 選單裡再塞一個 <select> 很難按。 */
+  畫工具選單(群) {
+    const T = this.T, s = this.狀態, 設 = this.插件.設定;
+    const 鈕 = 群.createEl("button");
+    st(鈕, "padding:2px 10px;font-size:0.74em;line-height:1.5;cursor:pointer;border-radius:6px;" +
+      "white-space:nowrap;flex:0 0 auto;box-shadow:none;" +
+      ((s.展開全部 || s.融合中) ? "border:1px solid var(--text-accent);color:var(--text-accent);"
+                                : "color:var(--text-muted);"));
+    圖鈕(鈕, "ellipsis", "", 16);
+    鈕.title = T.tools;
+    鈕.onclick = (e) => {
+      e.stopPropagation();
+      const m = new Menu();
+      m.addItem((i) => i
+        .setTitle(s.展開全部 ? T.collapseAll : T.expandAll)
+        .setIcon(s.展開全部 ? "chevrons-down-up" : "chevrons-up-down")
+        .onClick(() => { s.展開全部 = !s.展開全部; s.展開 = {}; this.重畫清單(); }));
+      m.addSeparator();
+      [["編修", T.sortEdited], ["顏色", T.sortColor], ["檔案", T.sortFile]].forEach(([v, t]) => {
+        m.addItem((i) => i
+          .setTitle(t)
+          .setChecked(設.排序 === v || (v === "編修" && ["顏色", "檔案"].indexOf(設.排序) < 0))
+          .onClick(async () => { 設.排序 = v; await this.插件.存設定(); this.重畫清單(); }));
+      });
+      m.addSeparator();
+      m.addItem((i) => i
+        .setTitle(T.merge).setIcon("git-merge").setChecked(!!s.融合中)
+        .onClick(() => { s.融合中 = !s.融合中; s.融合選 = {}; this.重畫清單(); }));
+      m.addItem((i) => i.setTitle(T.exportPng).setIcon("image").onClick(() => this.輸出(true)));
+      m.addItem((i) => i.setTitle(T.exportPdf).setIcon("printer").onClick(() => this.輸出(false)));
+      m.showAtMouseEvent(e);
+    };
   }
 
   畫融合勾(格, k) {
