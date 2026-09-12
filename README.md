@@ -7,8 +7,8 @@ no hidden index. Dates, assignees, pins, comments and repeats are all **plain te
 the note**. Turn the plugin off and the note is still an ordinary task list you can read
 and edit by hand.
 
-<img width="50%" alt="note-and-board" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
-<img width="50%" alt="note-and-board" src="https://github.com/user-attachments/assets/eda91189-0003-4d9f-a2c2-c552a8676c19" />
+<img width="80%" alt="note-and-board" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
+<img width="80%" alt="note-and-board" src="https://github.com/user-attachments/assets/eda91189-0003-4d9f-a2c2-c552a8676c19" />
 
 
 # Card Table
