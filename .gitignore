@@ -1,0 +1,9 @@
+# Obsidian 會在外掛資料夾裡放這一個,那是「你這台電腦的設定」,不是程式碼
+data.json
+
+# 系統垃圾
+.DS_Store
+Thumbs.db
+
+# 如果之後加了打包流程才會用到
+node_modules/

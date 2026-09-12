@@ -1,2 +1,2 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# 一律用 LF。plugin 會被複製進各平台的 vault,不要讓 Windows checkout 翻成 CRLF
+* text=auto eol=lf
