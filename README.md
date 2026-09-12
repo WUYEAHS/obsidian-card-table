@@ -66,16 +66,27 @@ A brand new board file gets five sections (`## 1` … `## 5`) created for you.
 
 ### Keyboard
 
+Formatting keys are **your own**. Editing a card uses whatever you have bound in
+Settings → Hotkeys, so it behaves exactly like typing in any other note — rebind
+`Toggle bold` and the card editor follows. Commands you have not bound do nothing
+here either.
+
+| Obsidian command | Inserts |
+| --- | --- |
+| Toggle bold | `**text**` |
+| Toggle italic | `*text*` |
+| Toggle highlight | `==text==` |
+| Toggle code | `` `text` `` |
+| Toggle strikethrough | `~~text~~` |
+| Add internal link | `[[text]]` |
+| Insert Markdown link | `[text]()` |
+
+The card editor's own keys:
+
 | Key | Does |
 | --- | --- |
-| `Ctrl/Cmd + B` | Bold |
-| `Ctrl/Cmd + I` | Italic |
-| `Ctrl/Cmd + K` | `[[note link]]` |
-| `Ctrl/Cmd + Shift + H` | Highlight |
-| `Ctrl/Cmd + Shift + E` | Inline code |
-| `Ctrl/Cmd + Shift + X` | Strikethrough |
 | `Enter` | New line |
-| `Shift + Enter` / `Esc` | Done editing |
+| `Shift + Enter` / `Ctrl/Cmd + Enter` / `Esc` | Done editing |
 
 ## The text format
 

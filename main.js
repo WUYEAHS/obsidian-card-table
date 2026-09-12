@@ -25,8 +25,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Workspace
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260912v2";
-const 插件版本 = "1.4.0";
+const 看板版本 = "260912v3";
+const 插件版本 = "1.4.1";
 
 /* ============================================================
    語言 —— 只有兩份對照表,要加語言就再加一份
@@ -50,7 +50,7 @@ const 字典 = {
     conflict: "偵測到同步衝突檔",
     saved: "已存檔",
     add: "新增", added: "✓ 已新增", submit: "送出", submitHint: "⌘/Ctrl + Enter 也可以送出",
-    newTitle: "主題（可留空）", newBody: "內容…第一行就是卡片上那一行", newPerson: "新的名字",
+    newPerson: "新的名字",
     needSomething: "主題和內容至少要有一個",
     dToday: "今天", dTomorrow: "明天", dNextWeek: "下週", rangeHint: "要做一段區間才填第二個日期",
     noDate: "未定", undated: "未排期", archived: "封存", archive: "封存", unarchive: "取消封存",
@@ -134,7 +134,7 @@ const 字典 = {
     conflict: "Sync conflict file detected",
     saved: "Saved",
     add: "New", added: "✓ Added", submit: "Add", submitHint: "⌘/Ctrl + Enter also submits",
-    newTitle: "Title (optional)", newBody: "Body — the first line shows on the card", newPerson: "New name",
+    newPerson: "New name",
     needSomething: "Give it a title or some content",
     dToday: "Today", dTomorrow: "Tomorrow", dNextWeek: "Next week", rangeHint: "Second date only for a range",
     noDate: "—", undated: "Undated", archived: "Archived", archive: "Archive", unarchive: "Unarchive",
@@ -201,6 +201,14 @@ const 字典 = {
     onlyFive: "Showing the first five sections"
   }
 };
+/* onload 的時候放進來。快捷鍵要去問 app.hotkeyManager,而處理鍵盤的是一個
+   掛在 window 上的普通函式,拿不到 this —— 所以這裡留一個給它用。 */
+let 目前app = null;
+function 是Mac() {
+  try { return /mac|iphone|ipad/i.test(window.navigator.platform || window.navigator.userAgent || ""); }
+  catch (e) { return false; }
+}
+
 let 語言設定 = "auto";      // auto = 跟著 Obsidian;也可以強制 zh-TW / en
 function 語() {
   if (語言設定 === "zh-TW" || 語言設定 === "en") return 字典[語言設定];
@@ -1002,7 +1010,7 @@ function 膠囊(容器, 文) {
    跟 Obsidian 一樣是 toggle:選起來按第二次會把記號拆掉。
    ⚠ 一定要 preventDefault + stopImmediatePropagation —— 不然 Obsidian 自己的
      Ctrl+B / Ctrl+K 也會收到同一個按鍵,結果變成「粗體記號插了兩次」或跳出它的連結視窗。 */
-function 包起來(ta, 左, 右) {
+function 包起來(ta, 左, 右, 游標尾) {
   const a = ta.selectionStart, b = ta.selectionEnd;
   const 選 = ta.value.slice(a, b);
   const 前 = ta.value.slice(0, a), 後 = ta.value.slice(b);
@@ -1020,6 +1028,11 @@ function 包起來(ta, 左, 右) {
   }
   ta.value = 前 + 左 + 選 + 右 + 後;
   if (a === b) { ta.selectionStart = ta.selectionEnd = a + 左.length; }     // 沒選字就把游標放中間
+  else if (游標尾) {
+    // 連結那一種:包完游標要跳進括號裡(`[選起來的字](|)`),不是把字再選一次
+    const p = ta.value.length - 後.length - 游標尾;
+    ta.selectionStart = ta.selectionEnd = p;
+  }
   else { ta.selectionStart = a + 左.length; ta.selectionEnd = b + 左.length; }
 }
 /* ⚠⚠⚠ 這裡錯過兩次,把原因寫死在這裡免得再犯。
@@ -1031,28 +1044,97 @@ function 包起來(ta, 左, 右) {
    e.code 是實體鍵位("KeyB"),不管什麼輸入法、什麼語言都一樣。
    同理:**不可以**因為 keyCode === 229 就直接 return —— 那是給「正在拼字」用的判斷,
    按著 Ctrl 的組合鍵不是在拼字。只擋 e.isComposing 就好。 */
-const md快捷 = [
-  ["KeyB", false, "**", "**"],
-  ["KeyI", false, "*", "*"],
-  ["KeyK", false, "[[", "]]"],
-  ["KeyH", true, "==", "=="],
-  ["KeyE", true, "`", "`"],
-  ["KeyX", true, "~~", "~~"]
+/* ⚠⚠⚠ 1.4.1:快捷鍵**不可以寫死**,要讀這一台 Obsidian 自己的設定。
+   1.4 以前這裡是一張固定表(Ctrl+B / Ctrl+Shift+H …),問題是:
+     ・改過鍵位的人正是最在意快捷鍵的人,而他們一按就是沒反應
+     ・Obsidian 沒有預設綁鍵的指令(Toggle code、Toggle strikethrough 兩個就沒有),
+       我們卻自己發明了一組,變成「只有這個外掛有、別的地方沒有」的怪規則
+   現在的規則只有一句話:**在卡片裡打字,跟在一般 .md 檔案裡打字一模一樣**。
+   Obsidian 的 Toggle bold 綁什麼,這裡就是什麼;Obsidian 沒綁,這裡就沒有
+   (要的話去設定 → 快捷鍵綁上去,兩邊會同時生效)。 */
+const md指令 = [
+  // 指令 id,                       左記號, 右記號, 包完游標要退回幾個字
+  ["editor:toggle-bold", "**", "**", 0],
+  ["editor:toggle-italics", "*", "*", 0],
+  ["editor:toggle-highlight", "==", "==", 0],
+  ["editor:toggle-code", "`", "`", 0],
+  ["editor:toggle-strikethrough", "~~", "~~", 0],
+  ["editor:insert-wikilink", "[[", "]]", 0],
+  ["editor:insert-link", "[", "]()", 1]     // 包完游標跳進括號裡
 ];
+
+/* getHotkeys() 只會給**使用者自己改過的**那些,沒改過的要再問 getDefaultHotkeys()。
+   只問其中一個都會漏掉一半的人。
+   讀出來的東西存一下下就好 —— 使用者在設定裡改完鍵位不必重開,最多一秒半就跟上。 */
+let md表 = null, md表時 = 0;
+function 取md快捷() {
+  const 現在 = Date.now();
+  if (md表 && 現在 - md表時 < 1500) return md表;
+  const hm = 目前app && 目前app.hotkeyManager;
+  const 表 = [];
+  if (hm) {
+    md指令.forEach((項) => {
+      let 組 = null;
+      try { 組 = hm.getHotkeys(項[0]) || hm.getDefaultHotkeys(項[0]) || null; } catch (e) {}
+      if (!組 || !組.length) return;
+      組.forEach((h) => 表.push({ 鍵: h, 左: 項[1], 右: 項[2], 游標尾: 項[3] }));
+    });
+  }
+  md表 = 表; md表時 = 現在;
+  return 表;
+}
+
+/* Obsidian 存的 hotkey 長這樣:{ modifiers:["Mod","Shift"], key:"B" }。
+   Mod 在 Windows / Linux 是 Ctrl,在 Mac 是 ⌘ —— 這是它跨平台的寫法,要照著翻。 */
+function 合修飾鍵(e, 修飾) {
+  const 要 = { ctrl: false, meta: false, alt: false, shift: false };
+  (修飾 || []).forEach((m) => {
+    const s = String(m).toLowerCase();
+    if (s === "mod") { if (是Mac()) 要.meta = true; else 要.ctrl = true; }
+    else if (s === "ctrl" || s === "control") 要.ctrl = true;
+    else if (s === "meta" || s === "cmd" || s === "win") 要.meta = true;
+    else if (s === "alt" || s === "option") 要.alt = true;
+    else if (s === "shift") 要.shift = true;
+  });
+  // 四顆都要**完全一樣**,多按一顆就不算 —— 不然 Ctrl+B 會把 Ctrl+Shift+B 也吃掉
+  return !!e.ctrlKey === 要.ctrl && !!e.metaKey === 要.meta &&
+         !!e.altKey === 要.alt && !!e.shiftKey === 要.shift;
+}
+
+/* ⚠⚠⚠ 這裡錯過兩次,把原因寫死在這裡免得再犯。
+   要判斷「使用者按的是哪一顆鍵」,一定要用 **e.code**(實體鍵位),不可以用 e.key。
+   e.key 給的是「這一下**打出什麼字**」,那會被輸入法和鍵盤配置改掉 ——
+   注音輸入法開著的時候,同一顆 B 鍵給出來的 e.key 可能是 "Process"、
+   可能是注音符號、也可能 keyCode 變成 229。於是 `e.key === "b"` 永遠不成立,
+   快捷鍵在中文使用者身上就是「完全沒反應」。
+   e.code 是實體鍵位("KeyB"),不管什麼輸入法、什麼語言都一樣。
+   同理:**不可以**因為 keyCode === 229 就直接 return —— 那是給「正在拼字」用的判斷,
+   按著 Ctrl 的組合鍵不是在拼字。只擋 e.isComposing 就好。
+   ⚠ Obsidian 那邊存的是 e.key 的寫法("B"、"1"、"F2"、"ArrowUp"),所以英數要自己
+     翻成 code 再比;功能鍵和方向鍵不受輸入法影響,直接比 e.key 就對了。 */
+function 合實體鍵(e, 鍵) {
+  const k = String(鍵 || "");
+  if (!k) return false;
+  if (/^[A-Za-z]$/.test(k)) return e.code === "Key" + k.toUpperCase();
+  if (/^[0-9]$/.test(k)) return e.code === "Digit" + k || e.code === "Numpad" + k;
+  return String(e.key || "").toLowerCase() === k.toLowerCase();
+}
+
 function 處理md快捷(e) {
   const ta = e.target;
   if (!ta || !ta.classList || !ta.classList.contains("tk-md")) return;
-  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
   if (e.isComposing) return;
   if (e.__cjb已處理) return;                 // 兩層監聽器都收到同一個事件時只做一次
-  const code = String(e.code || "");
-  const 中 = md快捷.find(x => x[0] === code && !!x[1] === !!e.shiftKey);
+  /* ⚠ 一定要有修飾鍵。Obsidian 允許把指令綁在單獨一顆鍵上,但那種鍵在輸入框裡
+     就是「使用者想打這個字」,攔下來會讓人打不出字 —— 寧可不支援。 */
+  if (!(e.ctrlKey || e.metaKey || e.altKey)) return;
+  const 中 = 取md快捷().find((x) => 合修飾鍵(e, x.鍵.modifiers) && 合實體鍵(e, x.鍵.key));
   if (!中) return;
   e.__cjb已處理 = true;
   e.preventDefault();
   e.stopPropagation();
   if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-  包起來(ta, 中[2], 中[3]);
+  包起來(ta, 中.左, 中.右, 中.游標尾);
   if (ta.__md後) ta.__md後();
 }
 /* 掛兩層:
@@ -1065,6 +1147,22 @@ function 掛md快捷(ta, 之後) {
   ta.addClass("tk-md");
   ta.__md後 = 之後 || null;
   ta.addEventListener("keydown", 處理md快捷, true);
+}
+
+/* 把 textarea 撐到剛好裝得下內容。所有會長高的輸入框都要走這裡。
+   ⚠⚠⚠ 1.4.1:量高度之前**一定要**把看板的捲動位置存起來,設完再放回去。
+     量高度非得先 height:auto 不可(不然 scrollHeight 只會長不會縮),但是
+     textarea 的 height:auto **不是「內容那麼高」,是「預設的兩行」**。
+     所以那一瞬間整個看板真的塌掉,瀏覽器把超出範圍的 scrollTop 夾回去,
+     高度設回來之後捲動位置已經回不來了 —— 使用者看到的就是「一打字畫面自己彈走」。
+     最底下那張卡片 scrollTop 最接近上限,塌得最嚴重,常常直接彈到最上面。 */
+function 撐高(ta) {
+  if (!ta) return;
+  const 板 = (ta.closest ? ta.closest(".tk-board") : null);
+  const 捲 = 板 ? 板.scrollTop : 0;
+  ta.style.height = "auto";
+  ta.style.height = Math.ceil(ta.scrollHeight) + "px";
+  if (板 && 板.scrollTop !== 捲) 板.scrollTop = 捲;
 }
 
 /* 量出「游標那一行」在 textarea 裡的 y。
@@ -1111,9 +1209,19 @@ function 圖(容器, 名, 大小, 色) {
   if (!有) {
     // Obsidian 沒有這顆 → 用備胎(一樣是 24 格、一樣的線寬,看起來才是同一套)
     const d = 備胎圖[名];
-    if (d) sp.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" ' +
-      'fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" ' +
-      'stroke-linejoin="round" class="svg-icon">' + d + '</svg>';
+    /* ⚠ 這裡以前是 sp.innerHTML = "<svg …>"。**不可以再寫回去**:
+       Obsidian 社群外掛的審核會直接擋掉任何 innerHTML 指派(不管字串是不是自己寫死的)。
+       DOMParser 解出來的是一份不會執行任何東西的獨立文件,把節點搬過來就好。 */
+    if (d) {
+      try {
+        const 文件 = new DOMParser().parseFromString(
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" ' +
+          'fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" ' +
+          'stroke-linejoin="round" class="svg-icon">' + d + '</svg>', "image/svg+xml");
+        const 根 = 文件 && 文件.documentElement;
+        if (根 && 根.nodeName.toLowerCase() === "svg") sp.appendChild(document.importNode(根, true));
+      } catch (e) {}
+    }
   }
   const px = 大小 || 14;
   st(sp, "display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;" +
@@ -2017,8 +2125,12 @@ class 看板視圖 extends TextFileView {
     if (標籤) {
       const 標行 = 盒.createDiv();
       st(標行, "display:flex;align-items:center;gap:4px;min-width:0;");
+      /* ⚠ 標籤不換行,但**要讓得出空間**:min-width:0 + 省略號。
+         沒有這一段的話,一個比較長的譯名(中文「分類」→ 英文「Section」)就會
+         把整個框的最小寬度撐大,右欄放不下,兩個框各自掉到一行去。 */
       st(標行.createDiv({ text: 標籤 }),
-        "font-size:0.66em;color:var(--text-faint);white-space:nowrap;");
+        "font-size:0.66em;color:var(--text-faint);white-space:nowrap;" +
+        "min-width:0;overflow:hidden;text-overflow:ellipsis;");
       if (標籤右) 標籤右(標行);
     }
     const 身 = 盒.createDiv();
@@ -2029,10 +2141,17 @@ class 看板視圖 extends TextFileView {
   畫新增區(根, 全) {
     根.empty();
     const T = this.T, s = this.狀態;
-    const 列間隔 = 8, 右欄寬 = 172;
+    /* ⚠ 右欄寬以前是 172,那是照中文標籤(「分類」「指派人」)量出來的數字。
+       換成英文之後 Section(64) + 間隔(8) + Assignee(101) = 173,**差一個 pixel**,
+       於是整個右欄 wrap,分類和指派人各占一行。所以這裡做兩件事:
+         ① 寬度留餘裕,不要卡在剛剛好
+         ② 右欄**永遠不准 wrap** —— 分類和指派人是一組,擠不下就讓標籤出省略號,
+            絕對不可以變成上下兩行(外層那一圈 wrap 還在,窄螢幕時整組會掉到下一列,
+            那個才是我們要的換行)。 */
+    const 列間隔 = 8, 右欄寬 = 196;
     const 左群 = "display:flex;gap:" + 列間隔 + "px;align-items:stretch;flex-wrap:wrap;" +
       "flex:1 1 250px;min-width:0;max-width:100%;";
-    const 右群 = "display:flex;gap:" + 列間隔 + "px;align-items:stretch;flex-wrap:wrap;" +
+    const 右群 = "display:flex;gap:" + 列間隔 + "px;align-items:stretch;flex-wrap:nowrap;" +
       "flex:0 0 " + 右欄寬 + "px;width:" + 右欄寬 + "px;min-width:0;max-width:100%;box-sizing:border-box;";
 
     const 本體 = 根.createDiv();
@@ -2054,7 +2173,9 @@ class 看板視圖 extends TextFileView {
        游標和正在打的字都留著,可以一直打下去。 */
     const 題輸 = 題框.createEl("input", { type: "text" });
     st(題輸, "flex:1 1 auto;min-width:0;width:100%;height:24px;font-size:0.88em;font-weight:700;");
-    題輸.placeholder = T.newTitle; 題輸.value = s.新主題;
+    /* ⚠ 1.4.1:不放 placeholder。框子上面已經有「主題」那一行小字了,
+       框裡再寫一次灰字是同一件事講兩遍,而且灰字會被當成「裡面已經有東西」。 */
+    題輸.value = s.新主題;
     題輸.oninput = () => { s.新主題 = 題輸.value; this.搜尋變動(); };
     題輸.onkeydown = (e) => {
       if ((e.ctrlKey || e.metaKey) && 是Enter鍵(e)) { e.preventDefault(); this.送出新增(); return; }
@@ -2134,7 +2255,9 @@ class 看板視圖 extends TextFileView {
     const 第一右 = 主題行.createDiv(); 第一右.addClass("tk-群"); st(第一右, 右群);
     const 區 = this.分類清單.filter(x => !/archive|封存/i.test(x));
     if (s.新分類 === null || 區.indexOf(s.新分類) < 0) s.新分類 = 區[0] || "紅色";
-    const 分框 = this.建框(第一右, T.section, "flex:0 0 62px;width:62px;", (標行) => {
+    /* ⚠ 寬度不要寫死。以前是 62px(照「分類」兩個中文字量的),英文 Section 就被
+       切成「Se⋯」。改成 auto = 跟著標籤走,哪一國語言都剛好。 */
+    const 分框 = this.建框(第一右, T.section, "flex:0 0 auto;", (標行) => {
       const 管分類 = 標行.createDiv();
       st(管分類, "margin-left:auto;display:inline-flex;align-items:center;cursor:pointer;" +
         "line-height:0;color:var(--text-faint);");
@@ -2213,15 +2336,17 @@ class 看板視圖 extends TextFileView {
     };
 
     // 第二列:內容(左)+ 送出(右)
-    const 內框 = this.建框(主行, null, "flex:1 1 250px;min-width:0;max-width:100%;");
+    /* ⚠ 內容框以前沒有標籤,只靠框裡的灰字說明自己是誰 —— 灰字拿掉之後
+       它就變成一個沒名字的空框了,所以標籤補上,跟旁邊每一個框一致。 */
+    const 內框 = this.建框(主行, T.colBody, "flex:1 1 250px;min-width:0;max-width:100%;");
     內框.parentElement.addClass("tk-內容框");
     st(內框, "display:flex;align-items:stretch;width:100%;");
     const 內輸 = 內框.createEl("textarea");
     st(內輸, "width:100%;flex:1 1 auto;min-width:0;min-height:2.4em;resize:none;" +
       "font-family:var(--font-text);font-size:0.92em;line-height:1.5;");
-    內輸.placeholder = T.newBody; 內輸.value = s.新內容;
+    內輸.value = s.新內容;
     // 打字造成的長高不要做過場,瞬間到位就好(準則第五章)
-    const 長高 = () => { 內輸.style.height = "auto"; 內輸.style.height = Math.ceil(內輸.scrollHeight) + "px"; };
+    const 長高 = () => 撐高(內輸);
     內輸.oninput = () => { s.新內容 = 內輸.value; 長高(); this.搜尋變動(); };
     /* 鍵盤跟編修框完全一樣,不用記兩套:
          Enter 換行 ‧ Shift+Enter 送出 ‧ Ctrl/⌘+Enter 送出 ‧ Esc 清空 */
@@ -3460,7 +3585,7 @@ class 看板視圖 extends TextFileView {
       if (是Enter鍵(e) && !e.shiftKey) { e.preventDefault(); this.送留言(k, 我, ta.value, ta); return; }
       if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); this.狀態.寫留言 = null; this.重畫清單(); }
     };
-    ta.oninput = () => { ta.style.height = "auto"; ta.style.height = Math.ceil(ta.scrollHeight) + "px"; };
+    ta.oninput = () => 撐高(ta);
     const 送 = 盒.createEl("button", { text: T.send });
     st(送, "flex:0 0 auto;align-self:flex-start;margin-top:2px;padding:3px 11px;font-size:0.78em;" +
       "border-radius:6px;cursor:pointer;box-shadow:none;font-weight:700;" +
@@ -3498,10 +3623,7 @@ class 看板視圖 extends TextFileView {
       ta.value = (草 !== undefined && 草 !== null) ? 草 : k.內容行.join("\n");
       ta.onclick = (e) => e.stopPropagation();
 
-      const 長高 = () => {
-        ta.style.height = "auto";
-        ta.style.height = Math.ceil(ta.scrollHeight) + "px";
-      };
+      const 長高 = () => 撐高(ta);
       /* ⚠⚠ 1.4:**完全不自動捲動了。**
          1.2 是每打一個字就檢查游標,1.3 收到「只有框長高才檢查」——
          都還是會在某些時候自己動一下,而使用者要的很簡單:
@@ -3946,7 +4068,6 @@ class 看板視圖 extends TextFileView {
       const td2 = document.createElement("td");
       td2.style.cssText = "border:1px solid #d6d6d6;padding:6px 7px;text-align:center;" +
         "font-size:12px;vertical-align:middle;";
-      td2.innerHTML = "";
       const 圈 = document.createElement("div");
       圈.style.cssText = "width:13px;height:13px;border-radius:50%;margin:0 auto 3px;" +
         (k.完成 ? "background:#3aa76d;" : "border:2px solid " + 色 + ";");
@@ -3994,12 +4115,15 @@ class 看板視圖 extends TextFileView {
       // PDF:開一個乾淨的列印視窗,交給系統的「另存為 PDF」
       const w = window.open("", "_blank", "width=1100,height=820");
       if (!w) { new Notice(T.exportBlocked); return; }
-      w.document.write("<!doctype html><html><head><meta charset='utf-8'><title>" +
-        (this.file ? this.file.basename : "board") + "</title>" +
-        "<style>@page{size:A4;margin:12mm}body{margin:0;background:#fff}" +
-        "tr{break-inside:avoid;page-break-inside:avoid}</style></head><body></body></html>");
-      w.document.body.appendChild(w.document.importNode(白, true));
-      w.document.close();
+      /* ⚠ 以前這裡是 document.write()。改成一個一個節點建 ——
+         理由跟圖示那邊一樣:審核不看「字串是不是自己寫死的」,只看有沒有用到那些 API。 */
+      const wd = w.document;
+      wd.title = this.file ? this.file.basename : "board";
+      const 樣 = wd.createElement("style");
+      樣.textContent = "@page{size:A4;margin:12mm}body{margin:0;background:#fff}" +
+        "tr{break-inside:avoid;page-break-inside:avoid}";
+      wd.head.appendChild(樣);
+      wd.body.appendChild(wd.importNode(白, true));
       setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 350);
       return;
     }
@@ -4101,17 +4225,12 @@ class 看板視圖 extends TextFileView {
       const 要跳 = this.插件.設定.跳轉_新增 !== false;
       if (要跳) this.要看的卡 = 新鍵;
       this.畫();
-      setTimeout(() => {
-        try {
-          if (要跳) {
-            const 列 = this.找列(新鍵);
-            if (列) 列.scrollIntoView({ block: "center", behavior: 要動畫() ? "smooth" : "auto" });
-            this.要看的卡 = null;
-            this.閃一下(新鍵);
-          }
-        } catch (e) {}
-        try { this.題輸.focus(); } catch (e) {}
-      }, 220);
+      if (要跳) this.捲到卡(新鍵);
+      /* ⚠⚠ preventScroll 不能省。題輸在看板的最上面,focus() 預設會**把它捲進畫面**,
+         也就是把上面那一次「捲到新卡片」整個抵銷掉、直接彈回最頂端。
+         沒有置頂卡片的時候看不出來 —— 新卡片本來就排第一列,兩個位置剛好一樣;
+         一旦有幾張置頂的把它往下擠,就變成「按了新增,畫面跳到最上面,新卡片不知道在哪」。 */
+      setTimeout(() => { try { this.題輸.focus({ preventScroll: true }); } catch (e) {} }, 220);
       new Notice(T.added);
     }
   }
@@ -4305,15 +4424,32 @@ class 看板視圖 extends TextFileView {
        捲過去 + 閃一下 = 「它在這裡」,這是這個動作唯一的回饋。 */
   浮到最上(k) {
     this.要看的卡 = k.鍵;
-    setTimeout(() => {
-      try {
-        const 列 = this.找列(this.要看的卡);
-        if (列) 列.scrollIntoView({ block: "center", behavior: 要動畫() ? "smooth" : "auto" });
-        this.要看的卡 = null;
-        this.閃一下(k);
-      } catch (e) {}
-    }, 260);
+    this.捲到卡(k.鍵, k);
   }
+
+  /* 捲到某一張卡片,然後閃一下。
+     ⚠⚠ 不可以用「等固定幾毫秒再去找那一列」。那一列要等寫檔完成 → Obsidian 回頭
+       呼叫 setViewData → 重畫,才會出現在 DOM 裡;檔案大一點、同步慢一點,
+       那個時間就從 100 毫秒變成兩秒。等不夠久 = 找不到列 = 完全不捲,
+       而且使用者看到的是「有時候會跳、有時候不會」,最難查的那一種。
+     所以改成**找到才動**:每一格畫面找一次,找到就捲過去,最多找兩秒就放棄。 */
+  捲到卡(鍵, k) {
+    const 截止 = Date.now() + 2000;
+    const 試 = () => {
+      if (!this.contentEl || !this.contentEl.isConnected) return;
+      const 列 = this.找列(鍵);
+      if (!列) {
+        if (Date.now() < 截止) { window.requestAnimationFrame(試); }
+        else { this.要看的卡 = null; }
+        return;
+      }
+      try { 列.scrollIntoView({ block: "center", behavior: 要動畫() ? "smooth" : "auto" }); } catch (e) {}
+      this.要看的卡 = null;
+      this.閃一下(k || 鍵);
+    };
+    window.requestAnimationFrame(試);
+  }
+
   找列(鍵) {
     try {
       return Array.from(this.contentEl.querySelectorAll("tbody tr")).find(tr => tr.__鍵 === 鍵) || null;
@@ -4447,6 +4583,8 @@ module.exports = class 卡片日誌看板 extends Plugin {
   async onload() {
     this.設定 = Object.assign({}, 預設設定, await this.loadData());
     this.設定.版本 = 插件版本;
+    目前app = this.app;       // 快捷鍵要問 app.hotkeyManager,見 取md快捷()
+    md表 = null;              // 重載外掛時把上一輪讀到的鍵位丟掉
     語言設定 = this.設定.語言 || "auto";
     this.T = 語();
     this.寫手 = new 寫手(this.app, this.T);
