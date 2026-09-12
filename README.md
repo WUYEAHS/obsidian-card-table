@@ -1,4 +1,4 @@
-# Card Table
+
 
 Read one markdown note as a table of task cards.
 
@@ -6,9 +6,10 @@ Inspired by the kanban table way of working — but there is no board file, no d
 no hidden index. Dates, assignees, pins, comments and repeats are all **plain text inside
 the note**. Turn the plugin off and the note is still an ordinary task list you can read
 and edit by hand.
-<img width="2474" height="1258" alt="note-and-board" src="https://github.com/user-attachments/assets/2c752d0d-fb0b-4290-bdfe-0b3100e4811e" />
-<img width="2474" height="1183" alt="board" src="https://github.com/user-attachments/assets/c5bfd542-c3cf-4f31-be48-fd76bbef9cc1" />
 
+<img width="1920" height="976" alt="note-and-board" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
+<img width="1920" height="918" alt="board" src="https://github.com/user-attachments/assets/eda91189-0003-4d9f-a2c2-c552a8676c19" />
+# Card Table
 
 ```markdown
 ## 1
