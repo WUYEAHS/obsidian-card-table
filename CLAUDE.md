@@ -58,11 +58,33 @@ C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\card-table  →  這個 rep
 
 | 位置 | 格式 | 例 |
 | --- | --- | --- |
-| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260912v2` |
-| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.0` |
-| `manifest.json` 的 `version` | semver | `1.4.0` |
+| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260912v4` |
+| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.2` |
+| `manifest.json` 的 `version` | semver | `1.4.2` |
 
 semver 升版時,`versions.json` 也要加一筆 `"新版本": "最低 Obsidian 版本"`。
+發版本身交給 `.github/workflows/release.yml`:推一個純版本號的 tag(`1.4.2`,**不加 v**)
+就會自動建 release、附上三個檔案、產生 artifact attestation。
+
+## CSS:`!important` 不是隨便加的,不要順手清掉
+
+`styles.css` 裡還有 71 個 `!important`,其中 68 個在 `@media (max-width: 700px)` 區塊裡。
+**它們不能拿掉**,而且理由跟「權重沒調好」無關:桌機版的排版有很大一部分是
+`st()` **直接寫成元素的 inline style**(text-align、padding、width、flex…),
+inline 贏過任何選擇器權重,窄螢幕要改掉它們只剩 `!important` 一條路。
+
+1.4.2 實測過:整份 CSS 的 `!important` 全部拿掉 → 桌機版 0 處差異,窄螢幕版 193 處跑掉。
+真正的解法是把那些 inline style 搬進 class,那是一次大改。
+
+同一個坑還有兩個變形,改窄螢幕版面的時候要記得:
+
+- **選擇器權重一樣時,後面的贏。** `.tk-期間格` 被後面的 `.tk-統計格` 整條吃掉過
+  (期間格同時有這兩個 class),日/週/月切換器因此被壓成 136px 又被 `overflow:hidden` 裁掉。
+  要壓過同權重的規則就用複合選擇器(`.tk-統計格.tk-期間格`),不要靠排序。
+- **窄螢幕靠 `order` 排卡片,但被排序的是「攤平後真正的 flex item」。**
+  內容在 `.tk-內盒` 裡面又包一層,所以 `.tk-文區 { order:5 }` 寫了沒用 ——
+  要排的是 `.tk-內盒`。同理 `.tk-題行` 的 `display:contents` 一定要帶 `!important`,
+  不然它身上的 inline `display:flex` 會贏,整個題行不會被攤平。
 
 ## 筆記裡的文字格式就是儲存格式
 

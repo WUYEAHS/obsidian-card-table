@@ -1,0 +1,62 @@
+name: Release
+
+# 推一個「純版本號」的 tag 就會發版(1.4.2,不是 v1.4.2)。
+# Obsidian 是照 manifest.json 的 version 去找同名 tag 的 release,
+# 多一個 v 就找不到 —— 所以下面的 pattern 故意不吃 v 開頭。
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+
+# attestations 需要這三個:contents 寫 release、id-token 簽章、attestations 寫存證
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # tag 跟 manifest 對不起來的話,使用者裝到的會是另一版 —— 在這裡擋掉最便宜
+      - name: Check tag matches manifest.json
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="$(jq -r .version manifest.json)"
+          echo "tag=$TAG  manifest=$VERSION"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "::error::tag ($TAG) does not match manifest.json version ($VERSION)"
+            exit 1
+          fi
+          if ! jq -e --arg v "$VERSION" 'has($v)' versions.json > /dev/null; then
+            echo "::error::versions.json has no entry for $VERSION"
+            exit 1
+          fi
+
+      # 審核建議的那一項:讓使用者可以驗證這三個檔案真的是從這個 repo 出來的
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+
+      # ⚠ 一定要三個**獨立附件**。GitHub 自動附的 source zip 不算,
+      #   Obsidian 不會去解壓縮。
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" \
+              main.js manifest.json styles.css --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes \
+              main.js manifest.json styles.css
+          fi

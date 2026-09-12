@@ -12,7 +12,9 @@
       所以 plugin 沒裝、或哪天不用了,筆記照樣看得懂 —— 這是最高原則。
    2. 不依賴 Dataview。檔案自己讀、自己解析(下面「格式」那一段)。
    3. 設定走 saveData() → 存在 .obsidian/plugins/card-table/data.json,
-      會跟著 Obsidian Sync 一起同步。localStorage 只留「這台電腦是誰在用」。
+      會跟著 Obsidian Sync 一起同步。
+      「這台電腦是誰在用」不進 data.json(那會被同步),改走 app.saveLocalStorage ——
+      那是 Obsidian 自己的 per-vault 儲存,不要直接碰 window.localStorage。
    4. 手機可以用(manifest 的 isDesktopOnly = false)。
    5. 中英文雙語,照 Obsidian 自己的語言自動切。
 
@@ -20,13 +22,31 @@
    行事曆、匯出圖片／PDF、循環卡片、封存、拖曳排序、統計列。
    ============================================================ */
 
-const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, WorkspaceLeaf, debounce, setIcon } = require("obsidian");
+const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, WorkspaceLeaf, debounce, setIcon, addIcon } = require("obsidian");
 
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260912v3";
-const 插件版本 = "1.4.1";
+const 看板版本 = "260912v4";
+const 插件版本 = "1.4.2";
+
+/* ---- 外掛自己的圖示 ----
+   以前分頁和左側欄都借用 Lucide 的 layout-list,那是一個「清單」,
+   長得跟另外七八個外掛一樣,在側邊欄裡認不出來。
+   這一個畫的就是這個外掛在做的事:一張表,左邊一條窄欄(日期 —— 整個外掛的主軸),
+   右邊三列卡片。
+   ⚠ addIcon() 的座標系固定是 0 0 100 100(不是 Lucide 的 24),所以線寬要放大到 8
+     才會跟 Obsidian 內建那些圖示一樣粗(24 格的 2 ≈ 100 格的 8.3)。
+   ⚠ 側邊欄實際只畫到 18px 左右,細節多一點就糊成一團 —— 這裡刻意只留四筆。 */
+const 圖示名 = "card-table-board";
+const 圖示筆畫 =
+  '<rect x="14" y="18" width="72" height="64" rx="11" />' +
+  '<path d="M40 18 V82" />' +
+  '<path d="M40 39.5 H86" />' +
+  '<path d="M40 60.5 H86" />';
+const 圖示SVG =
+  '<g fill="none" stroke="currentColor" stroke-width="8" ' +
+  'stroke-linecap="round" stroke-linejoin="round">' + 圖示筆畫 + '</g>';
 
 /* ============================================================
    語言 —— 只有兩份對照表,要加語言就再加一份
@@ -64,6 +84,10 @@ const 字典 = {
     defaultRange: "打開看板時先看哪一段", defaultRangeDesc: "每次開看板的預設篩選範圍",
     colors: "顏色",
     calendar: "行事曆", pickStart: "點一天當開始", pickEnd: "再點一天當結束", close: "收起",
+    週名: ["日", "一", "二", "三", "四", "五", "六"], 日期欄寬: 110,
+    everyShort: "每NU", everyLong: "每 N L循環",
+    unitDay: "天", unitWeek: "週", unitMonth: "月",
+    longDay: "天", longWeek: "週", longMonth: "個月",
     topic: "主題", hotTopics: "常用主題", section: "分類",
     colDate: "日期", colSection: "分類", colBody: "內容",
     dayLayer: "本日", weekLayer: "本周", monthLayer: "本月",
@@ -148,6 +172,10 @@ const 字典 = {
     defaultRange: "Range on open", defaultRangeDesc: "Which filter the board starts on",
     colors: "Colours",
     calendar: "Calendar", pickStart: "Click a day to start", pickEnd: "Click another day to end", close: "Close",
+    週名: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], 日期欄寬: 132,
+    everyShort: "every N U", everyLong: "repeats every N L",
+    unitDay: "d", unitWeek: "w", unitMonth: "mo",
+    longDay: "days", longWeek: "weeks", longMonth: "months",
     topic: "Title", hotTopics: "Frequent titles", section: "Section",
     colDate: "Date", colSection: "Section", colBody: "Content",
     dayLayer: "Day", weekLayer: "Week", monthLayer: "Month",
@@ -213,7 +241,13 @@ let 語言設定 = "auto";      // auto = 跟著 Obsidian;也可以強制 zh-TW 
 function 語() {
   if (語言設定 === "zh-TW" || 語言設定 === "en") return 字典[語言設定];
   try {
-    const l = String(window.localStorage.getItem("language") || "").toLowerCase();
+    /* ⚠ 1.4.2:這裡本來是 localStorage.getItem("language")。
+       社群外掛的審核會把「自己動 localStorage」列為建議事項(該用官方的資料 API),
+       而且那個 key 是 Obsidian 的內部實作,不是公開介面。
+       `<html lang>` 是同一個值、是公開的 DOM,而且 Obsidian 換語言時會自己更新它。
+       ⚠ 不可以改用 navigator.language —— 那是**作業系統**的語言,
+         使用者的 Windows 是 zh-TW 但 Obsidian 介面設成英文的時候會判斷成中文。 */
+    const l = String(document.documentElement.lang || "").toLowerCase();
     if (l && !l.startsWith("zh")) return 字典["en"];
   } catch (e) {}
   return 字典["zh-TW"];    // 預設繁體中文
@@ -322,13 +356,21 @@ function 讀循環(首行) {
   }
   return { 型: "週", 隔: 1 };            // 只寫了 🔁,當成每週
 }
+/* ⚠ 這兩個是**畫面上的說明文字**,要跟著語言走 —— 以前寫死中文,
+   英文介面的循環卡片上會冒出一顆寫著「每1週」的膠囊。
+   注意:筆記裡的 `🔁 每2週` / `🔁 every 2 weeks` 是**存檔格式**,兩種寫法都照舊讀,
+   這裡改的只是顯示。 */
 function 循環說明短(循) {
   if (!循) return "";
-  return "每" + 循.隔 + (循.型 === "月" ? "月" : (循.型 === "日" ? "天" : "週"));
+  const T = 語();
+  return T.everyShort.replace("N", 循.隔)
+    .replace("U", 循.型 === "月" ? T.unitMonth : (循.型 === "日" ? T.unitDay : T.unitWeek));
 }
 function 循環說明(循) {
   if (!循) return "";
-  return "每 " + 循.隔 + " " + (循.型 === "月" ? "個月" : (循.型 === "日" ? "天" : "週")) + "循環";
+  const T = 語();
+  return T.everyLong.replace("N", 循.隔)
+    .replace("L", 循.型 === "月" ? T.longMonth : (循.型 === "日" ? T.longDay : T.longWeek));
 }
 function 下一次(日, 循) {
   const d = new Date(日 + "T00:00:00");
@@ -368,10 +410,11 @@ function 日字(d) {
 }
 function 時字(d) { return 兩位(d.getHours()) + ":" + 兩位(d.getMinutes()); }
 // 表格上顯示用:年份只留兩碼,後面帶星期,省下的寬度給內容欄
+// ⚠ 星期要跟著語言走。以前這裡寫死中文,英文介面的日期會變成 26-09-12(六)。
 function 日期短(d) {
   if (!d) return "";
   const w = new Date(d + "T00:00:00");
-  const 週 = ["日", "一", "二", "三", "四", "五", "六"][w.getDay()];
+  const 週 = 語().週名[w.getDay()];
   return String(d).slice(2) + "(" + 週 + ")";
 }
 function 現在戳() { const d = new Date(); return 日字(d) + " " + 時字(d); }
@@ -922,12 +965,14 @@ const 封存區 = "Archive";
    要叫什麼在設定裡改「圓點裡的字」就好,不必去動 Markdown。 */
 const 預設分區 = ["1", "2", "3", "4", "5"];
 const 露幾則留言 = 2;      // 平常只露這麼多則,其餘收起來
-const 週字 = ["日", "一", "二", "三", "四", "五", "六"];
 /* 尺寸都從調校台調過來(260911v1):
      日期欄 112→110 ‧ 分類欄 78→72 ‧ 統計格 96→98 ‧ 格高 68→60
      動作留寬 150→145 ‧ 主題膠囊 22→24 ‧ 留言露 3→2 則 ‧ 反悔 3→2 秒 */
 const 格寬 = 98, 格高 = 60, 年格寬 = 98;
-const 日期欄寬 = 110, 分類欄寬 = 72, 主題高 = 24;
+const 分類欄寬 = 72, 主題高 = 24;
+/* ⚠ 日期欄寬度跟著語言走,放在字典裡(T.日期欄寬)。
+   中文的「26-09-12(六)」剛好塞得進 110,英文的星期是三個字母,
+   「26-09-12(Sat)」要 115 才不會被切掉 —— 以前寫死 110,英文介面的日期左右都被削掉一塊。 */
 // 內容第一行右邊只剩一顆「編輯」,不用再留 145px
 const 動作留寬 = 62;
 const 反悔毫秒 = 2000;
@@ -1201,7 +1246,9 @@ function 圖鈕(鈕, 名, 文, 大小) {
   鈕.style.justifyContent = "center";
   鈕.style.gap = "4px";
   圖(鈕, 名, 大小 || 13);
-  if (文) 鈕.createSpan({ text: 文 });
+  /* 字另外包一層並掛上 class —— 窄螢幕的工具列要把字收掉只留圖示,
+     靠的就是這個(見 styles.css 的 .tk-工具群)。title 還在,長按仍看得到名稱。 */
+  if (文) 鈕.createSpan({ text: 文, cls: "cjb-鈕字" });
   return 鈕;
 }
 /* 畫一顆圖示。回傳那個 span,呼叫端可以再改大小/顏色。 */
@@ -1462,7 +1509,7 @@ class 看板視圖 extends TextFileView {
     this.今 = 今;
   }
   getViewType() { return 視圖種類; }
-  getIcon() { return "layout-list"; }
+  getIcon() { return 圖示名; }
   getDisplayText() { return this.file ? this.file.basename : this.T.board; }
   getViewData() { return this.內文; }
   setViewData(data, clear) {
@@ -2065,7 +2112,7 @@ class 看板視圖 extends TextFileView {
     const 年 = Number(s.顯示月.slice(0, 4)), 月 = Number(s.顯示月.slice(5, 7)) - 1;
     const 網 = 盒.createDiv();
     st(網, "display:grid;grid-template-columns:repeat(7,1fr);gap:2px;");
-    週字.forEach(w => st(網.createDiv({ text: w }),
+    語().週名.forEach(w => st(網.createDiv({ text: w }),
       "font-size:0.66em;color:var(--text-faint);text-align:center;padding-bottom:2px;"));
     const 頭空 = new Date(年, 月, 1).getDay(), 天數 = new Date(年, 月 + 1, 0).getDate();
     for (let i = 0; i < 頭空; i++) 網.createDiv();
@@ -2365,20 +2412,44 @@ class 看板視圖 extends TextFileView {
     掛md快捷(內輸);                   // Ctrl/Cmd + B / I / K … 跟 Obsidian 一樣
     setTimeout(長高, 0);
 
+    /* ---- 送出欄 ----
+       ⚠ 1.4.2 重做。以前這一格是「一行小灰字 + 一顆 32px 的純 ＋」,
+         可是這一欄的高度是跟著左邊的內容框走的(內容框會長高),
+         所以框裡永遠空一大塊,而且一顆沒有字的 ＋ 看不出來按下去會發生什麼事。
+       現在:
+         ① 去向那一行講清楚「這張會被放到哪一天」—— 那是從目前的篩選推出來的,
+            使用者沒有別的地方看得到,是這一格最值得佔位置的資訊
+         ② 按鈕吃掉剩下的高度(flex:1),而且有字
+         ③ 底下補一行快捷鍵提示,順便把剩餘的空間填滿 */
     const 送欄 = 主行.createDiv(); 送欄.addClass("tk-送出欄"); st(送欄, 右群);
     const 送框 = this.建框(送欄, null, "flex:1 1 auto;width:100%;");
-    st(送框, "display:flex;flex-direction:column;gap:3px;align-items:stretch;width:100%;");
-    const 去向 = 送框.createDiv({ text: "→ " + this.新增去向文() });
-    st(去向, "font-size:0.66em;color:var(--text-faint);white-space:nowrap;overflow:hidden;" +
-      "text-overflow:ellipsis;text-align:center;");
+    st(送框, "display:flex;flex-direction:column;gap:5px;align-items:stretch;width:100%;");
+
+    const 去向 = 送框.createDiv();
+    去向.addClass("tk-去向");
+    st(去向, "display:flex;align-items:center;justify-content:center;gap:4px;" +
+      "font-size:0.7em;color:var(--text-muted);white-space:nowrap;overflow:hidden;" +
+      "flex:0 0 auto;min-width:0;");
+    const 去處 = this.新增日期();
+    圖(去向, 去處.長期 ? "repeat" : "calendar-days", 11);
+    const 去向字 = 去向.createSpan({ text: this.新增去向文() });
+    st(去向字, "overflow:hidden;text-overflow:ellipsis;min-width:0;");
+    去向.title = T.jumpAddDesc;
+
     const 送 = 送框.createEl("button");
     const bc = 選.value ? this.插件.人色(選.value) : "var(--interactive-accent)";
-    st(送, "width:100%;height:32px;padding:0;border-radius:6px;" +
+    st(送, "width:100%;flex:1 1 auto;min-height:38px;padding:0 8px;border-radius:6px;" +
       "cursor:pointer;color:var(--text-on-accent, #fff);background:" + bc + ";" +
-      "border:1px solid " + bc + ";");
-    圖鈕(送, "plus", "", 18);
+      "border:1px solid " + bc + ";font-weight:600;font-size:0.92em;");
+    圖鈕(送, "plus", T.submit, 16);
     送.title = 選.value ? (T.add + " · " + 選.value) : T.add;
     送.onclick = () => this.送出新增();
+
+    /* 快捷鍵提示。窄螢幕藏起來(那邊這一欄只有 150px,擠不下)—— 見 styles.css */
+    const 提示 = 送框.createDiv({ text: T.submitHint });
+    提示.addClass("tk-送出提示");
+    st(提示, "font-size:0.62em;color:var(--text-faint);text-align:center;" +
+      "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;");
 
     if (s.管人開) this.畫管人(根);
   }
@@ -2743,9 +2814,9 @@ class 看板視圖 extends TextFileView {
     const 頭列 = 表.createEl("thead").createEl("tr");
     // 融合模式:每一列最前面多一個勾選欄(把「完成」勾選換掉,兩個勾選並排會分不清在勾什麼)
     const 欄們 = this.狀態.融合中
-      ? [[T.mergeCol, "40px", "center"], [T.colDate, 日期欄寬 + "px", "center"],
+      ? [[T.mergeCol, "40px", "center"], [T.colDate, T.日期欄寬 + "px", "center"],
          [T.colSection, 分類欄寬 + "px", "center"], [T.colBody, "", "left"]]
-      : [[T.colDate, 日期欄寬 + "px", "center"], [T.colSection, 分類欄寬 + "px", "center"],
+      : [[T.colDate, T.日期欄寬 + "px", "center"], [T.colSection, 分類欄寬 + "px", "center"],
          [T.colBody, "", "left"]];
     欄們.forEach(([字, 寬, 對]) => {
         const th = 頭列.createEl("th", { text: 字 });
@@ -2793,6 +2864,7 @@ class 看板視圖 extends TextFileView {
   畫工具群(頭) {
     const T = this.T, s = this.狀態, 設 = this.插件.設定;
     const 群 = 頭.createDiv();
+    群.addClass("tk-工具群");
     st(群, "display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap;");
     群.onclick = (e) => e.stopPropagation();
 
@@ -3302,8 +3374,14 @@ class 看板視圖 extends TextFileView {
     else if (已封存) 狀態圖("archive", T.archivedTag, "var(--text-faint)");
     // 資訊(不是動作)掛在主題那一行的右邊:最後動過的時間、留言則數
     const 訊 = 題行.createDiv();
+    訊.addClass("tk-題訊");
     st(訊, "margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto;");
-    this.畫卡片工具(題行.createDiv(), k, 編修中, 已封存, "整張");
+    /* ⚠ 這兩塊跟主題是同一組。窄螢幕攤平之後它們會變成卡片自己的 flex item,
+       沒有 order 就會排到最前面(= 標題那一行的東西跑到卡片最上面,
+       把日期和分類擠走)。所以掛 class,在 styles.css 裡跟題左同一個 order。 */
+    const 具盒 = 題行.createDiv();
+    具盒.addClass("tk-題具");
+    this.畫卡片工具(具盒, k, 編修中, 已封存, "整張");
     const 訊條 = (名, 文, 提示) => {
       const d = 訊.createDiv();
       st(d, "display:inline-flex;align-items:center;gap:3px;font-size:0.68em;" +
@@ -3324,7 +3402,12 @@ class 看板視圖 extends TextFileView {
     /* ⚠ 動作組(封存 ‧ 編輯 ‧ 留言)釘在**內容第一行的右邊**,不是主題那一行。
        用絕對定位釘住,內容那邊固定讓出同寬的位置(動作留寬),
        文字不會跑到按鈕底下,而且閱讀跟編輯讓一樣寬 —— 折行位置才不會變。 */
+    /* ⚠ 這一層一定要有 class。窄螢幕時整張卡片會攤平成一排 flex item,靠 order 決定順序;
+       真正被排序的是**這個**內盒,不是裡面的 .tk-文區(那已經隔了一層,order 寫了也沒用)。
+       1.4.2 之前它沒有 class = order 0,所以內容會跑到日期和標題**前面**,
+       而 order:1 的分類(完成圈 + 指派人)被擠到右邊 —— 就是「完成標示跑到右上角」。 */
     const 內盒 = 文區.createDiv();
+    內盒.addClass("tk-內盒");
     st(內盒, "position:relative;");
     const 具位 = 內盒.createDiv();
     st(具位, "position:absolute;right:0;top:0;z-index:2;");
@@ -4592,6 +4675,9 @@ module.exports = class 卡片日誌看板 extends Plugin {
   async onload() {
     this.設定 = Object.assign({}, 預設設定, await this.loadData());
     this.設定.版本 = 插件版本;
+    /* ⚠ 要在 registerView / addRibbonIcon **之前**註冊,
+       不然第一次畫出來的分頁圖示會是空白的。 */
+    addIcon(圖示名, 圖示SVG);
     目前app = this.app;       // 快捷鍵要問 app.hotkeyManager,見 取md快捷()
     md表 = null;              // 重載外掛時把上一輪讀到的鍵位丟掉
     語言設定 = this.設定.語言 || "auto";
@@ -4630,7 +4716,7 @@ module.exports = class 卡片日誌看板 extends Plugin {
       }
     });
 
-    this.addRibbonIcon("layout-list", this.T.openBoard, () => {
+    this.addRibbonIcon(圖示名, this.T.openBoard, () => {
       const leaf = this.app.workspace.activeLeaf;
       if (leaf) this.切視圖(leaf);
     });
