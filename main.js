@@ -251,15 +251,19 @@ const 預設設定 = {
   排序: "編修",          // 編修 = 最近新增/編修的排最上面(預設);顏色 = 日期 → 分類順序
   版本: 插件版本
 };
-const 我是誰鍵 = "card-table-who";   // 只放這台電腦的身分,故意不同步
+/* 「這台電腦是誰在用」。故意不進 data.json —— 那個會被 Obsidian Sync 同步,
+   同步過去就變成三台電腦都說自己是同一個人。
+   ⚠ 走 app.loadLocalStorage / saveLocalStorage,不要自己碰 window.localStorage:
+     前者會**照 vault 分開存**,同一台電腦開兩個 vault 才不會互相蓋掉身分。 */
+const 我是誰鍵 = "card-table-who";
 function 讀我是誰() {
-  try { return String(window.localStorage.getItem(我是誰鍵) || "").trim() || null; }
+  try { return String((目前app && 目前app.loadLocalStorage(我是誰鍵)) || "").trim() || null; }
   catch (e) { return null; }
 }
 function 存我是誰(名) {
   try {
-    if (名) window.localStorage.setItem(我是誰鍵, String(名));
-    else window.localStorage.removeItem(我是誰鍵);
+    if (!目前app) return;
+    目前app.saveLocalStorage(我是誰鍵, 名 ? String(名) : null);
   } catch (e) {}
 }
 
@@ -4137,7 +4141,12 @@ class 看板視圖 extends TextFileView {
     台.remove();
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' +
       '<foreignObject width="100%" height="100%">' +
-      '<div xmlns="http://www.w3.org/1999/xhtml">' + 白.outerHTML + '</div>' +
+      /* ⚠ 用 XMLSerializer,不要用 白.outerHTML —— 兩者結果一樣,但是
+         foreignObject 裡面必須是合法的 XML(outerHTML 給的是 HTML 序列化,
+         <br> 這種沒有結尾的標籤會讓整張 SVG 解析失敗),而且審核的靜態檢查
+         看到 outerHTML 就會問一次。 */
+      '<div xmlns="http://www.w3.org/1999/xhtml">' +
+      new XMLSerializer().serializeToString(白) + '</div>' +
       '</foreignObject></svg>';
     try {
       const img = new Image();
