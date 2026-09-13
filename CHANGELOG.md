@@ -1,5 +1,63 @@
 # Changelog
 
+## 1.4.5
+
+**Layout**
+
+- New setting: board width. Narrow (default) centres the board at the same width
+  as a note with readable line length on — including themes that set their own
+  (Minimal's `--line-width` capped at `--max-width`), falling back to Obsidian's
+  `--file-line-width`. Wide fills the tab. Also in the list's "…" menu. Desktop
+  only.
+- Pinned cards get their own table above the list, so the list header's count
+  matches the cards under it. The pinned table collapses from its header;
+  open or collapsed is remembered per device.
+- The desktop list tools (expand all, sort, merge, export) move into a "…"
+  menu, as on phones. When there are pinned cards the menu sits on the pinned
+  table.
+- The add-card area is a table of its own with a header that collapses it.
+  Open or collapsed is remembered per device.
+- Card actions: the title row ends with Archive · Comment · Edit, Edit rightmost
+  (where Comment was). Archived cards show Unarchive · Delete there. The pin
+  stays fixed in the date cell's top-left corner however tall the card is. The
+  content no longer reserves room on its right for a button.
+- The separate "edit title" button is gone — Edit changes title and content
+  together.
+- The last-edited time sits in the same place on every card. The title row no
+  longer wraps (a long title wraps inside its own space), the button group keeps
+  a fixed width even on archived cards, and the time has a fixed-width slot.
+- New setting: comments above the content (default) or below it.
+
+- The repeat chip ("every 2 weeks") and the "Later" chip look the same.
+
+**Phones**
+
+- The last-edited time moves off the title row into the card's "…" menu.
+- A date range that crosses a year drops the weekdays
+  (`26-09-13 – 27-03-02`) so it fits on the card's first row.
+- Edit no longer focuses the text box. Focusing opened the keyboard, iOS
+  scrolled the box into view and the plugin pulled the card back — the jump down
+  and back. Tap where you want to type.
+
+**Scrolling**
+
+- Editing the last card no longer yanks the view. Three causes, all fixed: the
+  editor is now sized in the same frame it appears in; the scroll position is
+  taken before the card is redrawn; and the caret is placed before the box is
+  focused (moving it afterwards made the browser scroll to reveal it a few
+  hundred milliseconds later).
+- Collapsing the last card (finishing an edit, or "less") no longer jumps up
+  before it animates.
+
+**Text format**
+
+- New cards are written in English: `🔁 every 2 weeks`, `#long-term`. The older
+  `🔁 每2週` and `#長期` keep working.
+- New setting: add the `．` bullet to content lines (default on). When off it is
+  neither written nor shown. Lines with or without it are read the same.
+- The command and file-menu entry use one language: 用卡片日誌開啟 in Chinese,
+  Open with Card Table in English.
+
 ## 1.4.4
 
 Rebuilds the narrow-screen layout so it no longer needs `!important` or

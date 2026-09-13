@@ -56,6 +56,18 @@
    所以根一律 block,間距用 margin 不用 gap。 */
 .tk-board > * { margin-bottom:12px; }
 .tk-board > *:last-child { margin-bottom:0; }
+/* 版面寬度 = 窄版(1.4.5,預設):跟筆記的「可讀行寬」一樣寬,整份看板收在中間。
+   ⚠⚠ 不能只用 Obsidian 的 --file-line-width(700px)。佈景主題會自己定這個寬度 ——
+     實測使用者的 Minimal 完全不看 --file-line-width,而是用 --line-width(50rem = 800px)
+     再夾上 --max-width(88%)。只照 700 做的話,看板比同一個分頁裡的筆記窄一截。
+   所以照主題的算法走:有 --line-width / --max-width 就用(Minimal 那一類),
+   沒有就退回 Obsidian 自己的 --file-line-width,兩個都沒有才是 700px。
+   ⚠ 只有桌機會掛這個 class(見 main.js 的 定窄),窄螢幕本來就用滿畫面。 */
+.tk-board.tk-定寬 > * {
+  max-width:min(var(--line-width, var(--file-line-width, 700px)), var(--max-width, 100%));
+  margin-left:auto;
+  margin-right:auto;
+}
 /* 每一塊只擋橫向溢出。⚠ 不可以寫 `overflow:clip`(連縱向一起裁 = 上面那個坑) */
 .tk-board .tk-塊 { overflow-x:clip; }
 
@@ -110,9 +122,20 @@
 .tk-board tbody tr td:first-child {
   position:relative;
 }
-/* 📌 那一列的高度(桌機)。 */
+/* 📌 那一列(桌機):📌 **固定在日期格的左上角**。
+   ⚠ 日期格是 vertical-align:middle。如果這兩顆跟著內容排,卡片一高(內容很多行)
+     它們就跟著日期一起被置中,跑到格子中間去 —— 每張卡片的 📌 高度都不一樣。
+     所以:.tk-釘列 本身只是一條 19px 高的佔位(讓日期不要壓到它),
+     裡面的 📌 用絕對定位,對齊的是 td(td 是 position:relative)。
+   left 10px 是讓開分類色條(色條 6px 寬,滑過去 10px,貼著這一格的左緣)。 */
 .tk-board .tk-釘列 {
   height:19px;
+}
+.tk-board tbody td .tk-釘列 > .tk-釘 {
+  position:absolute;
+  left:10px;
+  top:6px;
+  z-index:2;
 }
 /* ⚠ 指派人的下拉本來吃 Obsidian 的預設高度 32px,而同一排的主題輸入框 24、
    分類圓點 22、常用主題膠囊 20 —— 它一個人把整排撐到 61px,
@@ -226,13 +249,6 @@
 .tk-board tbody tr:hover .tk-釘 {
   opacity:1;
 }
-/* 桌機:📌 用絕對定位鎖死在日期格左上角 —— 單日/區間、有沒有「設為今日」,它都待在同一個位置 */
-.tk-board tbody td:first-child .tk-釘 {
-  position:absolute;
-  left:9px;
-  top:6px;
-  z-index:2;
-}
 
 /* ============================================================
    plugin 自己多出來的一點點
@@ -271,12 +287,6 @@
    ⚠ 線寬統一 1.75,不要讓主題自己決定(同一列裡粗細不一樣非常明顯)。 */
 .tk-board .cjb-ico { display:inline-flex; align-items:center; justify-content:center; line-height:0; }
 .tk-board .cjb-ico svg { width:100%; height:100%; stroke-width:1.75; }
-/* ---- 主題右邊那顆「改主題」----
-   ⚠ 1.4.4:顏色搬進這裡(以前是 inline 的 color:var(--text-faint)),
-   滑過去變重點色就不必加 important 標記了。 */
-.tk-board .tk-改題 { color:var(--text-faint); opacity:0.55; transition:opacity .12s ease, color .12s ease; }
-.tk-board tbody tr:hover .tk-改題, .tk-board .tk-改題:focus-visible { opacity:1; }
-.tk-board .tk-改題:hover { color:var(--text-accent); opacity:1; }
 
 /* ---- 動作之後「卡片在這裡」的高亮 ----
    打勾、封存、改日期、改分類都會讓卡片跳到另一段去。畫面自己捲過去之後,
@@ -529,8 +539,7 @@
 }
 /* 摸得到的裝置沒有 hover —— 本來「滑過去才亮」的東西在窄螢幕一律亮著 */
 .tk-board.tk-窄 .tk-動作,
-.tk-board.tk-窄 .tk-留具,
-.tk-board.tk-窄 .tk-改題 {
+.tk-board.tk-窄 .tk-留具 {
   opacity:1;
 }
 .tk-board.tk-窄 .tk-動作 {

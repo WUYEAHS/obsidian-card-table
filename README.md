@@ -30,7 +30,7 @@ That is the whole storage format. Everything the table shows comes from those li
   undated / long-term, and step through days, weeks and months.
 - **Edit in place.** Type straight into a card; it saves as you type. Titles, content,
   dates, assignees and comments are all editable from the table.
-- **Repeats.** `🔁 每2週` on the first line makes a card repeat. Marking it done pushes the
+- **Repeats.** `🔁 every 2 weeks` on the first line makes a card repeat. Marking it done pushes the
   date to the next occurrence and leaves a record line instead of ticking it off.
 - **Comments.** `💬{date time|who}` lines are shown as a thread under the card.
 - **Archive, then delete.** Archiving moves a card to `## Archive` and greys it out;
@@ -103,8 +103,9 @@ The card editor's own keys:
 | `📌` | Pinned |
 | `✎{2026-09-11 14:20}` | Last touched — written by the plugin |
 | `💬{2026-09-11 14:20\|Alex} text` | A comment |
-| `🔁 每2週` | Repeats every 2 weeks. `每3天`, `每1月`, `every 2 weeks` also work |
-| `#長期` | Long-term, ignores the date filters |
+| `🔁 every 2 weeks` | Repeats every 2 weeks. `every 3 days`, `every month` also work, and so does the older `🔁 每2週` |
+| `#long-term` | Long-term, ignores the date filters. The older `#長期` also works |
+| `．` | Optional bullet in front of content lines. Settings → *Add the ． bullet automatically* turns it off |
 | `## Archive` | The archive section |
 
 Indented lines under a card are its content.
