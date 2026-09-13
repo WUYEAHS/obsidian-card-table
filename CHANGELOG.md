@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.4.6
+
+**Cards with identical first lines**
+
+- Two cards whose first lines match (same title and text) are now told apart,
+  on screen and when writing. Before, editing one put both into edit mode,
+  expanding one expanded both, and actions on either could be refused as
+  ambiguous.
+- When writing, the plugin narrows the candidates step by step: content and
+  comments first, then — for cards whose content matches too — the whole first
+  line exactly (date, assignee and pin included), then the last-edited stamp.
+  It still refuses to write only when all of those tie and the contents differ.
+  After every write the card's new first line is remembered, so a second action
+  straight after the first (edit the content, then the title) finds the same
+  card.
+- The last-edited stamp is written to the second: `✎{2026-09-13 14:20:05}`.
+  That is the only change to the note — three characters per card, no ids.
+  Minute-only stamps keep working.
+- The "this line is identical to another card" warning is gone.
+
+**Fixed**
+
+- The title could not be edited: clicking the title box counted as clicking
+  outside the editor and closed it. Enter or Esc in the title box now finishes
+  editing.
+- Finishing an edit could read a title box left over from a previously edited
+  card.
+
+**Settings**
+
+- Three independent switches for what happens after a card moves: back to to
+  do, marked done, archived. Each decides whether to tick that filter and
+  scroll to the card. Archiving used to always do both.
+- Solo mode: no assignees. The add row drops the assignee box and frequent
+  titles take the space, cards stop showing assignees, and comments are signed
+  "me". Existing `#names` in the note are left alone.
+- A Support section with a Ko-fi link, also set as the plugin's funding URL.
+- Switching the plugin language updates the sidebar icon's tooltip right away.
+  Command names still change on the next reload.
+
+**Filters and headers**
+
+- Every filter option (year, day, week, month, all, overdue) is a tile with a
+  border — grey when not selected, accent when selected.
+- On phones the ◀ ▶ arrows are 26px wide and as tall as the tile.
+- Table header titles line up: collapsible tables show an arrow, the others
+  keep the same space empty. The pin icon is gone from the pinned header.
+
 ## 1.4.5
 
 **Layout**

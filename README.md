@@ -101,7 +101,7 @@ The card editor's own keys:
 | `＠{2026-09-11}` | Date. `＠{2026-09-11 ~ 2026-09-14}` is a range |
 | `#Alex` | Assignee (must be on the people list) |
 | `📌` | Pinned |
-| `✎{2026-09-11 14:20}` | Last touched — written by the plugin |
+| `✎{2026-09-11 14:20:05}` | Last touched, to the second — written by the plugin. Also tells apart cards whose first lines are identical. Older minute-only stamps still read |
 | `💬{2026-09-11 14:20\|Alex} text` | A comment |
 | `🔁 every 2 weeks` | Repeats every 2 weeks. `every 3 days`, `every month` also work, and so does the older `🔁 每2週` |
 | `#long-term` | Long-term, ignores the date filters. The older `#長期` also works |
@@ -109,6 +109,11 @@ The card editor's own keys:
 | `## Archive` | The archive section |
 
 Indented lines under a card are its content.
+
+## Support
+
+Card Table is built by one person in spare time. If it saves you time, you can
+[buy me a coffee on Ko-fi](https://ko-fi.com/jiajiunwu).
 
 ## Licence
 
