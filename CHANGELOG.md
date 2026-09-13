@@ -1,5 +1,58 @@
 # Changelog
 
+## 1.4.4
+
+Rebuilds the narrow-screen layout so it no longer needs `!important` or
+`display:contents`, and works through a round of phone feedback.
+
+**Review findings**
+
+- `styles.css` has no `!important`, no `display:contents` and no
+  `max-width` media queries left (78 → 0, 3 → 0). Narrow screens used to be the
+  desktop table flattened with `display:contents`, reordered with `order`, with
+  inline styles and theme table borders overridden by force. The plugin now
+  decides the layout once per render, marks the board with a class, and draws
+  narrow-screen cards as plain `div`s in the order they appear — nothing is left
+  to override.
+- The pin and the title-edit icon took their colour from inline styles, so their
+  hover state needed `!important`. Both are classes now.
+- Sync-conflict detection looks only in the note's own folder instead of listing
+  every file in the vault. The `[[` link suggester still lists notes — that is
+  what it is for.
+- The release workflow removes any asset other than `main.js`, `manifest.json`
+  and `styles.css` (1.4.3 had `README.md` and `CHANGELOG.md` attached).
+
+**Phones**
+
+- A card's first row is pin · done circle · date ········ assignee · "…", with a
+  divider under it. Title, status and repeat sit on the next row with the edit
+  button at its right end, so the content uses the full card width when reading
+  and when editing.
+- Date ranges read across one line (`09-12(Sat) – 09-20(Sun)`, year dropped when
+  both ends share it) instead of stacking.
+- Editing a comment has Send and Cancel buttons. Before, saving needed Enter,
+  which a phone keyboard with an input method never delivers.
+- The date picker stays on screen: it wraps, measures itself, and flips above the
+  date when there is no room below.
+- The "scroll jumps down and back" while editing is gone. Growing a text box no
+  longer collapses it to measure (that briefly clamped the scroll position on
+  iOS), and a card below the top third of the screen moves up before the
+  keyboard can push it.
+- The add-card area is two rows: title | section | assignee, then content | send.
+- All / overdue, long-term and to do / done share one row under the date strip.
+- Bigger ◀ ▶ arrows (chevrons in a 24px target).
+- Buttons and text boxes set their own height and corner radius, so Obsidian
+  mobile's 44px buttons and pill-shaped inputs no longer show through.
+- The list leaves room at the bottom for the floating navigation bar.
+
+**Everywhere**
+
+- "Card Journal Board" is renamed to Card Table (卡片日誌) in the command,
+  file menu and settings, and the file menu uses the plugin's own icon.
+- The search chip shows only the first line of what you typed, with "…", so it
+  stops resizing the list header as you write.
+- Larger ◀ ▶ arrows on desktop too (20px, same cell widths).
+
 ## 1.4.3
 
 Fixes a highlight bug, gives the narrow-screen card a fixed layout, and tidies

@@ -76,6 +76,14 @@ jobs:
             fi
             gh release upload "$GITHUB_REF_NAME" \
               main.js manifest.json styles.css --clobber
+            # 審核會把「多出來的附件」列成建議事項(1.4.3 就多了 README.md、CHANGELOG.md,
+            # 是在網頁上手動建 release 時一起拖進去的)。Obsidian 只會下載這三個,其他的一律拿掉。
+            gh release view "$GITHUB_REF_NAME" --json assets -q '.assets[].name' | while read -r NAME; do
+              case "$NAME" in
+                main.js|manifest.json|styles.css) ;;
+                *) echo "removing extra asset: $NAME"; gh release delete-asset "$GITHUB_REF_NAME" "$NAME" -y ;;
+              esac
+            done
           elif [ -f RELEASE_NOTES.md ]; then
             gh release create "$GITHUB_REF_NAME" \
               --title "$GITHUB_REF_NAME" \

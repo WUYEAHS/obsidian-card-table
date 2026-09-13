@@ -4,7 +4,9 @@ const f=app.vault.getAbstractFileByPath(path);
 let leaf=app.workspace.getLeavesOfType('card-table').find(l=>l.view&&l.view.file&&l.view.file.path===path);
 if(!leaf){ leaf=app.workspace.getLeaf(true); await leaf.openFile(f); await leaf.setViewState({type:'card-table',state:{file:path}}); }
 app.workspace.setActiveLeaf(leaf,{focus:true});
+// 兩邊的側邊欄都收起來:手機沒有側邊欄,不收的話 420px 的視窗只剩 306px 給看板,量到的是不存在的寬度
 app.workspace.leftSplit.collapse();
+app.workspace.rightSplit.collapse();
 await new Promise(r=>setTimeout(r,500));
 const v=leaf.view;
 v['狀態']['篩']={'型':'全部'};   // 篩 = 全部
@@ -13,7 +15,8 @@ await new Promise(r=>setTimeout(r,500));
 const b=v.contentEl;
 const bb=b.getBoundingClientRect();
 
-const out={ 寬:Math.round(bb.width), 板橫向溢出:b.scrollWidth>b.clientWidth+1 ? (b.scrollWidth+'>'+b.clientWidth) : false,
+// ovh = 視窗寬 - 看板寬(左側 ribbon、分頁邊框…)。check4 用它把視窗調到「看板剛好是手機那麼寬」
+const out={ ovh:innerWidth-Math.round(bb.width), inner:innerWidth, 寬:Math.round(bb.width), 窄:!!v['窄'],板橫向溢出:b.scrollWidth>b.clientWidth+1 ? (b.scrollWidth+'>'+b.clientWidth) : false,
   溢出元素:[], 切字:[], 超出左右邊界:[] };
 
 [...b.querySelectorAll('*')].forEach(el=>{
