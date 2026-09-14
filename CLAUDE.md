@@ -1,4 +1,4 @@
-# Card Table: Dated Tasks(卡片看板：任務分類日誌)—— 給 Claude 的專案筆記
+# Card Table - Dated Tasks(卡片看板：任務分類日誌)—— 給 Claude 的專案筆記
 
 Obsidian 外掛,把一份 markdown 筆記讀成一張任務卡片表。
 使用者說中文,回答和註解都用繁體中文。
@@ -72,11 +72,14 @@ C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\card-table  →  這個 rep
 
 | 位置 | 格式 | 例 |
 | --- | --- | --- |
-| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260915v1` |
-| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.5.1` |
-| `manifest.json` 的 `version` | semver | `1.5.1` |
+| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260915v2` |
+| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.5.2` |
+| `manifest.json` 的 `version` | semver | `1.5.2` |
 
-外掛名稱 1.5.1 起是 **Card Table: Dated Tasks**(中文「卡片看板：任務分類日誌」,指令裡簡稱「卡片看板」)。
+外掛名稱 1.5.2 起是 **Card Table - Dated Tasks**(中文「卡片看板：任務分類日誌」,指令裡簡稱「卡片看板」)。
+⚠ **英文名稱不能有冒號**:社群外掛目錄只收基本拉丁字母,標點只准 `-`、`+`、`()`。
+1.5.1 用了 `Card Table: Dated Tasks`,目錄直接把外掛從列表藏起來(「Name not allowed in the directory」),
+所以 1.5.2 馬上改成連字號。中文名只在外掛和 README 裡顯示,冒號可以留著。
 ⚠ **`id` 永遠是 `card-table`**,不要跟著名字改 —— 改了 id,已安裝的人收不到更新、設定也會不見。
 名稱和描述在 `obsidianmd/obsidian-releases` 的 `community-plugins.json` 另有一份,改名要另外發 PR。
 

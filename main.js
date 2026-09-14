@@ -27,8 +27,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260915v1";
-const 插件版本 = "1.5.1";
+const 看板版本 = "260915v2";
+const 插件版本 = "1.5.2";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -183,7 +183,7 @@ const 字典 = {
     askOpenNew: "開一份新檔案當卡片看板", newBoardName: "卡片看板"
   },
   "en": {
-    board: "Card Table: Dated Tasks", today: "Today", week: "This week", month: "This month",
+    board: "Card Table - Dated Tasks", today: "Today", week: "This week", month: "This month",
     all: "All", overdue: "Overdue", search: "Search title or content…",
     /* ⚠ 這個字會出現在兩個很窄的地方:新增列的欄框標籤,以及沒有指派人的卡片上那個
        「＋ …」提示。"Assignee" 兩邊都塞不下(分類欄要撐到 88px 才不會被切)。

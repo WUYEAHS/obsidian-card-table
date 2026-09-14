@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.2
+
+- The English name is now **Card Table - Dated Tasks**. The community plugin
+  directory does not allow a colon in plugin names, so 1.5.1's name was hidden
+  from the list. Nothing else changed.
+
 ## 1.5.1
 
 - Renamed to **Card Table: Dated Tasks** (卡片看板：任務分類日誌). The plugin id

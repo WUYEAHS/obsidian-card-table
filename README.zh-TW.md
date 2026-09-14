@@ -2,7 +2,7 @@
 
 <img width="90%" alt="卡片看板：任務分類日誌" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
 
-# Card Table: Dated Tasks 卡片看板：任務分類日誌
+# Card Table - Dated Tasks 卡片看板：任務分類日誌
 
 **把任何一篇 Markdown 筆記變成一張照日期排的任務卡片表 —— 點一下就看今天、本週或本月,每張卡片上都能直接留言。**
 
@@ -17,7 +17,7 @@
 ## 安裝
 
 1. 設定 → 社群外掛 → 開啟社群外掛。
-2. 瀏覽 → 搜尋 **Card Table: Dated Tasks**(卡片看板：任務分類日誌)→ 安裝並啟用。
+2. 瀏覽 → 搜尋 **Card Table - Dated Tasks**(卡片看板：任務分類日誌)→ 安裝並啟用。
 
 還沒上架的話:從 [最新版本](../../releases/latest) 下載 `main.js`、`manifest.json`、`styles.css`,
 放進 `<你的 vault>/.obsidian/plugins/card-table/`,重新載入 Obsidian 再啟用 **卡片看板：任務分類日誌**。

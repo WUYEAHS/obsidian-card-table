@@ -1,9 +1,9 @@
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
-<img width="90%" alt="Card Table: Dated Tasks board" src="https://github.com/user-attachments/assets/37b5914d-21df-48c9-a949-2a59c9fef3e9" />
-<img width="30%" alt="Card Table: Dated Tasks on a phone" src="https://github.com/user-attachments/assets/2e09a693-d1c4-4196-bdea-693612a90d99" />
+<img width="90%" alt="Card Table - Dated Tasks board" src="https://github.com/user-attachments/assets/37b5914d-21df-48c9-a949-2a59c9fef3e9" />
+<img width="30%" alt="Card Table - Dated Tasks on a phone" src="https://github.com/user-attachments/assets/2e09a693-d1c4-4196-bdea-693612a90d99" />
 
-# Card Table: Dated Tasks
+# Card Table - Dated Tasks
 
 **Turn any markdown note into a dated table of task cards — pick today, this week or this month in one tap, and let everyone leave comments right on the card.**
 
@@ -18,11 +18,11 @@ If Card Table saves you time, you can [buy me a coffee on Ko-fi](https://ko-fi.c
 ## Installation
 
 1. Settings → Community plugins → turn on community plugins.
-2. Browse, search for **Card Table: Dated Tasks**, install and enable it.
+2. Browse, search for **Card Table - Dated Tasks**, install and enable it.
 
 Not listed yet? Download `main.js`, `manifest.json` and `styles.css` from the
 [latest release](../../releases/latest) into `<your vault>/.obsidian/plugins/card-table/`,
-then reload Obsidian and enable **Card Table: Dated Tasks**.
+then reload Obsidian and enable **Card Table - Dated Tasks**.
 
 ## Getting started
 
