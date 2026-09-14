@@ -27,8 +27,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Workspace
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260914v2";
-const 插件版本 = "1.4.8";
+const 看板版本 = "260914v3";
+const 插件版本 = "1.4.9";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -137,7 +137,7 @@ const 字典 = {
     editPos: "按下編輯之後,那張卡片停在哪裡",
     editPosDesc: "內容很長的時候,編修框會一次撐開很多行。不處理的話瀏覽器會把畫面拉到框的底部。",
     editPosKeep: "原地不動（預設）", editPosTop: "拉到最上面", editPosNone: "交給瀏覽器",
-    pinnedBlock: "置頂", addBlock: "新增卡片", fold: "收合", unfold: "展開", lastEdited: "最後編輯",
+    pinnedBlock: "置頂", addBlock: "新增卡片", filterBlock: "時間篩選", fold: "收合", unfold: "展開", lastEdited: "最後編輯",
     soloMode: "個人使用（不用指派人）",
     soloModeDesc: "只有自己在用這份看板:新增卡片不再有指派人欄位,卡片上也不顯示指派人,空出來的寬度給常用主題。筆記裡已經寫好的 #名字 不會被動到。",
     meName: "我",
@@ -254,7 +254,7 @@ const 字典 = {
     editPos: "Where a card sits when you start editing",
     editPosDesc: "A long card opens a tall editor. Left alone, the browser scrolls to the bottom of it.",
     editPosKeep: "Leave it where it is (default)", editPosTop: "Pull it to the top", editPosNone: "Let the browser decide",
-    pinnedBlock: "Pinned", addBlock: "New card", fold: "Collapse", unfold: "Expand", lastEdited: "Last edited",
+    pinnedBlock: "Pinned", addBlock: "New card", filterBlock: "Time filters", fold: "Collapse", unfold: "Expand", lastEdited: "Last edited",
     soloMode: "Solo (no assignees)",
     soloModeDesc: "For a board only you use: the add row drops the assignee box and cards stop showing assignees, giving the space to frequent titles. #names already in the note are left alone.",
     meName: "me",
@@ -400,6 +400,7 @@ function 存我是誰(名) {
 /* 置頂表收起來了沒(1.4.5),理由同上。 */
 const 新增收合鍵 = "card-table-add-folded";
 const 置頂收合鍵 = "card-table-pin-folded";
+const 篩選收合鍵 = "card-table-filter-folded";   // 1.4.9:篩選列也能收
 function 讀收合(鍵) {
   try { return String((目前app && 目前app.loadLocalStorage(鍵)) || "") === "1"; }
   catch (e) { return false; }
@@ -2121,15 +2122,46 @@ class 看板視圖 extends TextFileView {
      排法完全照最新版的 日誌看板.md:
        [ 年 + 本日/本周/本月 ]  [ 全部 / 已逾期 ]  [ 長期・週期 ]  …靠右… [ 顯示 ]
      「顯示」是開關不是篩選,所以靠右分家、左邊那條也不用重點色。 */
+  /* 可以收合的控制塊(1.4.9):篩選列和新增卡片共用同一種標題列,長相才會一致。
+     收合狀態記在這台裝置(讀收合 / 存收合)。收起來的時候標題旁邊放一行小字摘要。
+     ⚠ 1.4.8 層級:控制區整塊是 background-secondary,底下的卡片表本體是 background-primary ——
+       控制區才有重心,不會跟卡片表糊成一片淺色。塊裡面的欄框一律透明,不再加第三層。 */
+  畫收合塊(根, 標題, 收, 摘要, 切收) {
+    const T = this.T;
+    const 塊 = 根.createDiv();
+    塊.addClass("tk-塊");
+    st(塊, "border-radius:9px;border:1px solid var(--background-modifier-border);" +
+      "background:var(--background-secondary);box-shadow:0 1px 3px rgba(0,0,0,0.16);");
+    const 標頭 = 塊.createDiv();
+    標頭.setAttribute("role", "button");
+    標頭.setAttribute("tabindex", "0");
+    st(標頭, "display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;user-select:none;min-width:0;" +
+      "background:var(--background-secondary);" +
+      (收 ? "" : "border-bottom:1px solid var(--background-modifier-border);"));
+    圖(標頭, 收 ? "chevron-right" : "chevron-down", 15, "var(--text-muted)");
+    st(標頭.createDiv({ text: 標題 }),
+      "font-size:0.82em;font-weight:700;color:var(--text-normal);white-space:nowrap;");
+    if (收 && 摘要) st(標頭.createDiv({ text: 摘要 }),
+      "font-size:0.72em;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;");
+    標頭.title = 收 ? T.unfold : T.fold;
+    標頭.onclick = 切收;
+    標頭.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 切收(); } };
+    return 塊;
+  }
+
   畫導覽列(根, 全) {
     根.empty();
-    const 導 = 根.createDiv();
-    導.addClass("tk-塊");
-    st(導, "display:flex;flex-direction:column;gap:0;padding:7px;border-radius:10px;" +
-      "background:var(--background-secondary);" +
-      "border:1px solid var(--background-modifier-border);" +
-      "box-shadow:inset 0 0 0 1px rgba(0,0,0,0.12);");
-    const 條 = 導.createDiv();
+    /* 1.4.9:篩選列是一張可以收合的表,收起來時標題旁邊顯示現在篩的是哪一段。 */
+    const 收 = 讀收合(篩選收合鍵);
+    const 導 = this.畫收合塊(根, this.T.filterBlock, 收, this.篩選標題(), () => {
+      存收合(篩選收合鍵, !收);
+      if (!收) this.狀態.開行事曆 = false;   // 收起來就把行事曆一起關掉,不然它孤零零掛在外面
+      this.畫();
+    });
+    if (收) return;
+    const 本體 = 導.createDiv();
+    st(本體, "padding:7px;");
+    const 條 = 本體.createDiv();
     st(條, "display:flex;gap:4px;flex-wrap:wrap;align-items:stretch;flex:1 1 auto;");
 
     this.畫期間格(條, 全);
@@ -2226,10 +2258,11 @@ class 看板視圖 extends TextFileView {
       "background:var(--background-primary);");
 
     const 年格 = 複合格.createDiv();
-    st(年格, "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;" +
+    st(年格, "display:flex;flex-direction:row;align-items:stretch;justify-content:center;gap:2px;" +
       "box-sizing:border-box;flex:0 0 " + (窄 ? 110 : 年格寬) + "px;" +
       "width:" + (窄 ? 110 : 年格寬) + "px;min-width:0;border-radius:6px;" +
-      "padding:" + (窄 ? "2px" : "3px") + ";user-select:none;" +
+      // padding 跟本日那一格一樣是 2px —— 桌機以前 3px,年的箭頭就比本日的矮 2px、低 1px
+      "padding:2px;user-select:none;" +
       "box-shadow:inset 0 0 0 1px var(--text-accent);" +
       (年選 ? "background:var(--background-modifier-hover);" : ""));
 
@@ -2248,12 +2281,14 @@ class 看板視圖 extends TextFileView {
       看整年();
     };
 
-    /* ◀ ▶ 是兩條**跨整格高**的箭頭,夾著「數字 + 年份」(1.4.6 窄螢幕,1.4.7 起桌機也是)。
-       小方塊的點擊範圍太小,左右兩邊一偏就點到中間去了。 */
-    const 年上 = 年格.createDiv();
-    st(年上, "display:flex;align-items:stretch;gap:2px;width:100%;flex:1 1 auto;min-height:0;");
-    this.畫箭(年上, false, "看前一年", () => 換年(-1), true);
-    const 年中 = 年上.createDiv();
+    /* ◀ ▶ 是兩條**跨整格高**的箭頭,夾著「數字 / 年份 / 行事曆鈕」(1.4.6 窄螢幕,1.4.7 起桌機也是)。
+       小方塊的點擊範圍太小,左右兩邊一偏就點到中間去了。
+       ⚠⚠ 1.4.9:行事曆鈕放進**中間那一欄**,箭頭才跨得到整格高、跟本日的箭頭齊平。
+         1.4.8 以前行事曆鈕橫跨在箭頭底下,箭頭只有上面那一段高,整條往上偏。
+         代價是行事曆鈕只剩圖示:中間那欄桌機 44px、手機 50px,
+         「📅 行事曆」要 57px、「📅 Calendar」要 73px,放不下。名稱留在 title 和 aria-label。 */
+    this.畫箭(年格, false, "看前一年", () => 換年(-1), true);
+    const 年中 = 年格.createDiv();
     st(年中, "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
       "gap:2px;flex:1 1 auto;min-width:0;");
     const 年數 = 年中.createDiv({
@@ -2270,18 +2305,19 @@ class 看板視圖 extends TextFileView {
       "font-variant-numeric:tabular-nums;color:var(--text-muted);cursor:pointer;");
     年字.title = new Date().getFullYear() + "";
     年字.onclick = (e) => { e.stopPropagation(); 回今年(); };
-    this.畫箭(年上, true, "看後一年", () => 換年(1), true);
 
-    const 曆鈕 = 年格.createEl("button");
+    const 曆鈕 = 年中.createEl("button");
+    this.畫箭(年格, true, "看後一年", () => 換年(1), true);   // 排在 年中 後面
     st(曆鈕, "font-size:0.6em;height:18px;line-height:1;cursor:pointer;min-height:0;margin:0;" +
-      "padding:0 6px;border-radius:6px;box-shadow:none;white-space:nowrap;" +
+      "padding:0 8px;border-radius:6px;box-shadow:none;white-space:nowrap;" +
       (s.開行事曆
         ? "color:var(--text-on-accent, #fff);font-weight:700;" +
           "background:var(--interactive-accent, var(--text-accent));" +
           "border:1px solid var(--interactive-accent, var(--text-accent));"
         : "color:var(--text-muted);background:var(--background-secondary);" +
           "border:1px solid var(--background-modifier-border);"));
-    圖鈕(曆鈕, "calendar-days", T.calendar, 11);
+    圖鈕(曆鈕, "calendar-days", "", 11);
+    曆鈕.setAttribute("aria-label", T.calendar);
     曆鈕.title = s.開行事曆 ? "收起行事曆" : "打開行事曆:點一天、點起迄選一段";
     曆鈕.onclick = (e) => {
       e.stopPropagation();
@@ -2644,29 +2680,9 @@ class 看板視圖 extends TextFileView {
        ⚠ 收起來的時候主題/內容框(= 搜尋框)也看不到了。正在搜尋的話,
          清單標題列那顆搜尋膠囊還在,點它就清掉 —— 不會卡在一個看不到搜尋框的篩選裡。 */
     const 收 = 讀新增收合();
-    const 外塊 = 根.createDiv();
-    外塊.addClass("tk-塊");
-    /* ⚠ 1.4.8 層級:上面的「控制區」(篩選列、新增卡片)整塊是 background-secondary,
-       底下的卡片表本體是 background-primary —— 新增卡片跟篩選列同一層,才有重心,
-       不會跟卡片表糊成一片淺色。塊裡面的欄框一律透明,不再加第三層。 */
-    st(外塊, "border-radius:9px;border:1px solid var(--background-modifier-border);" +
-      "background:var(--background-secondary);box-shadow:0 1px 3px rgba(0,0,0,0.16);");
-    const 標頭 = 外塊.createDiv();
-    標頭.setAttribute("role", "button");
-    標頭.setAttribute("tabindex", "0");
-    st(標頭, "display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;user-select:none;min-width:0;" +
-      "background:var(--background-secondary);" +
-      (收 ? "" : "border-bottom:1px solid var(--background-modifier-border);"));
-    圖(標頭, 收 ? "chevron-right" : "chevron-down", 15, "var(--text-muted)");
-    st(標頭.createDiv({ text: T.addBlock }),
-      "font-size:0.82em;font-weight:700;color:var(--text-normal);white-space:nowrap;");
-    // 收起來的時候順便告訴你:新卡片會放到哪一天
-    if (收) st(標頭.createDiv({ text: this.新增去向短() }),
-      "font-size:0.72em;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;");
-    標頭.title = 收 ? T.unfold : T.fold;
-    const 切收 = () => { 存新增收合(!收); this.畫新增區(根, this.卡片); };
-    標頭.onclick = 切收;
-    標頭.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 切收(); } };
+    // 收起來的時候標題旁邊告訴你:新卡片會放到哪一天
+    const 外塊 = this.畫收合塊(根, T.addBlock, 收, this.新增去向短(),
+      () => { 存新增收合(!收); this.畫新增區(根, this.卡片); });
     if (收) { if (s.管人開) this.畫管人(根); return; }
 
     const 本體 = 外塊.createDiv();

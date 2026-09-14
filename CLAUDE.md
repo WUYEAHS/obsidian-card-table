@@ -64,9 +64,9 @@ C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\card-table  →  這個 rep
 
 | 位置 | 格式 | 例 |
 | --- | --- | --- |
-| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260914v2` |
-| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.8` |
-| `manifest.json` 的 `version` | semver | `1.4.8` |
+| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260914v3` |
+| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.9` |
+| `manifest.json` 的 `version` | semver | `1.4.9` |
 
 作者名一律 `jiajiunwu`(manifest、LICENSE、SUBMITTING.md)。README 有中英兩份
 (`README.md`、`README.zh-TW.md`),改一份就要改另一份。
@@ -200,6 +200,13 @@ README.md、CHANGELOG.md,被審核列成建議事項)。
 - **`.tk-塊` 是 `overflow:clip`(兩個方向)**,圓角才裁得到標題列和表格最後一列。
   能這樣做是因為所有浮出來的東西都掛在 `document.body`;新加的浮動面板也要掛那裡,不要掛在塊裡面。
 - 設定 `顯示編輯時間`(`看板視圖.顯示編時`)只管畫面,✎ 時戳照寫。
+
+## 1.4.9 的規則
+
+- **控制區的塊一律用 `畫收合塊()`**(篩選列、新增卡片):同一種標題列、同一種底色、收合狀態記在這台裝置
+  (`篩選收合鍵`、`新增收合鍵`)。新的控制塊照這個走,不要再手刻一份標題列。
+- **年格是 `[◀][數字 / 年份 / 行事曆鈕][▶]` 一橫排**,箭頭跨整格高才會跟本日的箭頭齊平。
+  行事曆鈕因此只有圖示(中間欄只有 44 / 50px)—— 不要把字加回去,也不要把鈕搬回箭頭底下。
 
 ## Git
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.9
+
+- The filter bar is a collapsible block with a **Time filters** header, like
+  New card and the pinned table. Folded, the header shows what you are filtering on (for
+  example `Today 09-14`). Folding it also closes the calendar.
+- The year arrows now span the whole year tile, level with the Today arrows.
+  The calendar button moved between them and shows only its icon (the name is
+  in the tooltip).
+
 ## 1.4.8
 
 - New card: the fields sit right under the New card header, edge to edge —

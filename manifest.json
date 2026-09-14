@@ -1,7 +1,7 @@
 {
   "id": "card-table",
   "name": "Card Table",
-  "version": "1.4.8",
+  "version": "1.4.9",
   "minAppVersion": "1.6.0",
   "description": "Turn a markdown note into a dated table of task cards. Filter by day, week or month in one tap, comment on cards together, and keep everything as plain text in the note.",
   "author": "jiajiunwu",
