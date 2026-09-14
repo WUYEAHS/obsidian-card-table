@@ -30,9 +30,9 @@ Obsidian 的社群外掛審核分兩關:一隻機器人跑靜態檢查,然後一
 ```json
 {
   "id": "card-table",
-  "name": "Card Table",
+  "name": "Card Table: Dated Tasks",
   "author": "jiajiunwu",
-  "description": "Turn a markdown note into a dated table of task cards. Filter by day, week or month in one tap, comment on cards together, and keep everything as plain text in the note.",
+  "description": "Date-first task cards from a markdown note: filter today, this week or this month in one tap, comment on cards like a journal, a Kanban-style table that stays plain text.",
   "repo": "WUYEAHS/obsidian-card-table"
 }
 ```

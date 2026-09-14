@@ -1,12 +1,12 @@
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
-<img width="90%" alt="Card Table board" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
+<img width="90%" alt="Card Table: Dated Tasks board" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
 
-# Card Table
+# Card Table: Dated Tasks
 
 **Turn any markdown note into a dated table of task cards — pick today, this week or this month in one tap, and let everyone leave comments right on the card.**
 
-- **Dates come first.** The filter bar is always on screen: year, day, week, month, overdue, long-term. No date pickers, no pop-up dialogs — one tap narrows the table, ◀ ▶ steps through the days.
+- **Dates come first.** The filter bar is always on screen: year, month, week, day, overdue, repeat. No date pickers, no pop-up dialogs — one tap narrows the table, ◀ ▶ steps through the days.
 - **Every card can hold a conversation.** Comments are signed and timestamped, so a card turns into a small log of what happened. Several people can work in the same note at once.
 - **It is still just a note.** Dates, assignees, pins, comments and repeats are plain text. Turn the plugin off and you still have a task list anyone can read.
 
@@ -17,11 +17,11 @@ If Card Table saves you time, you can [buy me a coffee on Ko-fi](https://ko-fi.c
 ## Installation
 
 1. Settings → Community plugins → turn on community plugins.
-2. Browse, search for **Card Table**, install and enable it.
+2. Browse, search for **Card Table: Dated Tasks**, install and enable it.
 
 Not listed yet? Download `main.js`, `manifest.json` and `styles.css` from the
 [latest release](../../releases/latest) into `<your vault>/.obsidian/plugins/card-table/`,
-then reload Obsidian and enable **Card Table**.
+then reload Obsidian and enable **Card Table: Dated Tasks**.
 
 ## Getting started
 
@@ -49,7 +49,7 @@ then reload Obsidian and enable **Card Table**.
 
 - **One-tap filters** — the year, This month / This week and Today sit in the first block of the filter bar. Step backwards and forwards with ◀ ▶; the day tile shows the weekday.
 - **The year follows you** — the year tile always shows which year you are in, and steps into the next year when a week or month does. Tap the year to jump back to this year.
-- **Overdue and Repeating** — one tile, half each. Turn on **All** in settings to add an All tile to the left of the year.
+- **Overdue and Repeat** — one tile, half each. Turn on **All** in settings to add an All tile to the left of the year.
 - **This week, your way** — the calendar week, or seven days from today so the overdue start of the week stays out.
 - **Show to do / done / archived** — three switches that apply to the list, the counts and the calendar. On a narrow window they fold into a `⋯`.
 - **Calendar** — tap a day, or two days for a range. Always opens on the current month.
@@ -144,7 +144,8 @@ That is the whole storage format — everything the table shows comes from lines
 | In the note | Means |
 | --- | --- |
 | `- [ ]` / `- [x]` | One card, not done / done |
-| `[Title]` | The card's title || `＠{2026-09-11}` | Date. `＠{2026-09-11 ~ 2026-09-14}` is a range |
+| `[Title]` | The card's title |
+| `＠{2026-09-11}` | Date. `＠{2026-09-11 ~ 2026-09-14}` is a range |
 | `#Alex` | Assignee (must be on the people list) |
 | `📌` | Pinned |
 | `✎{2026-09-11 14:20}` | Last touched, to the minute — written by the plugin (older stamps with seconds still read) |

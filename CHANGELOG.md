@@ -1,5 +1,56 @@
 # Changelog
 
+## 1.5.1
+
+- Renamed to **Card Table: Dated Tasks** (卡片看板：任務分類日誌). The plugin id
+  stays `card-table`, so settings and updates carry over.
+- Hovering a done circle previews the tick, like repeating cards already did.
+- The Repeat filter tile has a shorter English label.
+- Section names on cards are plain `#name` text, a little smaller, without a
+  frame.
+- The line between range dates is a crisp `|` character, centred, instead of a
+  thin drawn line that blurred at 120% zoom.
+- Icons instead of words: the Time filters header (calendar), New card
+  header (pen), Pinned header (pin), Overdue (clock alert),
+  Repeat (refresh with a dot), the to do / done / archived switches (circle,
+  circle check, archive), the Add button and the comment Send / Save buttons
+  (send). Names stay in tooltips.
+  Each icon falls back to an older Lucide name on older Obsidian versions.
+- New card: the Title, Frequent titles, Section, Assignee and Content labels
+  are gone, and so are the vertical lines between the fields. The section
+  circle sits right after the title box. The assignee box is narrower; its `⋯`
+  joined the header
+  `⋯`, which now offers Section names and colours and Manage assignees. Short
+  fields (frequent titles, the circle) are centred vertically. On phones the
+  title box and the content box are the same width. The section names-and-colours `⋯` moved to the right end of the
+  New card header (it works while the block is folded, too). The title box looks like the title pill on cards,
+  tinted with the chosen section's colour.
+- Dates on cards use a fixed-width slot per digit, so themes without
+  tabular numbers no longer make dates (and the two lines of a range) start at
+  different places. The list table header takes the colour of the time filter it
+  came from — Today orange, This week yellow, This month cyan, and so on.
+- Fixed: choosing Unassigned in the new card's assignee box jumped back to the
+  person this device remembers, and the card was still assigned to them.
+- Less space between blocks (the Time filters and New card blocks sit closer
+  still) and lower block headers. The to do / done / archived switches are
+  narrower now that they are icons.
+- The pinned table's `⋯` looks like the New card `⋯`: a plain icon, no frame.
+- The range line snaps to whole device pixels after every redraw and resize,
+  so it stays sharp at any zoom.
+- The folded Time filters header and the list table titles write dates like
+  the cards (`09-15(Tue)`, the year only when it is not this year). The folded
+  New card header shows just its icon.
+- All block headers are the same low height on desktop and phones; the `⋯`
+  buttons no longer make them taller.
+- Phones: cards sit directly under the table header, separated by a firmer
+  divider line (the section colour stripe stays whole), instead of separate
+  framed boxes inside the table. The line under the date row runs the full card width.
+- Phones: the to do / done / archived switches moved into a `⋯` on the Time
+  filters header (it turns accent-coloured when something is hidden), so the
+  time filters fit on one row; the optional All filter lives in that same `⋯`.
+  Desktop keeps the switches at the end of the filter bar. The Overdue / Repeat
+  tile is a little wider, and the date row on each card is lower.
+
 ## 1.5.0
 
 **Finding cards**

@@ -1,4 +1,4 @@
-# Card Table — 給 Claude 的專案筆記
+# Card Table: Dated Tasks(卡片看板：任務分類日誌)—— 給 Claude 的專案筆記
 
 Obsidian 外掛,把一份 markdown 筆記讀成一張任務卡片表。
 使用者說中文,回答和註解都用繁體中文。
@@ -27,6 +27,12 @@ C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\card-table  →  這個 rep
 ```
 
 所以改了 `main.js` 存檔,Obsidian 那邊就是新的,不用複製。改完要讓它生效:
+
+⚠ **2026-09-15 發現 junction 不見了**:推了 1.5.0 的 tag 之後,vault 的 `card-table` 變成一個實體資料夾
+(裡面是 release 下載的 1.5.0,`data.json` 也在裡面)。之後重載讀到的都是舊版,測試全部白跑。
+**每次測試前先確認**跑的是哪一版:`app.plugins.plugins['card-table'].manifest.version` 要等於 repo 的版本。
+不是的話,把 repo 的 `main.js`、`manifest.json`、`styles.css` 複製進那個資料夾(`data.json` 不要動)再重載;
+要換回 junction,先把 `data.json` 搬出來。
 
 - Obsidian 裡 `Ctrl+R` 重載,或設定 → 社群外掛把 Card Table 關掉再開
 - 有裝 Obsidian CLI 的話:`obsidian plugin:reload id=card-table`,再 `obsidian dev:errors` 看有沒有噴錯
@@ -66,9 +72,13 @@ C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\card-table  →  這個 rep
 
 | 位置 | 格式 | 例 |
 | --- | --- | --- |
-| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260914v4` |
-| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.5.0` |
-| `manifest.json` 的 `version` | semver | `1.5.0` |
+| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260915v1` |
+| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.5.1` |
+| `manifest.json` 的 `version` | semver | `1.5.1` |
+
+外掛名稱 1.5.1 起是 **Card Table: Dated Tasks**(中文「卡片看板：任務分類日誌」,指令裡簡稱「卡片看板」)。
+⚠ **`id` 永遠是 `card-table`**,不要跟著名字改 —— 改了 id,已安裝的人收不到更新、設定也會不見。
+名稱和描述在 `obsidianmd/obsidian-releases` 的 `community-plugins.json` 另有一份,改名要另外發 PR。
 
 作者名一律 `jiajiunwu`(manifest、LICENSE、SUBMITTING.md)。README 有中英兩份
 (`README.md`、`README.zh-TW.md`),改一份就要改另一份。
@@ -230,6 +240,34 @@ README.md、CHANGELOG.md,被審核列成建議事項)。
   今年的日期不寫年份(`今年嗎()`);區間兩行左對齊、中間細線置中。
 - **卡片表沒有 `<thead>`**:欄寬寫在 `<colgroup>`(`畫卡片塊`、`畫未定區`)。要加欄就加一個 `<col>`,
   不要把表頭加回來當欄寬用。
+
+## 1.5.1 的規則
+
+- **圖示一律走 `圖備(容器, [名字, 舊名字…], 大小)`**。Lucide 改過很多名字(send-horizonal → send-horizontal、
+  check-circle → circle-check、pen-square → square-pen),Obsidian 內建的版本新舊不一,只給一個名字可能畫出空格。
+- **控制區和置頂表的標題列只放圖示**(時間篩選 calendar、新增卡片 square-pen、置頂 pin),字留在 title / aria-label。
+  清單表的標題列用 `篩選色()` 上色(左邊 3px 色帶 + 標題字色),跟上面那一格篩選同色。
+- **新增卡片區沒有欄位標籤**(`建框(容器, null, …)`),**也沒有框和框之間的直線**(`接起來()` 只拿掉外框和底色),
+  兩列之間的橫線保留。**標題列右上角的「⋯」是唯一的設定入口**:個人使用 → 直接開分類設定;
+  有指派人 → 選單(分類名稱與顏色 / 管理指派人)。第一列是 [主題][分類圓點][常用主題] … [指派人 80px]。
+  窄螢幕的送出欄寬度 = 圓點格 + 指派人格(至少 110px),主題框和內容框才會一樣寬。
+  `新指派`:null = 還沒選(帶入這台電腦是誰),"" = 選了不指派 —— 不要再用 `||` 把兩個混在一起。
+  `建框()` 的欄框內容垂直置中、上下 padding 相同。
+- 控制區(時間篩選 → 行事曆 → 新增卡片)彼此隔 4px,卡片表之間 5px。
+  **所有塊的標題列固定 26px 高,手機和桌機一樣**(`畫收合塊`、`畫卡片塊`、`畫未定區` 三處要一起改),
+  不要讓裡面的東西決定高度 —— 標題列裡的「⋯」桌機 16px、手機 22px,都塞得進去。
+- **手機的卡片直接接在標題列底下**(styles.css 的 `.tk-board.tk-窄 .tk-列`):沒有外框、沒有圓角、彼此不留空隙,
+  一張一條、中間一條分隔線,左邊 3px 分類色條。不要再把每張卡片包成一個有框的盒子。
+  主題框長得跟卡片上的主題膠囊一樣(分類色淡底 + 分類色字)。
+- **卡片日期(桌機)每個字一格**:數字 1ch、連字號 0.8ch,因為使用者的字型沒有等寬數字,`tabular-nums` 沒用。
+  區間中間是一個 `|` 字元置中 —— 不要換回 div 畫的細線(120% 縮放下會糊)。
+- 分類名稱 = 狀態:`#名稱` 小字、沒有框、比主題淡 20%。
+- **未完成 / 已完成 / 含封存:手機在時間篩選標題列的「⋯」裡**(`開顯示選單`),**桌機照舊是篩選列最右邊那一格**
+  (`畫顯示格`)—— 使用者明講桌機不要收。手機的時間篩選是**一排**:年格 88、高箭頭 18、已逾期/週期欄 `clamp(40px, 100% − 277px, 56px)`(寬手機 56、360px 手機 40),
+  本日 / 本月 / 本周的字比桌機小一號 —— 改寬度之前先跑 t5 那種最長標籤的量測。
+  手機開了「全部」也收在同一個「⋯」最上面(桌機還是在年份左邊)。
+- 手機卡片之間是一條 1px、比一般分隔線深一階的線(`box-shadow: inset 0 -1px 0`),**不是 border**
+  (border 會斜切掉左邊的分類色條)。試過 6px 深色帶,使用者覺得很奇怪 —— 不要再用。
 
 ## Git
 

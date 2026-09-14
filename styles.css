@@ -54,7 +54,7 @@
    整個看板的高度剛好等於容器高度,「沒有東西溢出、也就捲不動」。
    看到的就是「只剩兩張卡片,而且拉不動」。
    所以根一律 block,間距用 margin 不用 gap。 */
-.tk-board > * { margin-bottom:12px; }
+.tk-board > * { margin-bottom:5px; }          /* 1.5.1:12 → 5,塊跟塊之間緊一點(控制區彼此 4px,見 建殼) */
 .tk-board > *:last-child { margin-bottom:0; }
 /* 版面寬度 = 窄版(1.4.5,預設):跟筆記的「可讀行寬」一樣寬,整份看板收在中間。
    ⚠⚠ 不能只用 Obsidian 的 --file-line-width(700px)。佈景主題會自己定這個寬度 ——
@@ -509,22 +509,31 @@
    所以這裡剩下的只有「長相」:卡片外框、卡頭分隔線、動作鈕常亮、狀態底色、閃一下。
    ⚠ 不要在這裡用 order 排任何東西。位置不對就去改 main.js 裡建立的順序。
    ============================================================ */
+/* ⚠ 1.5.1:手機的卡片**直接接在標題列底下**,一張一條、中間一條分隔線 ——
+   不再是塊裡面再包一層「有外框、有圓角、彼此隔 8px」的卡片(看起來是框裡還有框)。
+   左邊 3px 的分類色條留著,跟桌機表格的色條同一個語言。 */
+/* 1.5.1 卡片之間:一條比一般分隔線**深一階**的 1px 線(background-modifier-border-hover),上下各多 2px 呼吸。
+   試過的兩種都不好:① 普通的 1px 線 —— 跟卡片底色太接近,分不出哪裡是下一張;
+   ② 6px 深色帶 —— 看起來很奇怪,像卡片之間破了一個洞。
+   ⚠ 線用 box-shadow inset 畫,不用 border-bottom:border 會跟左邊 3px 的分類色條在角落斜切,色條被吃掉一截。 */
 .tk-board.tk-窄 .tk-卡群 {
-  padding:8px;
+  padding:0;
 }
 .tk-board.tk-窄 .tk-列 {
   position:relative;
   display:block;
   min-width:0;
-  margin:0 0 8px;
-  padding:8px 10px 9px;
-  border:1px solid var(--background-modifier-border);
+  margin:0;
+  padding:10px 10px 11px;
+  border:0;
   border-left:3px solid transparent;
-  border-radius:10px;
+  border-radius:0;
   background-color:var(--background-primary);
+  box-shadow:inset 0 -1px 0 var(--background-modifier-border-hover, var(--background-modifier-border));
 }
 .tk-board.tk-窄 .tk-列:last-child {
   margin-bottom:0;
+  box-shadow:none;
 }
 .tk-board.tk-窄 .tk-列.tk-todo {
   border-left-color:var(--tk-sec, var(--background-modifier-border));
@@ -538,10 +547,15 @@
   flex-wrap:nowrap;
   gap:6px;
   min-width:0;
-  min-height:28px;
-  padding-bottom:7px;
-  margin-bottom:7px;
+  min-height:24px;
+  padding-bottom:5px;
+  margin-bottom:6px;
   border-bottom:1px solid var(--background-modifier-border);
+  /* 1.5.1:日期那一行的底線畫到卡片左右兩邊(卡片 padding 10px,負邊距把它拉出去,再用 padding 補回內容位置) */
+  margin-left:-10px;
+  margin-right:-10px;
+  padding-left:10px;
+  padding-right:10px;
 }
 .tk-board.tk-窄 .tk-卡頭 > * {
   flex:0 0 auto;
@@ -616,7 +630,7 @@
   pointer-events:none;
   background:var(--text-accent);
   opacity:0;
-  border-radius:9px;
+  border-radius:0;
   animation:tk-閃現 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .tk-board.tk-窄 .tk-列.tk-定位 {
