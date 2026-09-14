@@ -151,6 +151,8 @@ Indented lines under a card are its content.
 
 ## Card Table and Kanban
 
+Card Table was inspired by the **table view of the [Kanban](https://github.com/mgmeyers/obsidian-kanban) plugin** — the same markdown lists, read as rows instead of lanes. It grew from there into a board built around dates and comments.
+
 Both plugins read a markdown note made of `## headings` and `- [ ]` cards, but they are built around different questions.
 
 | | Kanban | Card Table |

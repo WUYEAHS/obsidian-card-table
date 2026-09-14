@@ -69,7 +69,11 @@
   margin-right:auto;
 }
 /* 每一塊只擋橫向溢出。⚠ 不可以寫 `overflow:clip`(連縱向一起裁 = 上面那個坑) */
-.tk-board .tk-塊 { overflow-x:clip; }
+/* ⚠ 1.4.8:兩個方向都 clip。只 clip 橫向的話圓角裁不到東西 ——
+   標題列的深色底、表格最後一列的格線和底色都是方角,會從塊的圓角左上、右上、右下露出來。
+   可以放心 clip:會跑出塊外面的東西(色盤、日期、主題面板、選單)全部掛在 document.body 上。
+   (上面那段講的「自動最小尺寸掉成 0」只發生在 flex 子項;根已經是 block。) */
+.tk-board .tk-塊 { overflow:clip; }
 
 .tk-board .tk-空隱:empty {
   display:none;

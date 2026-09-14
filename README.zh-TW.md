@@ -150,6 +150,8 @@
 
 ## Card Table 和 Kanban
 
+Card Table 的靈感來自 **[Kanban](https://github.com/mgmeyers/obsidian-kanban) 外掛的表格模式(table view)** —— 同樣的 Markdown 清單,不排成一欄一欄,而是一列一列讀。從那裡出發,再長成一個以日期和留言為主軸的看板。
+
 兩個外掛讀的都是由 `## 標題` 和 `- [ ]` 卡片組成的 Markdown 筆記,但它們回答的是不同的問題。
 
 | | Kanban | Card Table |

@@ -27,8 +27,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Workspace
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260914v1";
-const 插件版本 = "1.4.7";
+const 看板版本 = "260914v2";
+const 插件版本 = "1.4.8";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -149,6 +149,7 @@ const 字典 = {
     sendKey: "送出鍵", sendKeyDesc: "新增卡片、編輯內容、寫留言、改留言都用同一套",
     sendKeyCombo: "Enter 換行；Shift / Ctrl / ⌘ + Enter 送出（預設）", sendKeyEnter: "Enter 送出；Shift + Enter 換行",
     useComments: "使用留言功能", useCommentsDesc: "關掉之後卡片上不再有留言鈕,也不顯示留言。筆記裡已經寫好的留言不會被刪掉,再打開就回來。",
+    showEditTime: "顯示最後編輯時間", showEditTimeDesc: "卡片右上角的 🕐 時間。關掉只是不顯示,筆記裡的 ✎ 時戳照樣會寫(分辨同名卡片要用)。",
     jumpPin: "置頂 → 跳到那張卡片",
     pinTopic: "釘選這個主題", unpinTopic: "取消釘選", topicsPinHint: "所有主題(可以打字查,📌 釘選的會一直排在最前面)",
     layoutWidth: "版面寬度", layoutWidthDesc: "跟 Obsidian 的「可讀行寬」一樣:窄版把看板收在中間,寬版用滿整個分頁。只影響電腦版。",
@@ -265,6 +266,7 @@ const 字典 = {
     sendKey: "Submit key", sendKeyDesc: "The same for adding cards, editing content, writing and editing comments",
     sendKeyCombo: "Enter for a new line; Shift / Ctrl / ⌘ + Enter to submit (default)", sendKeyEnter: "Enter to submit; Shift + Enter for a new line",
     useComments: "Use comments", useCommentsDesc: "When off, cards have no comment button and comments are hidden. Comments already in the note are kept and come back when you turn this on.",
+    showEditTime: "Show last edited time", showEditTimeDesc: "The 🕐 time on each card. Turning it off only hides it; the ✎ stamp is still written to the note (it tells identical cards apart).",
     jumpPin: "Pinned → jump to the card",
     pinTopic: "Pin this title", unpinTopic: "Unpin this title", topicsPinHint: "All titles (type to search; pinned ones always come first)",
     layoutWidth: "Board width", layoutWidthDesc: "Like Obsidian's readable line length: narrow keeps the board centred, wide fills the tab. Desktop only.",
@@ -356,6 +358,7 @@ const 預設設定 = {
   週起始: "一",                 // 一 = 週一 / 日 = 週日。影響「本周」的範圍和行事曆的第一欄
   送出鍵: "組合",               // 組合 = Enter 換行、Shift/Ctrl/⌘+Enter 送出 / Enter = Enter 送出、Shift+Enter 換行
   使用留言: true,               // false = 不顯示留言和留言鈕(筆記裡的留言不動)
+  顯示編輯時間: true,           // false = 卡片上不顯示 🕐(1.4.8;✎ 時戳照寫)
   釘選主題: [],                 // 常用主題裡釘選的那幾個,永遠排在最前面
   /* 1.4.6 個人使用:不用指派人。新增區沒有指派人欄位、卡片不顯示指派人、新卡片不寫 #名字。
      ⚠ 只管畫面和新寫的東西,筆記裡已經有的 #名字 一個字都不動。 */
@@ -1873,6 +1876,7 @@ class 看板視圖 extends TextFileView {
   get 名單() { return this.插件.設定.指派人 || []; }
   get 個人() { return !!this.插件.設定.個人模式; }
   get 用留言() { return this.插件.設定.使用留言 !== false; }
+  get 顯示編時() { return this.插件.設定.顯示編輯時間 !== false; }
   get 卡片() { return 解析卡片(this.內文, this.名單); }
   get 分類清單() {
     const 出 = [];
@@ -2626,9 +2630,13 @@ class 看板視圖 extends TextFileView {
        右欄寬 176:英文 Section 框 73 + 間隔 8 + 指派人框 96(下拉 80)。 */
     const 窄 = this.窄;
     const 列間隔 = 8, 右欄寬 = 窄 ? 176 : 186;
-    const 左群 = "display:flex;gap:" + 列間隔 + "px;align-items:stretch;min-width:0;max-width:100%;" +
-      (窄 ? "flex-wrap:nowrap;flex:1 1 0;" : "flex-wrap:wrap;flex:1 1 250px;");
-    const 右群 = "display:flex;gap:" + 列間隔 + "px;align-items:stretch;flex-wrap:nowrap;" +
+    /* ⚠⚠ 1.4.8:每一列是**一條接在一起的橫條**(一個底色、一圈外框、框和框之間一條直線),
+       不再是好幾個各有底色的獨立框。所以群組和列都是 gap:0、**一律不換行** ——
+       接起來的橫條一換行,分隔線就會掛在第二行的最左邊。
+       (窄於 560px 的分頁已經走窄版版面,桌機版的最小寬度放得下一行。) */
+    const 左群 = "display:flex;gap:0;align-items:stretch;min-width:0;max-width:100%;flex-wrap:nowrap;" +
+      (窄 ? "flex:1 1 0;" : "flex:1 1 250px;");
+    const 右群 = "display:flex;gap:0;align-items:stretch;flex-wrap:nowrap;" +
       "flex:0 0 " + 右欄寬 + "px;width:" + 右欄寬 + "px;min-width:0;max-width:100%;box-sizing:border-box;";
 
     /* ⚠ 1.4.5:整個新增區是一張可以收合的表(標題列 + 箭頭),跟底下的卡片表同一種長相。
@@ -2660,13 +2668,32 @@ class 看板視圖 extends TextFileView {
 
     const 本體 = 外塊.createDiv();
     本體.addClass("tk-新增列"); 本體.addClass("tk-本體");
-    st(本體, "display:flex;flex-direction:column;gap:" + 列間隔 + "px;padding:" + (窄 ? 8 : 10) + "px;");
+    /* 1.4.8:欄位直接貼在「新增卡片」標題列底下,沒有內距、沒有自己的外框 ——
+       塊的外框就是它的框,兩列之間、框和框之間只有一條線。 */
+    st(本體, "display:flex;flex-direction:column;gap:0;padding:0;");
 
-    const 行樣 = "display:flex;gap:" + 列間隔 + "px;align-items:stretch;flex-wrap:" + (窄 ? "nowrap" : "wrap") + ";";
+    /* 兩列都沒有外框(塊本身有);只有上列底下一條線把兩列分開。圓角交給塊的 overflow:clip。 */
+    const 行樣 = "display:flex;gap:0;align-items:stretch;flex-wrap:nowrap;min-width:0;overflow:clip;" +
+      "border:0;background:transparent;";
+    const 上列樣 = 行樣 + "border-bottom:1px solid var(--background-modifier-border);";
+    const 下列樣 = 行樣;
+    /* ⚠ 底色規則(1.4.8 統一):**只有塊的標題列是深色**(background-secondary),
+       塊的本體和本體裡的所有東西(橫條、輸入框、送出那一格)都是同一個淺色面,只靠框線分隔。
+       以前是 本體淺 → 橫條深 → 輸入框又淺,三層交錯,看起來一欄深一欄淺。 */
+    /* 列裡的框拿掉自己的外框和底色,第二個起左邊補一條分隔線。
+       ⚠ 建框() 的樣式是 inline 的,CSS 蓋不過(不准 !important),所以在這裡直接改 inline。 */
+    const 接起來 = (列) => {
+      列.querySelectorAll(".tk-欄框").forEach((盒, i) => {
+        盒.style.border = "0";
+        盒.style.borderRadius = "0";
+        盒.style.background = "transparent";
+        if (i > 0) 盒.style.borderLeft = "1px solid var(--background-modifier-border)";
+      });
+    };
     const 主題行 = 本體.createDiv(); 主題行.addClass("tk-行");
-    st(主題行, 行樣);
+    st(主題行, 上列樣);
     const 主行 = 本體.createDiv(); 主行.addClass("tk-行");
-    st(主行, 行樣);
+    st(主行, 下列樣);
 
     // 第一列左群:主題 + 常用主題
     const 第一左 = 主題行.createDiv(); 第一左.addClass("tk-群"); st(第一左, 左群);
@@ -2814,6 +2841,7 @@ class 看板視圖 extends TextFileView {
         this.畫();
       };
     }
+    接起來(主題行);
 
     // 第二列:內容(左)+ 送出(右)
     /* ⚠ 內容框以前沒有標籤,只靠框裡的灰字說明自己是誰 —— 灰字拿掉之後
@@ -2822,7 +2850,9 @@ class 看板視圖 extends TextFileView {
     內框.parentElement.addClass("tk-內容框");
     st(內框, "display:flex;align-items:stretch;width:100%;");
     const 內輸 = 內框.createEl("textarea");
-    st(內輸, "width:100%;flex:1 1 auto;min-width:0;min-height:2.4em;resize:none;border-radius:6px;" +
+    // 最小高度 = 送出鈕的高度,空的時候兩個上下都對齊
+    const 送高 = 窄 ? 40 : 38;
+    st(內輸, "width:100%;flex:1 1 auto;min-width:0;min-height:" + 送高 + "px;resize:none;border-radius:6px;" +
       "font-family:var(--font-text);font-size:0.92em;line-height:1.5;");
     內輸.value = s.新內容;
     // 打字造成的長高不要做過場,瞬間到位就好(準則第五章)
@@ -2853,18 +2883,19 @@ class 看板視圖 extends TextFileView {
          ① 去向那一行講清楚「這張會被放到哪一天」—— 那是從目前的篩選推出來的,
             使用者沒有別的地方看得到,是這一格最值得佔位置的資訊
          ② 按鈕吃掉剩下的高度(flex:1),而且有字
-         ③ 底下補一行快捷鍵提示,順便把剩餘的空間填滿 */
+         ③ 底下補一行快捷鍵提示,順便把剩餘的空間填滿
+       ⚠⚠ 1.4.8 再改:按鈕**固定高度、固定位置**,不再跟著內容框長高(太大,而且打字時會一直變形)。
+         標籤那一行放一個看不見的空白,按鈕的上緣就對齊內容框(textarea),不是對齊「內容」那行灰字。 */
     const 送欄 = 主行.createDiv(); 送欄.addClass("tk-送出欄"); st(送欄, 右群);
-    const 送框 = this.建框(送欄, null, "flex:1 1 auto;width:100%;");
-    // flex:1 一定要:沒有它這一層不會撐滿整欄,送出鈕底下會空一塊(1.4.7 拿掉提示字之後就露出來了)
-    st(送框, "display:flex;flex-direction:column;gap:5px;align-items:stretch;width:100%;flex:1 1 auto;min-height:0;");
+    const 送框 = this.建框(送欄, " ", "flex:1 1 auto;width:100%;");
+    st(送框, "display:flex;align-items:flex-start;width:100%;flex:0 0 auto;min-height:0;");
 
     /* ⚠ 1.4.7:「這張會放到哪一天」併進送出鈕裡(第二行小字),不再另外佔一行。
        以前那一行是「📅 26-09-14(一) – 26-09-20(日)」,區間在這一欄一定被切掉後半;
        現在用 日期範圍字:同一年不寫年份(09-14(一) – 09-20(日)),跨年才把星期拿掉。 */
     const 送 = 送框.createEl("button");
     const bc = 選值 ? this.插件.人色(選值) : "var(--interactive-accent)";
-    st(送, "width:100%;flex:1 1 auto;min-height:" + (窄 ? 40 : 42) + "px;height:auto;padding:3px 6px;border-radius:6px;" +
+    st(送, "width:100%;flex:0 0 auto;height:" + 送高 + "px;min-height:0;padding:2px 6px;border-radius:6px;box-sizing:border-box;" +
       "cursor:pointer;color:var(--text-on-accent, #fff);background:" + bc + ";" +
       "border:1px solid " + bc + ";font-weight:600;font-size:0.92em;" +
       "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;");
@@ -2879,6 +2910,7 @@ class 看板視圖 extends TextFileView {
        以前是送出鈕底下一行灰字,日期併進送出鈕之後那一欄就太擠了。 */
     送.title = (選值 ? (T.add + " · " + 選值) : T.add) + " → " + this.新增去向文() + "\n" + 送出提示字(T);
     送.onclick = () => this.送出新增();
+    接起來(主行);
 
     if (s.管人開) this.畫管人(根);
   }
@@ -3496,7 +3528,7 @@ class 看板視圖 extends TextFileView {
           }));
       }
       // 窄螢幕的主題那一行不顯示最後編輯時間(1.4.5),收在這裡
-      if (k.編修時) {
+      if (k.編修時 && this.顯示編時) {
         m.addSeparator();
         m.addItem((i) => i.setTitle(T.lastEdited + "  " + k.編修時).setIcon("clock").setDisabled(true));
       }
@@ -4154,7 +4186,8 @@ class 看板視圖 extends TextFileView {
     /* 時間是這一行最右邊的資訊,**一律佔一格固定寬**(沒有時間也留著空格),
        留言則數排在它左邊 —— 有沒有留言都不會推動時間。
        窄螢幕不顯示時間:手機上那一行只留真的要看的東西,時間收進卡頭的「⋯」。 */
-    if (!窄) {
+    // 設定關掉編輯時間(1.4.8):連空格都不留
+    if (!窄 && this.顯示編時) {
       if (k.編修時) 訊條("clock", k.編修時.slice(11), T.lastEdited + " " + k.編修時, "4.2em");
       else 訊條(null, null, null, "4.2em");
     }
@@ -5868,6 +5901,14 @@ class 設定頁 extends PluginSettingTab {
       .addToggle(t => t.setValue(this.插件.設定.使用留言 !== false)
         .onChange(async (v) => {
           this.插件.設定.使用留言 = v;
+          await this.插件.存設定(); this.插件.重畫所有看板();
+        }));
+
+    // ---- 1.4.8 ----
+    new Setting(c).setName(T.showEditTime).setDesc(T.showEditTimeDesc)
+      .addToggle(t => t.setValue(this.插件.設定.顯示編輯時間 !== false)
+        .onChange(async (v) => {
+          this.插件.設定.顯示編輯時間 = v;
           await this.插件.存設定(); this.插件.重畫所有看板();
         }));
 

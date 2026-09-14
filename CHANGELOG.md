@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.4.8
+
+- New card: the fields sit right under the New card header, edge to edge —
+  Title, Frequent titles and Section on top, Content and Add underneath,
+  divided by lines instead of gaps and separate boxes, on the same background
+  as the block. Only block headers are shaded now, so fields no longer
+  alternate dark and light.
+- Blocks clip to their rounded corners: table headers and the last row no
+  longer poke out as square corners.
+- The Add button is smaller and stays put: fixed height, lined up with the
+  content box instead of the "Content" label, and it no longer stretches as the
+  content box grows.
+- New setting: show or hide the last edited time on cards. The `✎{…}` stamp is
+  still written to the note, because it tells identical cards apart.
+- README: credits the Kanban plugin's table view as the inspiration.
+
 ## 1.4.7
 
 **Filter bar**

@@ -64,9 +64,9 @@ C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\card-table  →  這個 rep
 
 | 位置 | 格式 | 例 |
 | --- | --- | --- |
-| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260914v1` |
-| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.7` |
-| `manifest.json` 的 `version` | semver | `1.4.7` |
+| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260914v2` |
+| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.8` |
+| `manifest.json` 的 `version` | semver | `1.4.8` |
 
 作者名一律 `jiajiunwu`(manifest、LICENSE、SUBMITTING.md)。README 有中英兩份
 (`README.md`、`README.zh-TW.md`),改一份就要改另一份。
@@ -186,6 +186,18 @@ README.md、CHANGELOG.md,被審核列成建議事項)。
 - **攔截 `WorkspaceLeaf.prototype.setViewState` 要能跟別的外掛共存**:
   攔截函式帶 `啟用` 開關,卸載時先關掉,**只有原型上掛的還是我們那一個**才換回去。
   直接把原型設回載入時的版本,會連 Kanban 這類後載入的外掛的攔截一起拆掉。
+
+## 1.4.8 的規則
+
+- **底色只有兩層**:塊的標題列 = `background-secondary`(深),塊的本體和裡面所有東西 = 透明(跟本體同色),
+  靠框線分隔。不要再在本體裡加一層深色的框 —— 1.4.7 以前「本體淺 → 欄框深 → 輸入框淺」三層交錯。
+- **新增區沒有內距、沒有自己的外框**:兩列直接貼在標題列底下,欄框之間用 `接起來()` 補的直線、
+  兩列之間一條橫線。`建框()` 的樣式是 inline,要改只能在 `接起來()` 裡改 inline,不能寫 CSS 蓋。
+- **送出鈕固定高度**(`送高`,桌機 38 / 窄 40),上緣對齊 textarea,不跟著內容框長高;
+  textarea 的 min-height 也是 `送高`,空的時候上下都對齊。
+- **`.tk-塊` 是 `overflow:clip`(兩個方向)**,圓角才裁得到標題列和表格最後一列。
+  能這樣做是因為所有浮出來的東西都掛在 `document.body`;新加的浮動面板也要掛那裡,不要掛在塊裡面。
+- 設定 `顯示編輯時間`(`看板視圖.顯示編時`)只管畫面,✎ 時戳照寫。
 
 ## Git
 
