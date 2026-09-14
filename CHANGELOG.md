@@ -4,9 +4,9 @@
 
 - New card: the fields sit right under the New card header, edge to edge —
   Title, Frequent titles and Section on top, Content and Add underneath,
-  divided by lines instead of gaps and separate boxes, on the same background
-  as the block. Only block headers are shaded now, so fields no longer
-  alternate dark and light.
+  divided by lines instead of gaps and separate boxes. The panel is shaded like
+  the filter bar, so the controls at the top read as one group and the card
+  tables below stay light; the fields inside no longer alternate dark and light.
 - Blocks clip to their rounded corners: table headers and the last row no
   longer poke out as square corners.
 - The Add button is smaller and stays put: fixed height, lined up with the

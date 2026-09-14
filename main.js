@@ -2646,8 +2646,11 @@ class 看板視圖 extends TextFileView {
     const 收 = 讀新增收合();
     const 外塊 = 根.createDiv();
     外塊.addClass("tk-塊");
+    /* ⚠ 1.4.8 層級:上面的「控制區」(篩選列、新增卡片)整塊是 background-secondary,
+       底下的卡片表本體是 background-primary —— 新增卡片跟篩選列同一層,才有重心,
+       不會跟卡片表糊成一片淺色。塊裡面的欄框一律透明,不再加第三層。 */
     st(外塊, "border-radius:9px;border:1px solid var(--background-modifier-border);" +
-      "background:var(--background-primary);box-shadow:0 1px 3px rgba(0,0,0,0.16);");
+      "background:var(--background-secondary);box-shadow:0 1px 3px rgba(0,0,0,0.16);");
     const 標頭 = 外塊.createDiv();
     標頭.setAttribute("role", "button");
     標頭.setAttribute("tabindex", "0");
