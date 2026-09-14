@@ -27,8 +27,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Workspace
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260913v4";
-const 插件版本 = "1.4.6";
+const 看板版本 = "260914v1";
+const 插件版本 = "1.4.7";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -71,7 +71,8 @@ const 字典 = {
     lost: "找不到這張卡片的位置,檔案可能剛被別台電腦改過,請重新整理再試一次",
     conflict: "偵測到同步衝突檔",
     saved: "已存檔",
-    add: "新增", added: "✓ 已新增", submit: "送出", submitHint: "⌘/Ctrl + Enter 也可以送出",
+    add: "新增", added: "✓ 已新增", submit: "送出", submitHint: "Shift / M + Enter 送出",
+    submitHintEnter: "Enter 送出 · Shift + Enter 換行",
     newPerson: "新的名字",
     needSomething: "主題和內容至少要有一個",
     dToday: "今天", dTomorrow: "明天", dNextWeek: "下週", rangeHint: "要做一段區間才填第二個日期",
@@ -142,6 +143,14 @@ const 字典 = {
     meName: "我",
     donate: "支持這個外掛", donateDesc: "Card Table 是一個人利用下班時間做的。覺得好用的話,可以請作者喝杯咖啡。",
     donateBtn: "在 Ko-fi 贊助",
+    月名: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+    weekStart: "一週從哪天開始", weekStartDesc: "決定「本周」的範圍,和行事曆最左邊那一欄是星期幾",
+    weekMon: "週一（預設）", weekSun: "週日",
+    sendKey: "送出鍵", sendKeyDesc: "新增卡片、編輯內容、寫留言、改留言都用同一套",
+    sendKeyCombo: "Enter 換行；Shift / Ctrl / ⌘ + Enter 送出（預設）", sendKeyEnter: "Enter 送出；Shift + Enter 換行",
+    useComments: "使用留言功能", useCommentsDesc: "關掉之後卡片上不再有留言鈕,也不顯示留言。筆記裡已經寫好的留言不會被刪掉,再打開就回來。",
+    jumpPin: "置頂 → 跳到那張卡片",
+    pinTopic: "釘選這個主題", unpinTopic: "取消釘選", topicsPinHint: "所有主題(可以打字查,📌 釘選的會一直排在最前面)",
     layoutWidth: "版面寬度", layoutWidthDesc: "跟 Obsidian 的「可讀行寬」一樣:窄版把看板收在中間,寬版用滿整個分頁。只影響電腦版。",
     layoutNarrow: "窄版（預設）", layoutWide: "寬版", layoutToggleWide: "改成寬版", layoutToggleNarrow: "改成窄版",
     commentPos: "留言放在哪裡", commentPosDesc: "卡片的留言顯示在內容的上面或下面",
@@ -178,7 +187,8 @@ const 字典 = {
     lost: "Could not find this card any more; the file may have just changed on another device. Reload and try again.",
     conflict: "Sync conflict file detected",
     saved: "Saved",
-    add: "New", added: "✓ Added", submit: "Add", submitHint: "⌘/Ctrl + Enter also submits",
+    add: "New", added: "✓ Added", submit: "Add", submitHint: "Shift / M + Enter to add",
+    submitHintEnter: "Enter adds · Shift+Enter newline",
     newPerson: "New name",
     needSomething: "Give it a title or some content",
     dToday: "Today", dTomorrow: "Tomorrow", dNextWeek: "Next week", rangeHint: "Second date only for a range",
@@ -249,6 +259,14 @@ const 字典 = {
     meName: "me",
     donate: "Support this plugin", donateDesc: "Card Table is built by one person in spare time. If it helps you, you can buy the author a coffee.",
     donateBtn: "Support on Ko-fi",
+    月名: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    weekStart: "First day of the week", weekStartDesc: "Sets the range of This week and the first column of the calendar",
+    weekMon: "Monday (default)", weekSun: "Sunday",
+    sendKey: "Submit key", sendKeyDesc: "The same for adding cards, editing content, writing and editing comments",
+    sendKeyCombo: "Enter for a new line; Shift / Ctrl / ⌘ + Enter to submit (default)", sendKeyEnter: "Enter to submit; Shift + Enter for a new line",
+    useComments: "Use comments", useCommentsDesc: "When off, cards have no comment button and comments are hidden. Comments already in the note are kept and come back when you turn this on.",
+    jumpPin: "Pinned → jump to the card",
+    pinTopic: "Pin this title", unpinTopic: "Unpin this title", topicsPinHint: "All titles (type to search; pinned ones always come first)",
     layoutWidth: "Board width", layoutWidthDesc: "Like Obsidian's readable line length: narrow keeps the board centred, wide fills the tab. Desktop only.",
     layoutNarrow: "Narrow (default)", layoutWide: "Wide", layoutToggleWide: "Use wide layout", layoutToggleNarrow: "Use narrow layout",
     commentPos: "Where comments go", commentPosDesc: "Show a card's comments above or below its content",
@@ -278,6 +296,8 @@ let 目前app = null;
    —— 審核那兩項警告全是從這裡來的。現在窄螢幕的卡片直接由 JS 畫成另一種結構,兩個都不需要了。
    視窗跨過門檻時由 onOpen 掛的監聽器重畫。 */
 const 窄門檻 = "(max-width: 700px)";
+// 看板分頁本身比這個窄,也用窄版(1.4.7,見 看板視圖.該窄)。桌機表格加統計列大約要這麼寬才放得下
+const 窄分頁寬 = 560;
 function 是窄螢幕() {
   try { return window.matchMedia(窄門檻).matches; }
   catch (e) { return false; }
@@ -331,6 +351,12 @@ const 預設設定 = {
   跳轉_未完成到完成: true,
   跳轉_完成到未完成: true,
   跳轉_封存: true,              // 1.4.6:封存之後要不要自動勾「含封存」並跳過去(以前是一定會)
+  跳轉_置頂: true,              // 1.4.7:置頂之後要不要跳到那張卡片
+  /* 1.4.7 */
+  週起始: "一",                 // 一 = 週一 / 日 = 週日。影響「本周」的範圍和行事曆的第一欄
+  送出鍵: "組合",               // 組合 = Enter 換行、Shift/Ctrl/⌘+Enter 送出 / Enter = Enter 送出、Shift+Enter 換行
+  使用留言: true,               // false = 不顯示留言和留言鈕(筆記裡的留言不動)
+  釘選主題: [],                 // 常用主題裡釘選的那幾個,永遠排在最前面
   /* 1.4.6 個人使用:不用指派人。新增區沒有指派人欄位、卡片不顯示指派人、新卡片不寫 #名字。
      ⚠ 只管畫面和新寫的東西,筆記裡已經有的 #名字 一個字都不動。 */
   個人模式: false,
@@ -1493,6 +1519,26 @@ function 圖(容器, 名, 大小, 色) {
 function 是Enter鍵(e) {
   return e.key === "Enter" || e.code === "Enter" || e.code === "NumpadEnter" || e.keyCode === 13;
 }
+/* ---- 送出鍵(1.4.7,設定 → 送出鍵)----
+   新增卡片、編輯內容、寫留言、改留言**全部同一套**,不用記好幾種:
+     組合(預設):Enter 換行 ‧ Shift+Enter 送出 ‧ Ctrl+Enter / ⌘+Enter 送出
+     Enter      :Enter 送出 ‧ Shift+Enter 換行 ‧ Ctrl+Enter / ⌘+Enter 一樣送出
+   ⚠ 1.4.6 以前留言是反過來的(Enter 送出),新增和編輯才是 Shift+Enter —— 同一個看板裡兩套規則。
+   ⚠ 輸入法選字中(isComposing / keyCode 229)的 Enter 一律不算,那是在選字。
+     Ctrl / ⌘ 組合鍵不是在選字,照樣放行。 */
+let 送出用Enter = false;
+/* 送出鈕底下那一行提示。⚠ 要短:桌機那一欄只有 169px,
+   「Shift + Enter 或 ⌘/Ctrl + Enter 送出」量出來 175px 會被切掉。
+   M 換成這台電腦的修飾鍵(Mac 是 ⌘,其他是 Ctrl),不必兩個都寫。 */
+function 送出提示字(T) {
+  return 送出用Enter ? T.submitHintEnter : String(T.submitHint).replace("M", 是Mac() ? "⌘" : "Ctrl");
+}
+function 是送出(e) {
+  if (!是Enter鍵(e)) return false;
+  if (e.ctrlKey || e.metaKey) return true;
+  if (e.isComposing || e.keyCode === 229) return false;
+  return 送出用Enter ? !e.shiftKey : !!e.shiftKey;
+}
 
 /* ---- 動畫 ----
    ⚠ 規矩(準則第五章):
@@ -1684,6 +1730,30 @@ function 加日(基, n) {
 function 週一的(基) {
   const d = new Date(基 + "T00:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return 日字(d);
 }
+/* 一週從哪天開始(1.4.7,設定 → 一週從哪天開始):1 = 週一(預設),0 = 週日。
+   「本周」的範圍和行事曆的第一欄都看它。 */
+let 週起日 = 1;
+function 週首的(基) {
+  const d = new Date(基 + "T00:00:00"); d.setDate(d.getDate() - ((d.getDay() - 週起日 + 7) % 7)); return 日字(d);
+}
+/* 本周/本月那一格的標籤(1.4.7):短到放得下,後半段不會被省略號吃掉。
+     本月 → 「10月」「Oct」
+     本周 → 同一個月「9/14–20」,跨月「9/28–10/4」
+   1.4.6 以前一律「9/28–10/4」這種寫法,「10/26–11/1」在格子裡會被切掉後半。 */
+function 區間短字(鍵, r, T) {
+  if (!r || !r.起) return "";
+  if (r.起 === r.迄) return 短日(r.起);
+  const a = String(r.起).split("-"), b = String(r.迄).split("-");
+  if (鍵 === "本月") return (T.月名 || [])[Number(a[1]) - 1] || (Number(a[1]) + "");
+  return a[1] === b[1] ? Number(a[1]) + "/" + Number(a[2]) + "–" + Number(b[2]) : 短日(r.起) + "–" + 短日(r.迄);
+}
+/* 這一段算哪一年(1.4.7):取正中間那一天。本周、本月往後翻到隔年,年份那一格要跟著變成隔年;
+   跨年的那一週(12/28–1/3)正中間是 12/31 還是 1/1,看那一週大半落在哪一年。 */
+function 年份之(r) {
+  if (!r || !r.起) return String(new Date().getFullYear());
+  const 天 = Math.round((new Date((r.迄 || r.起) + "T00:00:00") - new Date(r.起 + "T00:00:00")) / 86400000);
+  return 加日(r.起, Math.floor(天 / 2)).slice(0, 4);
+}
 
 class 看板視圖 extends TextFileView {
   constructor(leaf, 插件) {
@@ -1742,9 +1812,30 @@ class 看板視圖 extends TextFileView {
        窄和寬是兩種 DOM 結構,不是同一份 DOM 換 CSS。 */
     try {
       const mq = window.matchMedia(窄門檻);
-      const 變 = () => { if (this.區 && 是窄螢幕() !== this.窄) this.畫(); };
+      const 變 = () => { if (this.區 && this.該窄() !== this.窄) this.畫(); };
       mq.addEventListener("change", 變);
       this.register(() => mq.removeEventListener("change", 變));
+    } catch (e) {}
+    /* 分頁本身變寬變窄(拖側邊欄、分割畫面)時:
+         ① 跨過 窄分頁寬 → 整份重畫(窄版和桌機版是兩種 DOM)
+         ② 沒跨過、還是桌機版 → 只重畫上面那條統計列,「未完成/已完成/含封存」擠不擠得下要重新量
+       寬度差不到 8px 不理它。 */
+    try {
+      let 上寬 = 0;
+      const 觀 = new ResizeObserver(() => {
+        const w = Math.round(this.contentEl.clientWidth);
+        if (!this.區 || !w) return;
+        if (this.該窄() !== this.窄) {
+          上寬 = w;
+          window.requestAnimationFrame(() => { try { this.畫(); } catch (x) {} });
+          return;
+        }
+        if (this.窄 || Math.abs(w - 上寬) < 8) return;
+        上寬 = w;
+        window.requestAnimationFrame(() => { try { this.畫導覽列(this.區.導覽, this.卡片); } catch (x) {} });
+      });
+      觀.observe(this.contentEl);
+      this.register(() => 觀.disconnect());
     } catch (e) {}
     /* 編輯到一半去點別的地方 = 這一段寫完了。
        ⚠ 用 mousedown 不是 click:click 要等放開,中間畫面已經重畫過一輪了。
@@ -1781,6 +1872,7 @@ class 看板視圖 extends TextFileView {
 
   get 名單() { return this.插件.設定.指派人 || []; }
   get 個人() { return !!this.插件.設定.個人模式; }
+  get 用留言() { return this.插件.設定.使用留言 !== false; }
   get 卡片() { return 解析卡片(this.內文, this.名單); }
   get 分類清單() {
     const 出 = [];
@@ -1803,7 +1895,7 @@ class 看板視圖 extends TextFileView {
       // 保險:起迄不知怎麼掉了,就照「來源那一層 + 走了幾格」重算一次,
       // 不然會整個掉回「全部」—— 使用者會以為篩選壞了
       const 回 = { "今日": (n) => { const d = 加日(this.今, n); return [d, d]; },
-        "7天內": (n) => { const a = 加日(週一的(this.今), n * 7); return [a, 加日(a, 6)]; },
+        "7天內": (n) => { const a = 加日(週首的(this.今), n * 7); return [a, 加日(a, 6)]; },
         "本月": (n) => {
           const b = new Date(this.今 + "T00:00:00");
           const m = new Date(b.getFullYear(), b.getMonth() + n, 1);
@@ -1813,7 +1905,7 @@ class 看板視圖 extends TextFileView {
     }
     if (f.型 === "今日") { const d = 加日(this.今, 偏("今日")); return [d, d]; }
     if (f.型 === "7天內") {
-      const a = 加日(週一的(this.今), 偏("7天內") * 7);
+      const a = 加日(週首的(this.今), 偏("7天內") * 7);
       return [a, 加日(a, 6)];
     }
     if (f.型 === "本月") {
@@ -1974,8 +2066,17 @@ class 看板視圖 extends TextFileView {
   /* 打字搜尋專用:只重畫清單,新增區那兩個輸入框完全不碰 */
   /* 這一輪用哪一種版面。畫() 開頭問一次,之後這一輪所有的畫法都看 this.窄 ——
      不要在各個畫法裡各自再去問 matchMedia,那樣同一輪裡可能問到兩種答案。 */
+  /* 這一個看板該不該用窄版(1.4.7):視窗窄(手機)**或者分頁本身窄**。
+     ⚠ 以前只看視窗。桌機把側邊欄打開、或分割成兩欄時,視窗還是 1000 多 px,
+       看板分頁卻只剩 400 多 —— 桌機的表格塞進去,最上面的期間格比分頁還寬,
+       本周/本月被裁掉一半,統計列被擠成三排。分頁窄到放不下桌機版面,就直接用卡片版面。
+     ⚠ clientWidth 是 0(分頁還沒顯示)的時候不算,不然每個背景分頁都會被當成窄版。 */
+  該窄() {
+    const w = this.contentEl ? this.contentEl.clientWidth : 0;
+    return 是窄螢幕() || (w > 0 && w < 窄分頁寬);
+  }
   定窄() {
-    this.窄 = 是窄螢幕();
+    this.窄 = this.該窄();
     const 根 = this.contentEl;
     根.toggleClass("tk-窄", this.窄);
     /* ⚠ 窄螢幕底部多留 84px:手機版 Obsidian 的底部導覽列是浮在畫面上的,
@@ -1988,7 +2089,7 @@ class 看板視圖 extends TextFileView {
 
   重畫清單() {
     if (!this.區) { this.畫(); return; }
-    if (是窄螢幕() !== this.窄) { this.畫(); return; }   // 版面換了,局部重畫會混到兩種結構
+    if (this.該窄() !== this.窄) { this.畫(); return; }   // 版面換了,局部重畫會混到兩種結構
     const 捲 = this.contentEl.scrollTop;
     const 全 = this.卡片;
     this.插件.設分類順序(this.分類清單.filter(x => !/archive|封存/i.test(x)));
@@ -2033,6 +2134,14 @@ class 看板視圖 extends TextFileView {
       "var(--color-purple, #8a6ed4)", "長期");
     條.createDiv().addClass("tk-換行");
     this.畫顯示格(條, 全);
+    /* ⚠ 1.4.7:桌機太窄的時候,「未完成/已完成/含封存」那一格會被擠到第二行,
+       整條統計列變兩倍高。那一格只是三個開關,擠不下就收成一顆「⋯」(點開是一樣的三個勾選)。
+       量的是它有沒有真的掉下去(offsetTop 比第一塊低),不是猜一個寬度門檻 ——
+       中英文、有沒有長期卡片,每一格的寬度都不一樣。 */
+    if (!this.窄) {
+      const 格 = 條.querySelector(".tk-顯示格"), 首 = 條.firstElementChild;
+      if (格 && 首 && 格.offsetTop > 首.offsetTop + 4) { 格.remove(); this.畫顯示格(條, 全, true); }
+    }
   }
 
   格子樣式(亮, 色, 底) {
@@ -2073,7 +2182,7 @@ class 看板視圖 extends TextFileView {
   畫箭(容器, 往右, 提示, 動作, 直) {
     /* 直 = 窄螢幕的「高箭頭」(1.4.6):寬 26、高度撐滿整塊(跨數字和標籤兩行)。
        其他情況:窄螢幕 24、桌機 20。 */
-    const 大 = 直 ? 26 : (this.窄 ? 24 : 20);
+    const 大 = 直 ? (this.窄 ? 26 : 22) : (this.窄 ? 24 : 20);
     const b = 膠囊(容器, "");
     b.addClass("tk-箭");
     st(b, "flex:0 0 " + 大 + "px;width:" + 大 + "px;" +
@@ -2095,8 +2204,9 @@ class 看板視圖 extends TextFileView {
        最下面那一行才是行事曆開關。 */
   畫期間格(條, 全) {
     const T = this.T, s = this.狀態, f = s.篩 || {};
-    // 年那一格只有「真的在看整年」或行事曆開著的時候才亮 —— 本日/本周/本月各自有自己的框
-    const 年亮 = !!s.開行事曆 || f.型 === "年度";
+    /* 年那一格(1.4.7):**框永遠是重點色** —— 它表示「現在看的是哪一年」,
+       本日/本周/本月都是在這一年裡面。底色只在「真的在看整年」或行事曆開著的時候才加。 */
+    const 年選 = !!s.開行事曆 || f.型 === "年度";
     const 窄 = this.窄;
 
     const 複合格 = 條.createDiv();
@@ -2115,9 +2225,9 @@ class 看板視圖 extends TextFileView {
     st(年格, "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;" +
       "box-sizing:border-box;flex:0 0 " + (窄 ? 110 : 年格寬) + "px;" +
       "width:" + (窄 ? 110 : 年格寬) + "px;min-width:0;border-radius:6px;" +
-      "padding:" + (窄 ? "2px" : "4px 3px") + ";user-select:none;" +
-      "box-shadow:inset 0 0 0 1px " + (年亮 ? "var(--text-accent)" : "var(--background-modifier-border)") + ";" +
-      (年亮 ? "background:var(--background-modifier-hover);" : ""));
+      "padding:" + (窄 ? "2px" : "3px") + ";user-select:none;" +
+      "box-shadow:inset 0 0 0 1px var(--text-accent);" +
+      (年選 ? "background:var(--background-modifier-hover);" : ""));
 
     const 看整年 = () => { s.篩 = { 型: "年度" }; s.開行事曆 = false; this.畫(); };
     const 換年 = (步) => {
@@ -2127,17 +2237,20 @@ class 看板視圖 extends TextFileView {
       s.顯示月 = s.統計年 + "-" + this.今.slice(5, 7);   // 換年保持在同一個月份
       看整年();                                  // 換年就直接看那一年
     };
+    // 點年份或數字(1.4.7):回到**今年**並看整年 —— 翻年翻遠了,一下就回得來
+    const 回今年 = () => {
+      s.統計年 = String(new Date().getFullYear());
+      s.顯示月 = this.今.slice(0, 7);
+      看整年();
+    };
 
-    /* 窄螢幕(1.4.6):◀ ▶ 是兩條**跨兩行高**的箭頭,夾著「數字 + 年份」。
-       24×24 的小方塊在手機上太難點,左右兩邊一偏就點到中間去了。
-       桌機維持原樣:箭頭夾著年份那一行。 */
-    const 年上 = 窄 ? 年格.createDiv() : 年格;
-    if (窄) {
-      st(年上, "display:flex;align-items:stretch;gap:2px;width:100%;flex:1 1 auto;min-height:0;");
-      this.畫箭(年上, false, "看前一年", () => 換年(-1), true);
-    }
-    const 年中 = 窄 ? 年上.createDiv() : 年格;
-    if (窄) st(年中, "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
+    /* ◀ ▶ 是兩條**跨整格高**的箭頭,夾著「數字 + 年份」(1.4.6 窄螢幕,1.4.7 起桌機也是)。
+       小方塊的點擊範圍太小,左右兩邊一偏就點到中間去了。 */
+    const 年上 = 年格.createDiv();
+    st(年上, "display:flex;align-items:stretch;gap:2px;width:100%;flex:1 1 auto;min-height:0;");
+    this.畫箭(年上, false, "看前一年", () => 換年(-1), true);
+    const 年中 = 年上.createDiv();
+    st(年中, "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
       "gap:2px;flex:1 1 auto;min-width:0;");
     const 年數 = 年中.createDiv({
       text: String(this.清單池(全).filter(k =>
@@ -2145,19 +2258,15 @@ class 看板視圖 extends TextFileView {
     });
     st(年數, "font-size:1.02em;font-weight:700;color:var(--text-accent);" +
       "height:18px;line-height:18px;cursor:pointer;");
-    年數.title = "看 " + s.統計年 + " 一整年";
-    年數.onclick = (e) => { e.stopPropagation(); 看整年(); };
+    年數.title = new Date().getFullYear() + "";
+    年數.onclick = (e) => { e.stopPropagation(); 回今年(); };
 
-    const 年列 = 年中.createDiv();
-    st(年列, "display:flex;align-items:center;justify-content:center;gap:2px;width:100%;");
-    if (!窄) this.畫箭(年列, false, "看前一年", () => 換年(-1));
-    const 年字 = 年列.createEl("span", { text: s.統計年 });
-    st(年字, "font-size:1.02em;font-weight:700;text-align:center;flex:0 0 44px;width:44px;" +
+    const 年字 = 年中.createEl("span", { text: s.統計年 });
+    st(年字, "font-size:1.02em;font-weight:700;text-align:center;width:44px;max-width:100%;" +
       "font-variant-numeric:tabular-nums;color:var(--text-muted);cursor:pointer;");
-    年字.title = "看 " + s.統計年 + " 一整年";
-    年字.onclick = (e) => { e.stopPropagation(); 看整年(); };
-    if (!窄) this.畫箭(年列, true, "看後一年", () => 換年(1));
-    if (窄) this.畫箭(年上, true, "看後一年", () => 換年(1), true);
+    年字.title = new Date().getFullYear() + "";
+    年字.onclick = (e) => { e.stopPropagation(); 回今年(); };
+    this.畫箭(年上, true, "看後一年", () => 換年(1), true);
 
     const 曆鈕 = 年格.createEl("button");
     st(曆鈕, "font-size:0.6em;height:18px;line-height:1;cursor:pointer;min-height:0;margin:0;" +
@@ -2173,12 +2282,10 @@ class 看板視圖 extends TextFileView {
     曆鈕.onclick = (e) => {
       e.stopPropagation();
       s.開行事曆 = !s.開行事曆; s.選起 = null; s.選迄 = null;
-      /* ⚠ 打開行事曆一律先跳到**現在篩選的那一段所在的月份**,沒有就跳本月。
-         以前是跳到統計年的一月,每次打開都要自己按好幾下 ▶ 才回到這個月。 */
-      if (s.開行事曆) {
-        const 區 = this.現在區間();
-        s.顯示月 = (區 && 區[0]) ? 區[0].slice(0, 7) : this.今.slice(0, 7);
-      }
+      /* ⚠ 打開行事曆一律從**這個月**開始(1.4.7)。
+         1.4.6 以前是跳到「現在篩選的那一段」所在的月份 —— 翻到隔年某一週再打開,
+         行事曆就停在那個月,每次都要自己翻回來。更早以前是統計年的一月。 */
+      if (s.開行事曆) s.顯示月 = this.今.slice(0, 7);
       this.畫();
     };
 
@@ -2188,7 +2295,7 @@ class 看板視圖 extends TextFileView {
       { 名: T.dayLayer, 鍵: "今日", 色: "var(--color-orange, #e08a2e)",
         區間: (n) => { const d = 加日(this.今, n); return { 起: d, 迄: d }; } },
       { 名: T.weekLayer, 鍵: "7天內", 色: "var(--color-yellow, #c99a2e)",
-        區間: (n) => { const a = 加日(週一的(this.今), n * 7); return { 起: a, 迄: 加日(a, 6) }; } },
+        區間: (n) => { const a = 加日(週首的(this.今), n * 7); return { 起: a, 迄: 加日(a, 6) }; } },
       { 名: T.monthLayer, 鍵: "本月", 色: "var(--color-cyan, #45a7bd)",
         區間: (n) => {
           const b = new Date(this.今 + "T00:00:00");
@@ -2223,11 +2330,35 @@ class 看板視圖 extends TextFileView {
        而且打勾方塊要畫出來 —— 一眼看得出這格跟旁邊的篩選格不是同一種東西。
      ⚠ 數字跟著目前的篩選走(選本日就是本日的未完成/已完成/封存各幾張),
        不是整年度的總數,不然上面選本日、右邊卻掛著一整年的數字,對不起來。 */
-  畫顯示格(條, 全) {
+  畫顯示格(條, 全, 精簡) {
     const T = this.T, 設 = this.插件.設定.排程顯示;
     const 項 = [["未完成", T.showTodo, "var(--text-accent)"],
                 ["完成", T.showDone, "var(--color-green, #4a9e5c)"],
                 ["封存", T.showArchived, "var(--text-muted)"]];
+    if (精簡) {
+      const 鈕 = 條.createDiv();
+      鈕.addClass("tk-顯示格");
+      鈕.setAttribute("role", "button");
+      st(鈕, "display:flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;margin-left:auto;" +
+        "min-height:" + 格高 + "px;border-radius:8px;box-sizing:border-box;cursor:pointer;color:var(--text-muted);" +
+        "border:1px solid var(--background-modifier-border);border-left:3px solid var(--background-modifier-border);" +
+        "background:var(--background-primary);");
+      圖(鈕, "ellipsis", 16);
+      鈕.title = 項.map(([k, t]) => (設[k] ? "✓ " : "  ") + t).join("\n");
+      鈕.onclick = (e) => {
+        const m = new Menu();
+        項.forEach(([k, t]) => m.addItem(i => i
+          .setTitle(t + "  " + this.顯示數(全, k)).setChecked(!!設[k])
+          .onClick(async () => {
+            設[k] = !設[k];
+            if (!設.未完成 && !設.完成) 設.未完成 = true;
+            await this.插件.存設定();
+            this.畫();
+          })));
+        m.showAtMouseEvent(e);
+      };
+      return;
+    }
     const 格 = 條.createDiv();
     格.addClass("tk-顯示格");
     /* ⚠ 窄螢幕:跟「全部/已逾期」「長期」擠同一列(1.4.3 之前它自己佔一整列,
@@ -2288,38 +2419,42 @@ class 看板視圖 extends TextFileView {
        磚的框吃掉 4px(左右各 2 的間隔),所以桌機的標籤寬再少 4:50→46、70→66。 */
     const 標寬 = 大 ? 46 : 66;
     const 窄 = this.窄;
-    const 標樣 = 窄 ? "flex:1 1 auto;width:auto;min-width:0;" : "flex:0 0 " + 標寬 + "px;width:" + 標寬 + "px;min-width:0;";
+    const T = this.T;
     const 區 = 容器.createDiv();
     st(區, "display:flex;flex-direction:column;box-sizing:border-box;min-width:0;gap:2px;" +
       (窄 ? "flex:" + (大 ? "1" : "1.2") + " 1 0;width:auto;" : "flex:0 0 " + (寬 - 4) + "px;width:" + (寬 - 4) + "px;"));
     定義們.forEach((定, i) => {
       const n = 有箭 ? (s.偏移[定.鍵] || 0) : 0;
       const 亮 = f.型 === 定.鍵 || (f.型 === "範圍" && f.來源 === 定.鍵);
-      /* 窄螢幕的區間層:◀ ▶ 是兩條跨「數字 + 標籤」兩行高的箭頭,中間夾著那兩行 */
-      const 窄箭 = 窄 && !!定.區間;
+      /* 高箭頭:◀ ▶ 跨整格高,中間夾著數字和標籤。
+         窄螢幕的區間層全部是(1.4.6);桌機 1.4.7 起「本日」也是 —— 那一格最常按。 */
+      const 直箭 = !!定.區間 && (窄 || 大);
+      const 標樣 = (窄 || 直箭) ? "flex:1 1 auto;width:auto;min-width:0;"
+                             : "flex:0 0 " + 標寬 + "px;width:" + 標寬 + "px;min-width:0;";
       const 列 = 區.createDiv();
-      st(列, "display:flex;flex-direction:" + (窄箭 ? "row" : "column") + ";" +
-        "align-items:" + (窄箭 ? "stretch" : "center") + ";justify-content:center;" +
-        "gap:" + (窄箭 ? 2 : 1) + "px;flex:1 1 0;padding:2px " + (窄箭 ? 2 : 3) + "px;min-width:0;" +
+      st(列, "display:flex;flex-direction:" + (直箭 ? "row" : "column") + ";" +
+        "align-items:" + (直箭 ? "stretch" : "center") + ";justify-content:center;" +
+        "gap:" + (直箭 ? 2 : 1) + "px;flex:1 1 0;padding:2px " + (直箭 ? 2 : 3) + "px;min-width:0;" +
         "cursor:pointer;user-select:none;box-sizing:border-box;border-radius:6px;" +
         "box-shadow:inset 0 0 0 1px " + (亮 ? "var(--text-accent)" : "var(--background-modifier-border)") + ";" +
         (亮 ? "background:var(--background-modifier-hover);" : ""));
 
-      let 字 = 定.名, 數;
+      let 字 = 定.名, 數, 這段 = null;
       if (定.區間) {
-        const r = 定.區間(n);
-        數 = this.區間張數(全, r.起, r.迄);
-        if (n) 字 = 短日(r.起) + (r.迄 !== r.起 ? "–" + 短日(r.迄) : "");
-        else if (亮) 字 = 短日(r.起) + (r.迄 !== r.起 ? "–" + 短日(r.迄) : "");
+        這段 = 定.區間(n);
+        數 = this.區間張數(全, 這段.起, 這段.迄);
+        if (n || 亮) 字 = 區間短字(定.鍵, 這段, T);
       } else 數 = 定.數();
 
       const 走 = (步) => {
         s.偏移[定.鍵] = n + 步; s.篩 = { 型: "範圍", 來源: 定.鍵 };
-        const r = 定.區間(n + 步); s.起 = r.起; s.迄 = r.迄; this.畫();
+        const r = 定.區間(n + 步); s.起 = r.起; s.迄 = r.迄;
+        s.統計年 = 年份之(r);          // 1.4.7:翻到隔年,年份那一格跟著變
+        this.畫();
       };
-      if (窄箭) this.畫箭(列, false, "往前一格", () => 走(-1), true);
-      const 中 = 窄箭 ? 列.createDiv() : 列;
-      if (窄箭) st(中, "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
+      if (直箭) this.畫箭(列, false, "往前一格", () => 走(-1), true);
+      const 中 = 直箭 ? 列.createDiv() : 列;
+      if (直箭) st(中, "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
         "gap:1px;flex:1 1 auto;min-width:0;");
       st(中.createDiv({ text: String(數) }),
         "font-size:" + (大 ? "1.1em" : "0.92em") + ";font-weight:700;line-height:1.1;" +
@@ -2327,19 +2462,26 @@ class 看板視圖 extends TextFileView {
       const 行 = 中.createDiv();
       st(行, "display:flex;align-items:center;justify-content:center;gap:1px;width:100%;min-width:0;");
       if (定.區間) {
-        if (!窄箭) this.畫箭(行, false, "往前一格", () => 走(-1));
+        if (!直箭) this.畫箭(行, false, "往前一格", () => 走(-1));
         const 標 = 行.createDiv({ text: 字 });
         st(標, 標樣 + "text-align:center;" +
           "font-size:0.68em;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
           (亮 ? "font-weight:700;color:" + 定.色 + ";" : "color:var(--text-muted);"));
-        if (!窄箭) this.畫箭(行, true, "往後一格", () => 走(1));
-        if (窄箭) this.畫箭(列, true, "往後一格", () => 走(1), true);
+        if (!直箭) this.畫箭(行, true, "往後一格", () => 走(1));
       } else {
         st(行.createDiv({ text: 字 }),
           標樣 + "text-align:center;font-size:0.68em;" +
           "line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
           (亮 ? "font-weight:700;color:" + 定.色 + ";" : "color:var(--text-muted);"));
       }
+      /* 本日那一格底下加星期幾(1.4.7):(一)(二)…,英文 (Mon)(Tue)… */
+      if (大 && 這段) {
+        const 週 = 語().週名[new Date(這段.起 + "T00:00:00").getDay()];
+        st(中.createDiv({ text: "(" + 週 + ")" }),
+          "font-size:0.62em;line-height:1.2;white-space:nowrap;" +
+          (亮 ? "font-weight:700;color:" + 定.色 + ";" : "color:var(--text-faint);"));
+      }
+      if (直箭) this.畫箭(列, true, "往後一格", () => 走(1), true);
       列.onclick = () => {
         s.偏移[定.鍵] = 0; s.篩 = { 型: 定.鍵 };
         s.統計年 = String(new Date().getFullYear());
@@ -2381,9 +2523,11 @@ class 看板視圖 extends TextFileView {
     const 年 = Number(s.顯示月.slice(0, 4)), 月 = Number(s.顯示月.slice(5, 7)) - 1;
     const 網 = 盒.createDiv();
     st(網, "display:grid;grid-template-columns:repeat(7,1fr);gap:2px;");
-    語().週名.forEach(w => st(網.createDiv({ text: w }),
-      "font-size:0.66em;color:var(--text-faint);text-align:center;padding-bottom:2px;"));
-    const 頭空 = new Date(年, 月, 1).getDay(), 天數 = new Date(年, 月 + 1, 0).getDate();
+    // 第一欄是星期幾看設定(1.4.7):週一開始就把週日排到最後
+    const 週名 = 語().週名;
+    for (let i = 0; i < 7; i++) st(網.createDiv({ text: 週名[(i + 週起日) % 7] }),
+      "font-size:0.66em;color:var(--text-faint);text-align:center;padding-bottom:2px;");
+    const 頭空 = (new Date(年, 月, 1).getDay() - 週起日 + 7) % 7, 天數 = new Date(年, 月 + 1, 0).getDate();
     for (let i = 0; i < 頭空; i++) 網.createDiv();
     const 區 = this.現在區間();
     for (let d = 1; d <= 天數; d++) {
@@ -2406,6 +2550,7 @@ class 看板視圖 extends TextFileView {
         if (!s.選起) { s.選起 = 日; this.畫(); return; }
         const a = s.選起 <= 日 ? s.選起 : 日, b = s.選起 <= 日 ? 日 : s.選起;
         s.篩 = { 型: "範圍", 來源: "行事曆" }; s.起 = a; s.迄 = b;
+        s.統計年 = 年份之({ 起: a, 迄: b });          // 年份那一格跟著選的那一段走
         s.選起 = null; s.開行事曆 = false; this.畫();
       };
     }
@@ -2505,7 +2650,7 @@ class 看板視圖 extends TextFileView {
     st(標頭.createDiv({ text: T.addBlock }),
       "font-size:0.82em;font-weight:700;color:var(--text-normal);white-space:nowrap;");
     // 收起來的時候順便告訴你:新卡片會放到哪一天
-    if (收) st(標頭.createDiv({ text: this.新增去向文() }),
+    if (收) st(標頭.createDiv({ text: this.新增去向短() }),
       "font-size:0.72em;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;");
     標頭.title = 收 ? T.unfold : T.fold;
     const 切收 = () => { 存新增收合(!收); this.畫新增區(根, this.卡片); };
@@ -2543,14 +2688,11 @@ class 看板視圖 extends TextFileView {
        框裡再寫一次灰字是同一件事講兩遍,而且灰字會被當成「裡面已經有東西」。 */
     題輸.value = s.新主題;
     題輸.oninput = () => { s.新主題 = 題輸.value; this.搜尋變動(); };
+    // 送出鍵照設定(是送出);另一種 Enter 在主題框裡是「跳到內容框」
     題輸.onkeydown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && 是Enter鍵(e)) { e.preventDefault(); this.送出新增(); return; }
+      if (是送出(e)) { e.preventDefault(); this.送出新增(); return; }
       if (e.isComposing || e.keyCode === 229) return;   // 選字中,方向鍵和 Enter 留給輸入法
-      if (是Enter鍵(e)) {
-        e.preventDefault();
-        if (e.shiftKey) this.送出新增(); else if (this.內輸) this.內輸.focus();
-        return;
-      }
+      if (是Enter鍵(e)) { e.preventDefault(); if (this.內輸) this.內輸.focus(); return; }
       if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); this.清除搜尋(); }
     };
     this.題輸 = 題輸;
@@ -2624,7 +2766,15 @@ class 看板視圖 extends TextFileView {
           "border:2px solid " + c + ";background:" + 透明(c, 0.14) + ";" +
           (n === s.新分類 ? "outline:2px solid var(--text-accent);outline-offset:2px;" : ""));
         圓.title = n;
-        圓.onclick = (ev) => { ev.stopPropagation(); s.新分類 = n; this.畫(); };
+        /* ⚠ 1.4.7 修:選好之後要把色盤收掉。以前只重畫新增區,
+           色盤掛在 document.body 上不在重畫範圍裡,就一直浮在那裡。 */
+        圓.onclick = (ev) => {
+          ev.stopPropagation();
+          s.新分類 = n;
+          try { 盤.remove(); } catch (x) {}
+          document.removeEventListener("mousedown", 關, true);
+          this.畫();
+        };
       });
       const 關 = (ev) => {
         if (盤.contains(ev.target) || 點.contains(ev.target)) return;
@@ -2678,17 +2828,21 @@ class 看板視圖 extends TextFileView {
     // 打字造成的長高不要做過場,瞬間到位就好(準則第五章)
     const 長高 = () => 撐高(內輸);
     內輸.oninput = () => { s.新內容 = 內輸.value; 長高(); this.搜尋變動(); };
-    /* 鍵盤跟編修框完全一樣,不用記兩套:
-         Enter 換行 ‧ Shift+Enter 送出 ‧ Ctrl/⌘+Enter 送出 ‧ Esc 清空 */
+    /* 鍵盤跟編修框、留言框完全一樣,不用記好幾套(見 是送出) ‧ Esc 清空 */
     內輸.onkeydown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && 是Enter鍵(e)) { e.preventDefault(); this.送出新增(); return; }
+      if (是送出(e)) { e.preventDefault(); this.送出新增(); return; }
       if (e.isComposing || e.keyCode === 229) return;
-      if (是Enter鍵(e) && e.shiftKey) { e.preventDefault(); this.送出新增(); return; }
       if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); this.清除搜尋(); }
     };
     this.內輸 = 內輸;
     this.掛連結建議(內輸);            // 打 [[ 就跳出筆記清單
     掛md快捷(內輸);                   // Ctrl/Cmd + B / I / K … 跟 Obsidian 一樣
+    /* ⚠⚠ 1.4.7 修:**當場**撐好高度,不要只等下一輪。
+       每點一次篩選(本日、本周…)整個看板都會重畫,新增區也跟著重建;
+       textarea 剛建出來是瀏覽器預設的兩行高,下一格畫面才被 撐高() 縮回來 ——
+       使用者看到的就是「新增卡片那一欄突然往下長一下又跑回來」。
+       (元素這時候已經掛在畫面上了,量得到。setTimeout 那一次留著當保險:字型晚到時再撐一次。) */
+    長高();
     setTimeout(長高, 0);
 
     /* ---- 送出欄 ----
@@ -2702,35 +2856,29 @@ class 看板視圖 extends TextFileView {
          ③ 底下補一行快捷鍵提示,順便把剩餘的空間填滿 */
     const 送欄 = 主行.createDiv(); 送欄.addClass("tk-送出欄"); st(送欄, 右群);
     const 送框 = this.建框(送欄, null, "flex:1 1 auto;width:100%;");
-    st(送框, "display:flex;flex-direction:column;gap:5px;align-items:stretch;width:100%;");
+    // flex:1 一定要:沒有它這一層不會撐滿整欄,送出鈕底下會空一塊(1.4.7 拿掉提示字之後就露出來了)
+    st(送框, "display:flex;flex-direction:column;gap:5px;align-items:stretch;width:100%;flex:1 1 auto;min-height:0;");
 
-    const 去向 = 送框.createDiv();
-    去向.addClass("tk-去向");
-    st(去向, "display:flex;align-items:center;justify-content:center;gap:4px;" +
-      "font-size:0.7em;color:var(--text-muted);white-space:nowrap;overflow:hidden;" +
-      "flex:0 0 auto;min-width:0;");
-    const 去處 = this.新增日期();
-    圖(去向, 去處.長期 ? "repeat" : "calendar-days", 11);
-    const 去向字 = 去向.createSpan({ text: this.新增去向文() });
-    st(去向字, "overflow:hidden;text-overflow:ellipsis;min-width:0;");
-    去向.title = T.jumpAddDesc;
-
+    /* ⚠ 1.4.7:「這張會放到哪一天」併進送出鈕裡(第二行小字),不再另外佔一行。
+       以前那一行是「📅 26-09-14(一) – 26-09-20(日)」,區間在這一欄一定被切掉後半;
+       現在用 日期範圍字:同一年不寫年份(09-14(一) – 09-20(日)),跨年才把星期拿掉。 */
     const 送 = 送框.createEl("button");
     const bc = 選值 ? this.插件.人色(選值) : "var(--interactive-accent)";
-    st(送, "width:100%;flex:1 1 auto;min-height:" + (窄 ? 36 : 38) + "px;height:auto;padding:0 8px;border-radius:6px;" +
+    st(送, "width:100%;flex:1 1 auto;min-height:" + (窄 ? 40 : 42) + "px;height:auto;padding:3px 6px;border-radius:6px;" +
       "cursor:pointer;color:var(--text-on-accent, #fff);background:" + bc + ";" +
-      "border:1px solid " + bc + ";font-weight:600;font-size:0.92em;");
-    圖鈕(送, "plus", T.submit, 16);
-    送.title = 選值 ? (T.add + " · " + 選值) : T.add;
+      "border:1px solid " + bc + ";font-weight:600;font-size:0.92em;" +
+      "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;");
+    const 送上 = 送.createDiv();
+    st(送上, "display:inline-flex;align-items:center;gap:4px;line-height:1.2;");
+    圖(送上, "plus", 15);
+    送上.createSpan({ text: T.submit });
+    const 送日 = 送.createDiv({ text: this.新增去向短() });
+    st(送日, "font-size:0.72em;font-weight:500;line-height:1.2;opacity:0.92;white-space:nowrap;" +
+      "overflow:hidden;text-overflow:ellipsis;max-width:100%;font-variant-numeric:tabular-nums;");
+    /* 快捷鍵提示放在滑過去才看得到的 title 裡(1.4.7)。
+       以前是送出鈕底下一行灰字,日期併進送出鈕之後那一欄就太擠了。 */
+    送.title = (選值 ? (T.add + " · " + 選值) : T.add) + " → " + this.新增去向文() + "\n" + 送出提示字(T);
     送.onclick = () => this.送出新增();
-
-    /* 快捷鍵提示。窄螢幕不畫:手機沒有鍵盤快捷鍵,而且那一欄塞不下 */
-    if (!窄) {
-      const 提示 = 送框.createDiv({ text: T.submitHint });
-      提示.addClass("tk-送出提示");
-      st(提示, "font-size:0.62em;color:var(--text-faint);text-align:center;" +
-        "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;");
-    }
 
     if (s.管人開) this.畫管人(根);
   }
@@ -2760,11 +2908,15 @@ class 看板視圖 extends TextFileView {
       const t = String(k.編修時 || "");
       if (!新[k.主題] || t > 新[k.主題]) 新[k.主題] = t;
     });
-    const 全主題 = Object.keys(次).sort((a, b) => {
+    /* 1.4.7:釘選的主題**永遠排在最前面**(照釘選的先後),而且不管現在篩出來的有沒有它都在 ——
+       釘選就是「我每天都要點這個」。其他的照最近動過排。
+       釘選的方法:「☰ 更多」面板每一列右邊的 📌,或在主題膠囊上按右鍵。 */
+    const 釘 = (this.插件.設定.釘選主題 || []).filter(Boolean);
+    const 全主題 = 釘.concat(Object.keys(次).filter(t => 釘.indexOf(t) < 0).sort((a, b) => {
       const t = String(新[b] || "").localeCompare(String(新[a] || ""));   // 最近動過的優先
       return t || (次[b] - 次[a]);
-    });
-    const 露幾個 = 7;
+    }));
+    const 露幾個 = Math.max(7, 釘.length);
     const 熱 = 全主題.slice(0, 露幾個);
     const 其餘 = 全主題.slice(露幾個);
 
@@ -2773,7 +2925,7 @@ class 看板視圖 extends TextFileView {
     st(更多, "flex:0 0 auto;font-size:0.72em;height:20px;padding:0 8px;border-radius:10px;" +
       "cursor:pointer;white-space:nowrap;box-shadow:none;color:var(--text-muted);");
     圖鈕(更多, "list", String(其餘.length || 全主題.length), 12);
-    更多.title = "所有主題(可以打字查)";
+    更多.title = T.topicsPinHint;
     更多.onclick = (e) => { e.stopPropagation(); this.開主題面板(e, 全主題, 次); };
 
     if (this.搜尋中()) {
@@ -2785,14 +2937,26 @@ class 看板視圖 extends TextFileView {
       清.onclick = () => this.清除搜尋();
     }
     熱.forEach(t => {
-      const b = 常框.createEl("button", { text: t });
+      const 已釘 = 釘.indexOf(t) >= 0;
+      const b = 常框.createEl("button");
       st(b, 分類樣式類(this.插件.分類色(this.主題分類(全, t))) +
         "font-size:0.72em;height:20px;padding:0 8px;cursor:pointer;white-space:nowrap;" +
         // 一顆就比整個框還長的主題:出省略號,不要撐破框
         "flex:0 0 auto;max-width:100%;overflow:hidden;text-overflow:ellipsis;" +
-        "box-shadow:none;border:1px solid transparent;");
-      b.title = t + " · " + 次[t] + " " + T.cards + "。點一下把同主題的卡片都篩出來";
+        "box-shadow:none;border:1px solid " + (已釘 ? "currentColor" : "transparent") + ";" +
+        "display:inline-flex;align-items:center;gap:3px;");
+      if (已釘) 圖(b, "pin", 10);
+      const 字 = b.createSpan({ text: t });
+      st(字, "min-width:0;overflow:hidden;text-overflow:ellipsis;");
+      b.title = t + " · " + (次[t] || 0) + " " + T.cards + "\n" + (已釘 ? T.unpinTopic : T.pinTopic) + " → 右鍵";
       b.onclick = () => this.帶入主題(t);
+      b.oncontextmenu = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const m = new Menu();
+        m.addItem(i => i.setTitle(已釘 ? T.unpinTopic : T.pinTopic).setIcon(已釘 ? "pin-off" : "pin")
+          .onClick(() => this.切主題釘選(t)));
+        m.showAtMouseEvent(e);
+      };
     });
     if (!全主題.length) st(常框.createDiv({ text: T.noTopics }),
       "font-size:0.72em;color:var(--text-faint);");
@@ -2935,6 +3099,14 @@ class 看板視圖 extends TextFileView {
         st(行.createDiv({ text: t }), "flex:1 1 auto;min-width:0;font-size:0.84em;" +
           "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;");
         st(行.createDiv({ text: String(次[t] || 0) }), "font-size:0.72em;color:var(--text-faint);");
+        // 1.4.7:每一列右邊一顆 📌,點了就釘選 / 取消,面板不關
+        const 已釘 = (this.插件.設定.釘選主題 || []).indexOf(t) >= 0;
+        const 釘鈕 = 行.createDiv();
+        st(釘鈕, "display:inline-flex;line-height:0;cursor:pointer;padding:3px;border-radius:4px;flex:0 0 auto;" +
+          "color:" + (已釘 ? "var(--text-accent)" : "var(--text-faint)") + ";" + (已釘 ? "" : "opacity:0.5;"));
+        圖(釘鈕, "pin", 12);
+        釘鈕.title = 已釘 ? T.unpinTopic : T.pinTopic;
+        釘鈕.onclick = async (ev) => { ev.stopPropagation(); await this.切主題釘選(t); 畫單(); };
         行.onclick = () => { 關(); this.帶入主題(t); };
       });
     };
@@ -2948,6 +3120,16 @@ class 看板視圖 extends TextFileView {
     };
     const 外 = (ev) => { if (!盒.contains(ev.target)) 關(); };
     setTimeout(() => { document.addEventListener("mousedown", 外, true); try { 查.focus(); } catch (x) {} }, 0);
+  }
+
+  async 切主題釘選(題) {
+    const 設 = this.插件.設定;
+    const 單 = (設.釘選主題 || []).slice();
+    const i = 單.indexOf(題);
+    if (i >= 0) 單.splice(i, 1); else 單.push(題);
+    設.釘選主題 = 單;
+    await this.插件.存設定();
+    this.畫();
   }
 
   主題分類(全, 題) {
@@ -2969,6 +3151,13 @@ class 看板視圖 extends TextFileView {
     if (d.長期) return this.T.longTerm;
     if (!d.起) return this.T.undated;
     return 日期短(d.起) + (d.迄 ? " – " + 日期短(d.迄) : "");
+  }
+  // 短版(1.4.7):放進送出鈕、收合的標題列。同一年不寫年份,跨年才拿掉星期
+  新增去向短() {
+    const d = this.新增日期();
+    if (d.長期) return this.T.longTerm;
+    if (!d.起) return this.T.undated;
+    return 日期範圍字(d.起, d.迄);
   }
 
   /* ---- 分類設定(從分類圓點旁邊的「⋯」打開) ----
@@ -3297,7 +3486,7 @@ class 看板視圖 extends TextFileView {
         m.addSeparator();
         m.addItem((i) => i.setTitle(T.deleteCard).setIcon("trash-2")
           .onClick(() => this.問刪除(k)));
-      } else {
+      } else if (this.用留言) {
         m.addItem((i) => i.setTitle(T.comment).setIcon("message-square")
           .onClick(async () => {
             if (s.編修) await this.收掉編修();   // 編修框要被換掉了,先把字寫進去
@@ -3943,7 +4132,8 @@ class 看板視圖 extends TextFileView {
        一般卡片是 🗄 💬 ✎ 三顆,封存的卡片是 ↩ 🗑 兩顆(編修中沒有 🗑)——
        組的寬度一變,左邊的時間就跟著左右跑。所以永遠留三顆的寬度(手機一顆),靠右排。
        桌機:6(左邊距)+ 26 + 7 + 26 + 7 + 26 = 98。手機:6 + 34 = 40。 */
-    具盒.style.minWidth = (窄 ? 40 : 98) + "px";
+    // 不用留言(1.4.7)的時候少一顆:6 + 26 + 7 + 26 = 65
+    具盒.style.minWidth = (窄 ? 40 : (this.用留言 ? 98 : 65)) + "px";
     具盒.style.justifyContent = "flex-end";
     具盒.style.minHeight = 主題高 + "px";
     /* 有固定寬的那一格(時間)**靠左**:🕐 永遠在同一個 x,數字從它右邊接著排。
@@ -3960,7 +4150,7 @@ class 看板視圖 extends TextFileView {
       if (提示) d.title = 提示;
       return d;
     };
-    if (k.留言.length) 訊條("message-square", String(k.留言.length));
+    if (k.留言.length && this.用留言) 訊條("message-square", String(k.留言.length));
     /* 時間是這一行最右邊的資訊,**一律佔一格固定寬**(沒有時間也留著空格),
        留言則數排在它左邊 —— 有沒有留言都不會推動時間。
        窄螢幕不顯示時間:手機上那一行只留真的要看的東西,時間收進卡頭的「⋯」。 */
@@ -3977,12 +4167,13 @@ class 看板視圖 extends TextFileView {
       if (s.寫留言 === k.鍵) this.畫寫留言(寫位, k, 留下);
       this.畫留言區(文區, k, 留下);
     };
-    if (!留下) 畫留言們();
+    const 用留言 = this.用留言;          // 設定關掉留言(1.4.7):不畫留言區、不畫寫留言框
+    if (!留下 && 用留言) 畫留言們();
     const 內盒 = 文區.createDiv();
     內盒.addClass("tk-內盒");
     st(內盒, "position:relative;");
     this.畫內容區(內盒, k, 編修中);
-    if (留下) 畫留言們();
+    if (留下 && 用留言) 畫留言們();
   }
 
   /* 卡片動作(1.4.5 重排)。哪一組:
@@ -4040,8 +4231,8 @@ class 看板視圖 extends TextFileView {
       return;
     }
 
-    if (!this.窄) {
-      this.畫封存鈕(盒, k, 已封存, 具樣);                         // 🗄 封存,在留言左邊
+    if (!this.窄) this.畫封存鈕(盒, k, 已封存, 具樣);             // 🗄 封存,在留言左邊
+    if (!this.窄 && this.用留言) {
       const 丙 = 膠囊(盒, "");
       st(丙, 具樣("var(--text-muted)"));
       圖(丙, "message-square", 13);
@@ -4192,9 +4383,8 @@ class 看板視圖 extends TextFileView {
       inp.onclick = (e) => e.stopPropagation();
       inp.oninput = () => 撐高(inp);
       inp.onkeydown = (e) => {
-        if ((e.ctrlKey || e.metaKey) && 是Enter鍵(e)) { e.preventDefault(); this.存留言(k, c, inp.value); return; }
+        if (是送出(e)) { e.preventDefault(); this.存留言(k, c, inp.value); return; }
         if (e.isComposing || e.keyCode === 229) return;
-        if (是Enter鍵(e) && !e.shiftKey) { e.preventDefault(); this.存留言(k, c, inp.value); return; }
         if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); this.狀態.改留 = null; this.重畫清單(); }
       };
       /* ⚠ 1.4.4 補上送出 / 取消兩顆鈕。以前改留言只能按 Enter 存、Esc 取消 ——
@@ -4270,19 +4460,17 @@ class 看板視圖 extends TextFileView {
       "border-radius:6px;background:var(--background-secondary);" +
       "border:1px solid var(--background-modifier-border);color:var(--text-normal);");
     ta.onclick = (e) => e.stopPropagation();
-    // 鍵盤跟新增框、編修框完全一樣:Enter 換行,Shift/Ctrl+Enter 送出,Esc 取消
-    /* ⚠ 留言和內容一樣:**Enter = 儲存,Shift+Enter = 換行**。
-       (新增框例外 —— 它同時是搜尋框,Enter 送出會變成打字打到一半就開卡片。) */
+    /* 鍵盤跟新增框、編修框完全一樣(1.4.7 統一,見 是送出) ‧ Esc 取消。
+       ⚠ 1.4.6 以前留言是 Enter 送出、Shift+Enter 換行,跟新增和編輯反過來 —— 同一個看板裡兩套規則。 */
     ta.onkeydown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && 是Enter鍵(e)) { e.preventDefault(); this.送留言(k, 我, ta.value, ta); return; }
+      if (是送出(e)) { e.preventDefault(); this.送留言(k, 我, ta.value, ta); return; }
       if (e.isComposing || e.keyCode === 229) return;
-      if (是Enter鍵(e) && !e.shiftKey) { e.preventDefault(); this.送留言(k, 我, ta.value, ta); return; }
       if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); this.狀態.寫留言 = null; this.重畫清單(); }
     };
     ta.oninput = () => 撐高(ta);
     const 送 = 盒.createEl("button", { text: T.send });
     st(送, "flex:0 0 auto;align-self:flex-start;margin-top:2px;" + this.小鈕樣(true));
-    送.title = "Shift+Enter 也可以送出";
+    送.title = 送出提示字(T);
     this.掛連結建議(ta);
     掛md快捷(ta);
     送.onclick = (e) => { e.stopPropagation(); this.送留言(k, 我, ta.value, ta); };
@@ -4349,10 +4537,7 @@ class 看板視圖 extends TextFileView {
         /* 收工的三條路都在這裡:Esc、Shift+Enter、Ctrl/Cmd+Enter。
            ⚠ Enter 是換行(跟一般 Markdown 一樣),不要再拿它當儲存鍵。 */
         if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); this.完成編輯(k); return; }
-        if (e.isComposing || e.keyCode === 229) return;
-        if (是Enter鍵(e) && (e.shiftKey || e.ctrlKey || e.metaKey)) {
-          e.preventDefault(); this.完成編輯(k); return;
-        }
+        if (是送出(e)) { e.preventDefault(); this.完成編輯(k); return; }
       };
       ta.oninput = () => { 長高(); 排存(); };
       this.編框 = ta;
@@ -5123,7 +5308,8 @@ class 看板視圖 extends TextFileView {
       置頂Re.test(首) ? 首.replace(置頂清除Re, "")
                       : (首.replace(時戳清除Re, "").replace(/\s+$/, "") + " 📌"),
       this.名單);
-    if (ok) this.浮到最上(k);       // 置頂會把卡片搬到最上面 —— 一定要跟著跑過去
+    // 置頂會把卡片搬到置頂表 —— 預設跟著跑過去,設定可以關(1.4.7)
+    if (ok && this.插件.設定.跳轉_置頂 !== false) this.浮到最上(k);
     return ok;
   }
   /* 打勾 / 取消打勾。
@@ -5351,6 +5537,8 @@ module.exports = class 卡片日誌看板 extends Plugin {
     md表 = null;              // 重載外掛時把上一輪讀到的鍵位丟掉
     語言設定 = this.設定.語言 || "auto";
     自動項目符 = this.設定.項目符號 !== false;
+    週起日 = this.設定.週起始 === "日" ? 0 : 1;
+    送出用Enter = this.設定.送出鍵 === "Enter";
     this.T = 語();
     this.寫手 = new 寫手(this.app, this.T);
     this.分類序 = {};
@@ -5445,19 +5633,29 @@ module.exports = class 卡片日誌看板 extends Plugin {
     /* ⚠ 攔截 setViewState 的理由沒變:Obsidian 要顯示一個檔案一定會經過它,
        在視圖被建出來**之前**就換掉,所以不會先閃一下 Markdown 再跳成看板,
        而且開新分頁、分割、從連結點進去、開機還原分頁全都會經過。 */
+    /* ⚠⚠ 1.4.7:跟別的外掛(例如 Kanban)**同時**攔截 setViewState 時要能和平共處。
+       以前卸載時直接把原型上的函式設回「我們載入那一刻」的版本 ——
+       如果 Kanban 比我們晚載入、把它的攔截包在我們外面,這一設就連 Kanban 的攔截一起拆掉了,
+       Kanban 看板在重新載入 Obsidian 之前都會變回純 Markdown。
+       現在:① 我們的攔截帶一個開關,卸載時先關掉(變成直接轉手給下一層);
+            ② 只有在原型上掛的**還是我們這一個**時才換回去,不是的話就留著讓它轉手。
+       這就是 monkey-around 那一套的做法。 */
     const 原setViewState = WorkspaceLeaf.prototype.setViewState;
-    const 我 = this;
-    WorkspaceLeaf.prototype.setViewState = function (state, ...其餘) {
+    const 我的攔截 = function (state, ...其餘) {
       try {
-        if (state && state.type === "markdown" && state.state && state.state.file &&
+        if (我的攔截.啟用 && state && state.type === "markdown" && state.state && state.state.file &&
             該用看板路(state.state.file)) {
           state = Object.assign({}, state, { type: 視圖種類 });
         }
       } catch (e) {}
       return 原setViewState.apply(this, [state, ...其餘]);
     };
-    // 外掛關掉的時候要還原,不然會留著一個指向舊程式的函式
-    this.register(() => { WorkspaceLeaf.prototype.setViewState = 原setViewState; });
+    我的攔截.啟用 = true;
+    WorkspaceLeaf.prototype.setViewState = 我的攔截;
+    this.register(() => {
+      我的攔截.啟用 = false;
+      if (WorkspaceLeaf.prototype.setViewState === 我的攔截) WorkspaceLeaf.prototype.setViewState = 原setViewState;
+    });
 
     /* 保險:開機時已經開著的分頁不會經過 setViewState。
        ⚠ 只把「該是看板卻還是 markdown」的換過去 —— 反方向不碰,
@@ -5665,13 +5863,43 @@ class 設定頁 extends PluginSettingTab {
           await this.插件.存設定(); this.插件.重畫所有看板();
         }));
 
+    // ---- 1.4.7 ----
+    new Setting(c).setName(T.useComments).setDesc(T.useCommentsDesc)
+      .addToggle(t => t.setValue(this.插件.設定.使用留言 !== false)
+        .onChange(async (v) => {
+          this.插件.設定.使用留言 = v;
+          await this.插件.存設定(); this.插件.重畫所有看板();
+        }));
+
+    new Setting(c).setName(T.sendKey).setDesc(T.sendKeyDesc)
+      .addDropdown(d => {
+        d.addOption("組合", T.sendKeyCombo);
+        d.addOption("Enter", T.sendKeyEnter);
+        d.setValue(this.插件.設定.送出鍵 === "Enter" ? "Enter" : "組合");
+        d.onChange(async (v) => {
+          this.插件.設定.送出鍵 = v; 送出用Enter = v === "Enter";
+          await this.插件.存設定(); this.插件.重畫所有看板();
+        });
+      });
+
+    new Setting(c).setName(T.weekStart).setDesc(T.weekStartDesc)
+      .addDropdown(d => {
+        d.addOption("一", T.weekMon);
+        d.addOption("日", T.weekSun);
+        d.setValue(this.插件.設定.週起始 === "日" ? "日" : "一");
+        d.onChange(async (v) => {
+          this.插件.設定.週起始 = v; 週起日 = v === "日" ? 0 : 1;
+          await this.插件.存設定(); this.插件.重畫所有看板();
+        });
+      });
+
     /* ⚠ frontmatter 那一排拿掉了。每個檔案上次用哪一種模式都會自動記住,
        frontmatter 只是「從來沒開過的檔案」的第一印象 —— 那是一條規則,不是一個選項,
        擺在設定裡只會讓人以為要先開它才會自動切換。 */
     c.createEl("h3", { text: T.jumps });
     // 1.4.6:未完成 / 已完成 / 封存 三個各自獨立(順序跟看板上「顯示」那一格一樣)
     [["跳轉_完成到未完成", T.jumpTodo], ["跳轉_未完成到完成", T.jumpDone], ["跳轉_封存", T.jumpArchive],
-     ["跳轉_設回今日", T.jumpToday], ["跳轉_新增", T.jumpAdd]].forEach(([k, 名]) => {
+     ["跳轉_置頂", T.jumpPin], ["跳轉_設回今日", T.jumpToday], ["跳轉_新增", T.jumpAdd]].forEach(([k, 名]) => {
       new Setting(c).setName(名).setDesc(T.jumpDesc)
         .addToggle(t => t.setValue(this.插件.設定[k] !== false)
           .onChange(async (v) => { this.插件.設定[k] = v; await this.插件.存設定(); }));

@@ -1,5 +1,60 @@
 # Changelog
 
+## 1.4.7
+
+**Filter bar**
+
+- The year and Today arrows are as tall as their tile (desktop too), so they are
+  much easier to hit.
+- Today shows the weekday underneath: (Mon), (Tue)…
+- The year tile keeps its accent border — it tells you which year you are in.
+  Stepping a week or month into the next year moves the year along with it, and
+  tapping the year jumps back to this year.
+- Week and month labels are shorter and no longer lose their end: `9/14–20`,
+  `9/28–10/4`, `Oct`.
+- On a desktop window too narrow for the whole bar, the to do / done / archived
+  switches fold into a `⋯` instead of wrapping to a second row.
+- A board pane narrower than 560px (sidebars open, split view) switches to the
+  card layout used on phones. Before, only the window width counted, so a
+  narrow pane in a wide window got the desktop table with the week and month
+  filters cut in half.
+- The calendar always opens on the current month.
+
+**New card**
+
+- The destination date moves into the Add button, in a shorter form
+  (`09-14(Mon) – 09-20(Sun)`), so a range is no longer cut off. The grey
+  shortcut hint under the button is gone; hover the button to see it.
+- Picking a section colour closes the colour picker.
+- The add area no longer jumps when you switch filters: the content box is
+  sized as soon as it is drawn, not a frame later. The Add button fills its
+  column down to the bottom.
+
+**Keys**
+
+- One submit key everywhere — new card, card editor, new comment, comment edit:
+  `Shift + Enter` or `Ctrl/⌘ + Enter` submits, `Enter` is a new line. Comments
+  used to be the other way round.
+- New setting to swap it: `Enter` submits, `Shift + Enter` is a new line.
+
+**Settings**
+
+- First day of the week: Monday (default) or Sunday. Sets This week and the
+  calendar's first column.
+- Jump after pinning, on its own switch.
+- Turn comments off. Existing comments stay in the note and come back when
+  switched on.
+- Pin frequent titles: 📌 on each row of the "more" panel, or right-click a title
+  chip. Pinned titles always come first.
+
+**Other**
+
+- Author name is `jiajiunwu` everywhere.
+- Card Table no longer removes another plugin's `setViewState` hook (for
+  example Kanban's) when it is disabled or reloaded.
+- New README in English and Traditional Chinese, and a clearer plugin
+  description.
+
 ## 1.4.6
 
 **Cards with identical first lines**

@@ -64,9 +64,12 @@ C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\card-table  →  這個 rep
 
 | 位置 | 格式 | 例 |
 | --- | --- | --- |
-| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260913v4` |
-| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.6` |
-| `manifest.json` 的 `version` | semver | `1.4.6` |
+| `main.js` 的 `看板版本` | `YYMMDDvN`,畫面上看得到 | `260914v1` |
+| `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.4.7` |
+| `manifest.json` 的 `version` | semver | `1.4.7` |
+
+作者名一律 `jiajiunwu`(manifest、LICENSE、SUBMITTING.md)。README 有中英兩份
+(`README.md`、`README.zh-TW.md`),改一份就要改另一份。
 
 semver 升版時,`versions.json` 也要加一筆 `"新版本": "最低 Obsidian 版本"`,
 `CHANGELOG.md` 也要加一段 `## 新版本`(release 的說明是從那裡撈的)。
@@ -80,9 +83,11 @@ README.md、CHANGELOG.md,被審核列成建議事項)。
 1.4.4 起 `styles.css` 裡 **0 個 `!important`、0 個 `display:contents`、0 個 `@media (max-width)`**。
 這是審核要求的,也是刻意的架構,不要加回去:
 
-- **`看板視圖.定窄()` 在 `畫()` 開頭問一次 `是窄螢幕()`**,存成 `this.窄`,
+- **`看板視圖.定窄()` 在 `畫()` 開頭問一次 `該窄()`**,存成 `this.窄`,
   在看板上掛 `.tk-窄`。這一輪所有的畫法都看 `this.窄`,不要在各處自己再問 matchMedia。
-  視窗跨過 700px 時 `onOpen` 掛的監聽器會整份重畫。
+  `該窄()` = 視窗 ≤ 700px **或** 看板分頁本身 < `窄分頁寬`(560px,1.4.7)——
+  桌機開著側邊欄、分割畫面時分頁很窄,只看視窗會把桌機表格硬塞進去。
+  視窗跨過 700px(matchMedia 監聽)或分頁跨過 560px(ResizeObserver)都會整份重畫。
 - **窄螢幕的卡片是另一種 DOM**:`畫一列()` 在窄螢幕呼叫 `畫卡片()`,畫成 div
   (卡頭 `.tk-卡頭` + 內容格),不是 `<tr>`。所以:
   - 找列、找格一律用 **`.tk-列` / `.tk-格`**(桌機的 tr/td 也掛了這兩個 class),
@@ -170,6 +175,17 @@ README.md、CHANGELOG.md,被審核列成建議事項)。
   在重畫之前記 `scrollTop`、所有高度都撐好(包括 `滑開()` 的起點)之後才放回去。
   最後一張卡片是這類 bug 唯一會露餡的地方:看板一變矮,瀏覽器就把捲動位置夾到底。
 - 手機按編輯**不自動聚焦**(聚焦 = 跳鍵盤 = iOS 自己捲畫面)。
+
+## 1.4.7 的規則
+
+- **送出鍵只有一個判斷:`是送出(e)`**。新增卡片、編輯內容、寫留言、改留言全部走它,
+  不要再各自寫 `e.shiftKey` / `!e.shiftKey`(1.4.6 以前留言跟其他地方是反的)。
+  設定 `送出鍵` 存在模組變數 `送出用Enter`。
+- **一週的第一天看 `週起日`**(模組變數,0 = 週日、1 = 週一)。算本周用 `週首的()`,
+  不要再用寫死週一的 `週一的()`;行事曆的第一欄和空格也要照它轉。
+- **攔截 `WorkspaceLeaf.prototype.setViewState` 要能跟別的外掛共存**:
+  攔截函式帶 `啟用` 開關,卸載時先關掉,**只有原型上掛的還是我們那一個**才換回去。
+  直接把原型設回載入時的版本,會連 Kanban 這類後載入的外掛的攔截一起拆掉。
 
 ## Git
 
