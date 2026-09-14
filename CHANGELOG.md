@@ -1,5 +1,57 @@
 # Changelog
 
+## 1.5.0
+
+**Finding cards**
+
+- Edit stamps are written to the minute again (`✎{2026-09-14 22:27}`), so notes
+  are less cluttered. Stamps with seconds from 1.4.6–1.4.9 still read.
+- Cards with identical first lines are now found by their position in their
+  section first — the nth card under `## Section` — checked against the line
+  and the content. If the position is stale (a card was inserted above on
+  another device, or moved), the previous content / line / stamp matching is
+  used, and an ambiguous card is still never written.
+
+**Time filters**
+
+- Order: year, This month / This week (month on top), Today.
+- Overdue and Repeating share one tile, half each. Long-term is gone:
+  `#long-term` / `#長期` are plain tags now, and undated long-term cards show
+  in No date yet. New cards added under Repeating repeat every week from today.
+- New setting: an All tile to the left of the year (off by default).
+- New setting: This week can mean seven days from today instead of the
+  calendar week, so overdue days earlier in the week stay out.
+- Counts, years and labels sit on the same three rows in the year and Today
+  tiles; labels are larger and bolder than the counts.
+
+**Cards**
+
+- Sections double as status. Rename a section from the `⋯` next to Section
+  (this renames the `##` heading in the note, and its colour follows) — for
+  example, name the red one *Waiting*. With the new Show section names setting,
+  every card shows its section name: above the done circle on desktop, after
+  the title on phones. Tap the name to move the card to another section; a
+  done card shows Done instead.
+- New setting: unpin a pinned card when it is marked done (off by default).
+- The date and the done circle are vertically centred on the same line,
+  ranges included. Range dates are left-aligned with the line between them
+  centred, and dates in every row are the same width so their edges line up.
+- Dates in the current year leave out the year; a date or range touching
+  another year keeps it.
+- New setting: when editing, put the cursor at the start (default) or end.
+- The Date / Section / Content header row above each card table is gone; the
+  date column is a little wider for breathing room.
+
+**Other**
+
+- Pinned frequent titles belong to each note. Existing pins move to the notes
+  that actually use those titles the first time each note is opened; a new
+  note starts with none.
+- The ribbon icon asks before turning a note that was never opened as a board
+  into one, and offers to create a new Card Table note instead.
+- Pressing the section `⋯` or the frequent titles `☰` again closes the panel
+  instead of reopening it.
+
 ## 1.4.9
 
 - The filter bar is a collapsible block with a **Time filters** header, like

@@ -27,6 +27,7 @@ then reload Obsidian and enable **Card Table**.
 
 1. Open a note and run **Open with Card Table** from the command palette, the ribbon icon or the tab's `⋯` menu.
    The note remembers the mode you last used and opens that way next time.
+   For a note that has never been opened as a board, the ribbon icon asks first: open this note as a Card Table, or create a new one.
 2. A brand new note gets five sections (`## 1` … `## 5`). Sections are shown as colours.
 3. Type a title and some content under **New card** and press `Shift + Enter`.
    The card lands on the day, week or month the filter bar is showing.
@@ -46,9 +47,10 @@ then reload Obsidian and enable **Card Table**.
 
 ### Filtering by time
 
-- **One-tap filters** — Today, This week and This month sit in the first block of the filter bar. Step backwards and forwards with ◀ ▶; the day tile shows the weekday.
+- **One-tap filters** — the year, This month / This week and Today sit in the first block of the filter bar. Step backwards and forwards with ◀ ▶; the day tile shows the weekday.
 - **The year follows you** — the year tile always shows which year you are in, and steps into the next year when a week or month does. Tap the year to jump back to this year.
-- **All, Overdue, Long-term** — one tap each.
+- **Overdue and Repeating** — one tile, half each. Turn on **All** in settings to add an All tile to the left of the year.
+- **This week, your way** — the calendar week, or seven days from today so the overdue start of the week stays out.
 - **Show to do / done / archived** — three switches that apply to the list, the counts and the calendar. On a narrow window they fold into a `⋯`.
 - **Calendar** — tap a day, or two days for a range. Always opens on the current month.
 - **Search without a search box** — the title and content boxes of *New card* filter the table as you type.
@@ -56,9 +58,10 @@ then reload Obsidian and enable **Card Table**.
 ### Cards
 
 - **Pinned table** — pinned cards get their own collapsible table above the list, whatever the date filter.
-- **Frequent titles** — the titles you use most, one tap to reuse. Pin the ones you use every day; they always come first.
-- **Edit in place** — title and content in one edit, saved as you type.
-- **Sections as colours** — rename and recolour sections without touching the `## headings` in the note.
+- **Frequent titles** — the titles you use most, one tap to reuse. Pin the ones you use every day; they always come first. Each note keeps its own pins.
+- **Edit in place** — title and content in one edit, saved as you type. The cursor starts at the beginning or the end, as you prefer.
+- **Sections as colours** — recolour a section from the `⋯` next to Section, and rename it there too (that renames the `## heading` in the note). Turn on section names to see them on every card.
+- **Sections as status** — name a section after a state, such as *Waiting*, and turn on section names: every card in it shows *Waiting* (desktop above the done circle, phones after the title). Tap the name to move the card to another section; a done card shows Done instead. A setting can also unpin cards when they are done.
 - **Assignees, or solo** — assign cards to people on the list, or turn on solo mode and the assignee fields go away.
 - **Repeats** — `🔁 every 2 weeks`. Marking it done moves the date forward and leaves a record line.
 - **Archive, then delete** — archiving moves a card to `## Archive`; deleting is only offered after that.
@@ -118,6 +121,11 @@ Submitting works the same in the new card, the card editor and comments:
 | First day of the week | Monday or Sunday |
 | Jump after an action | Per action: back to to do, done, archived, pinned, moved to today, added |
 | Where a card sits when editing | Leave it, pull it to the top, or let the browser decide |
+| Cursor position when editing | Start (default) or end of the text |
+| What “This week” means | Calendar week, or seven days from today |
+| Show “All” in the time filters | Adds an All tile left of the year (off by default) |
+| Show section names | The section heading on each card, used as its status |
+| Unpin when marked done | Off by default |
 
 ## The text format
 
@@ -126,7 +134,7 @@ That is the whole storage format — everything the table shows comes from lines
 ```markdown
 ## 1
 
-- [ ] [Orders] ．Two boxes each, needs to arrive before Friday ＠{2026-09-11} #Alex 📌 ✎{2026-09-10 09:12:40}
+- [ ] [Orders] ．Two boxes each, needs to arrive before Friday ＠{2026-09-11} #Alex 📌 ✎{2026-09-10 09:12}
 	．Called the supplier, waiting for the quote
 	．💬{2026-09-11 14:20|Alex} Quote came back, 8% up on last time
 
@@ -136,14 +144,13 @@ That is the whole storage format — everything the table shows comes from lines
 | In the note | Means |
 | --- | --- |
 | `- [ ]` / `- [x]` | One card, not done / done |
-| `[Title]` | The card's title |
-| `＠{2026-09-11}` | Date. `＠{2026-09-11 ~ 2026-09-14}` is a range |
+| `[Title]` | The card's title || `＠{2026-09-11}` | Date. `＠{2026-09-11 ~ 2026-09-14}` is a range |
 | `#Alex` | Assignee (must be on the people list) |
 | `📌` | Pinned |
-| `✎{2026-09-11 14:20:05}` | Last touched, to the second — written by the plugin |
+| `✎{2026-09-11 14:20}` | Last touched, to the minute — written by the plugin (older stamps with seconds still read) |
 | `💬{2026-09-11 14:20\|Alex} text` | A comment |
 | `🔁 every 2 weeks` | Repeats every 2 weeks. `every 3 days`, `every month` and the older `🔁 每2週` also work |
-| `#long-term` | Long-term, ignores the date filters. The older `#長期` also works |
+| `#long-term` | No special meaning since 1.5 (it used to mark long-term cards); stays in the note as a plain tag |
 | `．` | Optional bullet in front of content lines |
 | `## Archive` | The archive section |
 
@@ -171,7 +178,7 @@ Pick one plugin per note, though: Card Table writes its own markers (such as `�
 
 1. **Every write is one atomic read-modify-write** inside `Vault.process`, so a concurrent write (sync, another tab, the previous action) is never overwritten with a stale copy.
 2. **The view never writes its own copy back.** All changes go through one writer.
-3. **A card is identified by its first line.** When two first lines match, content, the whole line and the to-the-second stamp tell them apart. If nothing does, the plugin refuses to write rather than guess.
+3. **A card is identified by its first line.** When two first lines match, its position in its section is tried first (checked against the line and the content), then content, the whole line and the edit stamp. If nothing tells them apart, the plugin refuses to write rather than guess.
 4. **Writes touch the smallest number of lines possible.** Ticking a checkbox rewrites one line, not the file.
 
 ## Support
