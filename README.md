@@ -1,6 +1,7 @@
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
-<img width="90%" alt="Card Table board" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
+<img width="50%" alt="Card Table board" src="https://github.com/user-attachments/assets/89105284-ec0e-428e-98b7-78d16f62abdb" />
+<img width="90%" alt="Card Table board" src="https://github.com/user-attachments/assets/1059cd66-e1b7-4ca7-b4dc-a0439ce277f8" />
 
 # Card Table
 
