@@ -1,6 +1,7 @@
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
-<img width="90%" alt="Card Table: Dated Tasks board" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
+<img width="90%" alt="Card Table: Dated Tasks board" src="https://github.com/user-attachments/assets/37b5914d-21df-48c9-a949-2a59c9fef3e9" />
+<img width="30%" alt="Card Table: Dated Tasks on a phone" src="https://github.com/user-attachments/assets/2e09a693-d1c4-4196-bdea-693612a90d99" />
 
 # Card Table: Dated Tasks
 
@@ -12,7 +13,7 @@
 
 If Card Table saves you time, you can [buy me a coffee on Ko-fi](https://ko-fi.com/jiajiunwu).
 
-<img width="90%" alt="The note behind the board" src="https://github.com/user-attachments/assets/eda91189-0003-4d9f-a2c2-c552a8676c19" />
+
 
 ## Installation
 
