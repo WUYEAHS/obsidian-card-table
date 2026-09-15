@@ -1,5 +1,85 @@
 # Changelog
 
+## 1.6.0
+
+**Time filters**
+
+- The year, month, week and day tiles now follow one date. Step the month and
+  the week jumps to the first week of that month and the day to the 1st; step
+  the week and the day moves to the first day of that week; step the day past
+  the end of a week or month and the others follow. From September 15 to
+  October 15 is month ▶, week ▶▶, day ▶▶▶, no calendar needed.
+- Stepping the year goes to January 1 of that year.
+- The tiles show the actual month, week and day (`Oct`, `10/12–10/18`,
+  `10/15`) instead of This month / This week / Today, and the month and week tiles
+  are underlined when they contain today. Tapping a tile shows the range it names; tapping the
+  selected tile again goes back to today.
+- Weeks follow the weekdays and can cross months (`9/28–10/4`).
+- One setting, **How weeks are counted**, replaces First day of the week and
+  What “This week” means: Monday, Sunday, either of them with the current week
+  as seven days from today, or from the 1st of each month seven days at a time.
+  Existing choices carry over.
+- The Time filters header always shows today's date, open or folded; tap it to
+  go back to today.
+- The year tile is only highlighted while you are viewing the whole year.
+- Tile labels are a size smaller, and shrink a little more when a label would
+  not fit, so long weeks are never cut off.
+- The calendar opens in place of the New card fields instead of as an extra
+  block under the filters, and its header shows only a calendar icon and a
+  close button.
+- Folding and unfolding any block (Time filters, New card, Pinned, the list
+  table) slides instead of jumping.
+- The list table can be folded, and its header has a filter icon. Its title
+  names the day, week or month itself.
+- Text in block headers sits a pixel lower so it looks centred, and is no
+  longer clipped at the top.
+
+**New card**
+
+- The header `⋯` switches the whole block to **Sections and assignees**, and
+  the header shows only a settings icon: sections on the left (name, colour,
+  add and delete, between 1 and 10), assignees on the right (an on/off switch
+  for solo mode, names, colours, and who uses this computer). Add section,
+  Add assignee and Who uses this computer are icons, with their names in
+  tooltips. ✓ saves everything at once; ↩ or `⋯` goes back and asks before
+  discarding unsaved changes. Deleting a section that still has cards asks
+  which section they move to. The Section names and colours pop-up and the
+  Manage assignees panel are gone.
+- Switching between New card, Sections and assignees and the calendar slides
+  the block to its new height and fades the new content in from the side
+  (from the right going in, from the left coming back). Nothing moves when the
+  system asks for reduced motion.
+- Section colours are kept by name and shared by all boards, so saving only
+  changes the colours you touched. Sections whose automatic colour would change
+  because an earlier section was deleted keep the colour you saw.
+- New installs start in solo mode (assignees off).
+- An empty title box shows a house icon and an empty content box a pen icon
+  instead of placeholder text.
+- The title box suggests titles you have used as you type (↓ lists them all,
+  ↑ ↓ and Enter or Tab to pick one).
+- Typing or picking a title you have used before, exactly as written, switches
+  the section to the one that title was last written in; change the text and
+  the section goes back to what it was, unless you picked a section yourself in
+  between. Frequent title pills take that colour too.
+- The date on the Add button leaves out the weekday and the year
+  (`12-28 – 01-03`), so ranges fit on phones.
+- The ✕ in the title box shows up while you type.
+- The whole title box shows a text cursor and focuses the input when clicked,
+  and the input no longer inherits a line height that misplaced the caret on
+  Windows.
+- The New card header no longer shows a tooltip that covered the `⋯` tooltip.
+- A small chevron on the section circle shows that it opens a picker; tapping
+  the chevron opens it too.
+- Phones get frequent titles back as a single `☰` button next to the section
+  circle.
+
+**Cards**
+
+- Merging writes each merged card's date on its own line, with that card's
+  content under it. Merged content lines keep their indentation instead of
+  turning into a single space.
+- The Move to today buttons are grey and a size smaller.
+
 ## 1.5.2
 
 - The English name is now **Card Table - Dated Tasks**. The community plugin

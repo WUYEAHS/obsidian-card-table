@@ -7,7 +7,7 @@
 
 **Turn any markdown note into a dated table of task cards — pick today, this week or this month in one tap, and let everyone leave comments right on the card.**
 
-- **Dates come first.** The filter bar is always on screen: year, month, week, day, overdue, repeat. No date pickers, no pop-up dialogs — one tap narrows the table, ◀ ▶ steps through the days.
+- **Dates come first.** The filter bar is always on screen: year, month, week, day, overdue, repeat. No date pickers, no pop-up dialogs — one tap narrows the table, and ◀ ▶ reach any date in a few taps.
 - **Every card can hold a conversation.** Comments are signed and timestamped, so a card turns into a small log of what happened. Several people can work in the same note at once.
 - **It is still just a note.** Dates, assignees, pins, comments and repeats are plain text. Turn the plugin off and you still have a task list anyone can read.
 
@@ -48,22 +48,23 @@ then reload Obsidian and enable **Card Table - Dated Tasks**.
 
 ### Filtering by time
 
-- **One-tap filters** — the year, This month / This week and Today sit in the first block of the filter bar. Step backwards and forwards with ◀ ▶; the day tile shows the weekday.
-- **The year follows you** — the year tile always shows which year you are in, and steps into the next year when a week or month does. Tap the year to jump back to this year.
+- **One-tap filters** — the year, month, week and day sit in the first block of the filter bar and show the actual dates (`Oct`, `10/12–10/18`, `10/15`); the ones containing today are underlined. Tap a tile to view it, tap it again to go back to today.
+- **Linked steps** — the four tiles follow one date. Step the month and the week and day jump to the start of that month; step the week and the day jumps to its first day; step past the end of a week, month or year and the rest follow. From September 15 to October 15: month ▶, week ▶▶, day ▶▶▶.
+- **Today in the header** — the Time filters header always shows today's date; tap it to go back.
 - **Overdue and Repeat** — one tile, half each. Turn on **All** in settings to add an All tile to the left of the year.
-- **This week, your way** — the calendar week, or seven days from today so the overdue start of the week stays out.
+- **Weeks, your way** — Monday or Sunday first (weeks may cross months), optionally with the current week as seven days from today, or seven-day blocks from the 1st of each month.
 - **Show to do / done / archived** — three switches that apply to the list, the counts and the calendar. On a narrow window they fold into a `⋯`.
-- **Calendar** — tap a day, or two days for a range. Always opens on the current month.
+- **Calendar** — tap a day, or two days for a range. It opens in place of New card, always on the current month. You rarely need it now.
 - **Search without a search box** — the title and content boxes of *New card* filter the table as you type.
 
 ### Cards
 
 - **Pinned table** — pinned cards get their own collapsible table above the list, whatever the date filter.
-- **Frequent titles** — the titles you use most, one tap to reuse. Pin the ones you use every day; they always come first. Each note keeps its own pins.
+- **Frequent titles** — the titles you use most, one tap to reuse. Pin the ones you use every day; they always come first. Each note keeps its own pins. The title box also suggests used titles as you type, and a title you used before brings back the section it was last in.
 - **Edit in place** — title and content in one edit, saved as you type. The cursor starts at the beginning or the end, as you prefer.
-- **Sections as colours** — recolour a section from the `⋯` next to Section, and rename it there too (that renames the `## heading` in the note). Turn on section names to see them on every card.
+- **Sections as colours** — the `⋯` on the New card header switches it to section and assignee settings: rename, recolour, add or delete sections (1 to 10; the cards of a deleted section move where you choose), then ✓ to save. Renaming changes the `## heading` in the note. Turn on section names to see them on every card.
 - **Sections as status** — name a section after a state, such as *Waiting*, and turn on section names: every card in it shows *Waiting* (desktop above the done circle, phones after the title). Tap the name to move the card to another section; a done card shows Done instead. A setting can also unpin cards when they are done.
-- **Assignees, or solo** — assign cards to people on the list, or turn on solo mode and the assignee fields go away.
+- **Assignees, or solo** — assign cards to people on the list, or switch assignees off (solo, the default for new installs) and the assignee fields go away.
 - **Repeats** — `🔁 every 2 weeks`. Marking it done moves the date forward and leaves a record line.
 - **Archive, then delete** — archiving moves a card to `## Archive`; deleting is only offered after that.
 - **Merge** several cards into one, **export** the current filter as a long PNG or print it to PDF.
@@ -119,11 +120,10 @@ Submitting works the same in the new card, the card editor and comments:
 | Comments | Use comments, and show them above or below the content |
 | Bullet | Add `．` in front of content lines |
 | Submit key | See [Keyboard](#keyboard) |
-| First day of the week | Monday or Sunday |
 | Jump after an action | Per action: back to to do, done, archived, pinned, moved to today, added |
 | Where a card sits when editing | Leave it, pull it to the top, or let the browser decide |
 | Cursor position when editing | Start (default) or end of the text |
-| What “This week” means | Calendar week, or seven days from today |
+| How weeks are counted | Monday or Sunday first, either with this week as seven days from today, or seven-day blocks from the 1st of each month |
 | Show “All” in the time filters | Adds an All tile left of the year (off by default) |
 | Show section names | The section heading on each card, used as its status |
 | Unpin when marked done | Off by default |

@@ -27,8 +27,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260915v2";
-const 插件版本 = "1.5.2";
+const 看板版本 = "260915v3";
+const 插件版本 = "1.6.0";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -80,8 +80,8 @@ const 字典 = {
     undone: "取消完成", unpin: "取消置頂", moveTo: "移到", openInMd: "回到原始 Markdown",
     changeDate: "點一下改日期", changeAssignee: "點一下改指派給誰", pickColor: "點一下換顏色",
     monthUnit: " 月", expandYear: "展開整年", collapseYear: "收合",
-    managePeople: "管理指派人", removePerson: "從名單移除（卡片裡的名字不會動）",
-    dupName: "這個名字已經在名單裡了", renamed: "✓ 指派人已更新",
+    removePerson: "從名單移除（卡片裡的名字不會動）",
+    dupName: "這個名字已經在名單裡了",
     whoAmIShort: "留言的「編輯」認的是這個人",
     clearToDelete: "清空再存 = 刪掉這一則",
     defaultRange: "打開看板時先看哪一段", defaultRangeDesc: "每次開看板的預設篩選範圍",
@@ -130,7 +130,7 @@ const 字典 = {
     jumpArchive: "封存 → 自動勾選「含封存」", jumpToday: "設為今日",
     calMonthTotal: "這個月 D 張 ‧ N 天有卡片", thisMonth: "回到本月",
     changing: "更改中…", cancelWord: "取消", more: "查看更多", less: "收合",
-    editSections: "分類名稱與顏色", finish: "完成", undoEdit: "復原這一次編輯(全部刪掉了也退得回來)",
+    finish: "完成", undoEdit: "復原這一次編輯(全部刪掉了也退得回來)",
     sectionsAndPeople: "分類與指派人", editHere: "在這裡改",
     ambiguous: "有兩張卡片的第一行一模一樣,分不出要改哪一張。先把其中一張的第一行改掉一點,再試一次",
     dupWarn: "這一行跟另一張卡片一模一樣,之後會分不出誰是誰",
@@ -146,8 +146,7 @@ const 字典 = {
     donate: "支持這個外掛", donateDesc: "卡片看板是一個人利用下班時間做的。覺得好用的話,可以請作者喝杯咖啡。",
     donateBtn: "在 Ko-fi 贊助",
     月名: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
-    weekStart: "一週從哪天開始", weekStartDesc: "決定「本周」的範圍,和行事曆最左邊那一欄是星期幾",
-    weekMon: "週一（預設）", weekSun: "週日",
+    weekMon: "週一起（預設）", weekSun: "週日起",
     sendKey: "送出鍵", sendKeyDesc: "新增卡片、編輯內容、寫留言、改留言都用同一套",
     sendKeyCombo: "Enter 換行；Shift / Ctrl / ⌘ + Enter 送出（預設）", sendKeyEnter: "Enter 送出；Shift + Enter 換行",
     useComments: "使用留言功能", useCommentsDesc: "關掉之後卡片上不再有留言鈕,也不顯示留言。筆記裡已經寫好的留言不會被刪掉,再打開就回來。",
@@ -166,9 +165,7 @@ const 字典 = {
     needArchiveFirst: "要先封存才能刪除",
     cycleEdit: "改循環", cycleEvery: "每", cycleDay: "天", cycleWeek: "週", cycleMonth: "個月",
     cycleOff: "取消循環", cycleNone: "不循環", cycleSaved: "✓ 循環已改成 N",
-    sectionColorHint: "點圓點換顏色;改名字會直接改筆記裡的 ## 標題",
     customColor: "自訂顏色", resetColor: "重設為自動",
-    onlyFive: "只列前五個分類",
     // ---- 1.5 ----
     editCursor: "按下編輯之後游標在哪裡", editCursorDesc: "電腦版按下編輯會直接把游標放進內容:放在最前面或最後面(手機不會自動聚焦)",
     cursorStart: "最前面（預設）", cursorEnd: "最後面",
@@ -176,11 +173,22 @@ const 字典 = {
     showSectionName: "顯示分類名稱", showSectionNameDesc: "把分類的標題當成狀態顯示(例如把紅色那一區取名「等回復」):電腦版在完成圓點上方,手機版在主題後面。點名字可以換分類;卡片完成之後改顯示「已完成」。",
     changeSection: "點一下換分類",
     unpinOnDone: "完成時自動取消置頂", unpinOnDoneDesc: "置頂的卡片標成完成,同時取消置頂",
-    weekMode: "「本周」怎麼算", weekModeDesc: "照週曆,或從今天起算七天 —— 從今天算就不會把這週前幾天已經逾期的卡片篩進來",
-    weekCalendar: "照週曆（預設）", weekRolling: "今天起七天",
-    renameSection: "按 Enter 改名(會直接改筆記裡的 ## 標題)", sectionExists: "已經有叫這個名字的分類了", sectionRenamed: "✓ 分類已改名",
+    sectionExists: "已經有叫這個名字的分類了",
     askOpenTitle: "用卡片看板開啟", askOpenBody: "「N」還沒有用卡片看板開過。", askOpenThis: "把這份筆記開成卡片看板",
-    askOpenNew: "開一份新檔案當卡片看板", newBoardName: "卡片看板"
+    askOpenNew: "開一份新檔案當卡片看板", newBoardName: "卡片看板",
+    // ---- 1.6 ----
+    月年: "Y年M", tileHint: "點一下看這一段,再點一次回到今天", backToToday: "回到今天",
+    weekRule: "一週怎麼算",
+    weekRuleDesc: "決定「週」那一格的範圍和行事曆的第一欄。週照星期切,可以跨月(例如 9/28–10/4);「今天起七天」只套用在包含今天的那一週,往前往後翻還是照星期;「每月 1 號起」是 1–7、8–14…,最後一段到月底。",
+    weekMonRolling: "週一起,這一週改成今天起七天", weekSunRolling: "週日起,這一週改成今天起七天",
+    weekMonthStart: "每月 1 號起,每七天一段",
+    backDiscard: "返回(放棄這次的修改)", discardAsk: "這次的修改還沒儲存,確定要放棄嗎?", discard: "放棄修改",
+    sectionNamePh: "分類名稱", addSection: "新增分類", deleteSection: "刪除這個分類",
+    sectionLimit: "分類最少 1 個、最多 10 個", sectionNameEmpty: "分類名稱不能空白",
+    sectionReserved: "分類名稱不能有「封存」或 archive,那是封存區專用的",
+    moveCardsTo: "裡面有 N 張卡片,要搬到哪一個分類?", willDelete: "刪除「N」", undoDelete: "不刪了",
+    willRemove: "移除「N」(卡片裡的名字不會動)",
+    useAssignees: "使用指派人", addPerson: "新增指派人"
   },
   "en": {
     board: "Card Table - Dated Tasks", today: "Today", week: "This week", month: "This month",
@@ -211,8 +219,8 @@ const 字典 = {
     undone: "Mark not done", unpin: "Unpin", moveTo: "Move to", openInMd: "Back to raw Markdown",
     changeDate: "Click to change the date", changeAssignee: "Click to reassign", pickColor: "Click to recolour",
     monthUnit: "", expandYear: "Whole year", collapseYear: "Collapse",
-    managePeople: "Manage assignees", removePerson: "Remove from the list (names in cards are left alone)",
-    dupName: "That name is already on the list", renamed: "✓ Assignee updated",
+    removePerson: "Remove from the list (names in cards are left alone)",
+    dupName: "That name is already on the list",
     whoAmIShort: "comments recognise you as this person",
     clearToDelete: "clear the text and save to delete it",
     defaultRange: "Range on open", defaultRangeDesc: "Which filter the board starts on",
@@ -260,7 +268,7 @@ const 字典 = {
     jumpArchive: "Archived → tick Archived", jumpToday: "Move to today",
     calMonthTotal: "D cards this month across N days", thisMonth: "This month",
     changing: "Changing…", cancelWord: "Cancel", more: "more", less: "less",
-    editSections: "Section names and colours", finish: "Done", undoEdit: "Undo this edit (works even if you deleted everything)",
+    finish: "Done", undoEdit: "Undo this edit (works even if you deleted everything)",
     sectionsAndPeople: "Sections and people", editHere: "Edit here",
     ambiguous: "Two cards have the same first line, so I cannot tell which one to change. Edit one of them a little and try again",
     dupWarn: "This line is identical to another card, they will be hard to tell apart later",
@@ -276,7 +284,6 @@ const 字典 = {
     donate: "Support this plugin", donateDesc: "Card Table is built by one person in spare time. If it helps you, you can buy the author a coffee.",
     donateBtn: "Support on Ko-fi",
     月名: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    weekStart: "First day of the week", weekStartDesc: "Sets the range of This week and the first column of the calendar",
     weekMon: "Monday (default)", weekSun: "Sunday",
     sendKey: "Submit key", sendKeyDesc: "The same for adding cards, editing content, writing and editing comments",
     sendKeyCombo: "Enter for a new line; Shift / Ctrl / ⌘ + Enter to submit (default)", sendKeyEnter: "Enter to submit; Shift + Enter for a new line",
@@ -296,9 +303,7 @@ const 字典 = {
     needArchiveFirst: "Archive it first, then you can delete it",
     cycleEdit: "Repeat", cycleEvery: "every", cycleDay: "day(s)", cycleWeek: "week(s)", cycleMonth: "month(s)",
     cycleOff: "Stop repeating", cycleNone: "No repeat", cycleSaved: "✓ Repeat set to N",
-    sectionColorHint: "Click a dot to recolour; renaming changes the ## heading in the note",
     customColor: "Custom colour", resetColor: "Back to automatic",
-    onlyFive: "Showing the first five sections",
     // ---- 1.5 ----
     editCursor: "Cursor position when editing", editCursorDesc: "On desktop, Edit puts the cursor straight into the content: at the start or the end (phones do not focus automatically)",
     cursorStart: "Start (default)", cursorEnd: "End",
@@ -306,11 +311,22 @@ const 字典 = {
     showSectionName: "Show section names", showSectionNameDesc: "Show each card's section heading as its status (for example, name the red section “Waiting”): above the done circle on desktop, after the title on phones. Tap the name to move the card to another section; done cards show Done instead.",
     changeSection: "Click to move to another section",
     unpinOnDone: "Unpin when marked done", unpinOnDoneDesc: "A pinned card that is marked done is unpinned at the same time",
-    weekMode: "What “This week” means", weekModeDesc: "The calendar week, or seven days from today — counting from today leaves out earlier days of the week and their overdue cards",
-    weekCalendar: "Calendar week (default)", weekRolling: "Seven days from today",
-    renameSection: "Press Enter to rename (changes the ## heading in the note)", sectionExists: "A section with that name already exists", sectionRenamed: "✓ Section renamed",
+    sectionExists: "A section with that name already exists",
     askOpenTitle: "Open with Card Table", askOpenBody: "“N” has not been opened with Card Table yet.", askOpenThis: "Open this note as a Card Table",
-    askOpenNew: "Create a new Card Table note", newBoardName: "Card Table"
+    askOpenNew: "Create a new Card Table note", newBoardName: "Card Table",
+    // ---- 1.6 ----
+    月年: "M Y", tileHint: "tap to view this range, tap again to go back to today", backToToday: "Back to today",
+    weekRule: "How weeks are counted",
+    weekRuleDesc: "Sets the Week tile and the first column of the calendar. Weeks follow the weekdays and may cross months (for example 9/28–10/4). Seven days from today only applies to the week containing today; stepping back or forward uses weekdays again. From the 1st of each month gives 1–7, 8–14… with the last part ending on the last day of the month.",
+    weekMonRolling: "Monday; this week is seven days from today", weekSunRolling: "Sunday; this week is seven days from today",
+    weekMonthStart: "From the 1st of each month, seven days at a time",
+    backDiscard: "Back (discard these changes)", discardAsk: "You have unsaved changes. Discard them?", discard: "Discard",
+    sectionNamePh: "Section name", addSection: "Add section", deleteSection: "Delete this section",
+    sectionLimit: "Keep between 1 and 10 sections", sectionNameEmpty: "A section needs a name",
+    sectionReserved: "Section names cannot contain “archive”, that name belongs to the archive section",
+    moveCardsTo: "N cards inside. Move them to:", willDelete: "Delete “N”", undoDelete: "Keep it",
+    willRemove: "Remove “N” (names in cards are left alone)",
+    useAssignees: "Use assignees", addPerson: "Add assignee"
   }
 };
 /* onload 的時候放進來。快捷鍵要去問 app.hotkeyManager,而處理鍵盤的是一個
@@ -396,10 +412,10 @@ const 預設設定 = {
   顯示全部篩選: false,          // 時間篩選在年份左邊多一格「全部」
   顯示分類名稱: false,          // 卡片上寫出分類標題(桌機在完成圓點上方、手機在主題右邊)
   完成取消置頂: false,          // 置頂的卡片標成完成時,順便取消置頂
-  週模式: "週曆",               // 週曆 = 這週第一天起 / 七天 = 今天起七天
+  週模式: "週曆",               // 週曆 = 照星期 / 七天 = 包含今天的那一週改成今天起七天 / 月初 = 每月 1 號起每七天(1.6)
   /* 1.4.6 個人使用:不用指派人。新增區沒有指派人欄位、卡片不顯示指派人、新卡片不寫 #名字。
      ⚠ 只管畫面和新寫的東西,筆記裡已經有的 #名字 一個字都不動。 */
-  個人模式: false,
+  個人模式: true,               // 1.6:新裝的預設不用指派人(設定面板裡的開關是灰的);已經存過設定的人照舊
   跳轉_設回今日: true,
   跳轉_新增: true,
   /* 按下「編輯」之後,那一張要停在畫面的哪裡。
@@ -438,6 +454,7 @@ function 存我是誰(名) {
 const 新增收合鍵 = "card-table-add-folded";
 const 置頂收合鍵 = "card-table-pin-folded";
 const 篩選收合鍵 = "card-table-filter-folded";   // 1.4.9:篩選列也能收
+const 清單收合鍵 = "card-table-list-folded";     // 1.6:清單表也能收
 function 讀收合(鍵) {
   try { return String((目前app && 目前app.loadLocalStorage(鍵)) || "") === "1"; }
   catch (e) { return false; }
@@ -596,6 +613,13 @@ function 日期範圍字(起, 迄) {
   if (省年) return 日期短(起).slice(3) + " – " + 日期短(迄).slice(3);
   // 不在今年的區間要寫年份,那就把星期拿掉(26-09-13 – 27-01-05),不然英文版在 390px 的手機上放不下
   return String(起).slice(2) + " – " + String(迄).slice(2);
+}
+/* 1.6 送出鈕上的日期:不寫星期、也不寫年份(09-14 – 09-20、12-28 – 01-03)。
+   ⚠ 手機的送出鈕只有 88px 寬,跨年的「26-12-28 – 27-01-03」要 111px(實測)。年份看年格,完整日期在送出鈕的滑鼠提示。 */
+function 日期無週字(起, 迄) {
+  if (!起) return "";
+  const 字 = (d) => String(d).slice(5);
+  return (!迄 || 迄 === 起) ? 字(起) : 字(起) + " – " + 字(迄);
 }
 function 現在戳() { const d = new Date(); return 日字(d) + " " + 時字(d); }     // 1.5 起到分鐘
 function 蓋時戳(行) {
@@ -1157,19 +1181,61 @@ class 寫手 {
     }));
   }
 
-  /* 分類改名(1.5):把筆記裡的 `## 舊` 換成 `## 新`,井號幾個照舊。卡片一行都不碰。
-     ⚠ 已經有叫「新」的標題就不做 —— 兩區同名,之後新增、搬卡片都分不出要放哪一區。 */
-  async 改分類名(檔, 舊, 新) {
+  /* 1.6 分類設定按 ✓:新增、刪除(卡片搬到指定的分類)、改名,**一次原子寫入**做完。
+     計畫 = { 新增: [名…], 刪: [[舊名, { 名, 新 }]…], 改名: [[舊, 新]…] }
+       ・新增的標題插在第一個封存區前面(沒有封存區就放最後)
+       ・刪掉的那一段,底下所有非空白的行搬到目標那一段的最上面(跟 搬分類 同一個位置),標題拿掉
+       ・改名只改**原本就有**的標題 —— 新增的分類剛好叫某個舊名字時,不會被一起改到
+     卡片行本身一個字都不改(不蓋 ✎ 時戳):這是整段搬家,不是編輯卡片。
+     ⚠ 標題對不上(別台裝置剛改過)就整份不動。 */
+  async 改分類們(檔, 計畫) {
     return await this.排隊做(() => this.安全改(檔, (文) => {
       const 行 = 文.split("\n");
       const 名之 = (t) => { const h = 標題Re.exec(t); return h ? h[1].trim() : null; };
-      if (行.some(t => 名之(t) === 新)) return { 誤: this.T.sectionExists };
-      let 換 = 0;
-      for (let i = 0; i < 行.length; i++) {
-        if (名之(行[i]) === 舊) { 行[i] = 行[i].replace(/^(#{1,6}\s+).*$/, (全, 井) => 井 + 新); 換++; }
-      }
-      if (!換) return { 誤: this.T.lost };
-      return { 文: 行.join("\n"), 值: 換 };
+      const 塊 = [{ 名: null, 頭: null, 身: [] }];            // 第一塊 = 第一個標題前面的東西
+      行.forEach(t => {
+        const n = 名之(t);
+        if (n !== null) 塊.push({ 名: n, 頭: t, 身: [] });
+        else 塊[塊.length - 1].身.push(t);
+      });
+      const 有 = (n) => 塊.some(b => b.名 === n);
+      if (計畫.刪.some(([舊]) => !有(舊)) || 計畫.改名.some(([舊]) => !有(舊))) return { 誤: this.T.lost };
+      if (計畫.刪.some(([, 到]) => !到.新 && !有(到.名))) return { 誤: this.T.lost };
+      const 補空行 = (b) => { if (b && b.身.length && b.身[b.身.length - 1].trim() !== "") b.身.push(""); };
+      // ① 新增
+      計畫.新增.forEach(n => {
+        const 新塊 = { 名: n, 頭: "## " + n, 身: [""], 新: true, 動: true };
+        const 封 = 塊.findIndex(b => b.名 !== null && /archive|封存/i.test(b.名));
+        if (封 > 0) { 補空行(塊[封 - 1]); 塊.splice(封, 0, 新塊); }
+        else { 補空行(塊[塊.length - 1]); 塊.push(新塊); }
+      });
+      // ② 刪除 + 搬家
+      計畫.刪.forEach(([舊, 到]) => {
+        const 走們 = 塊.filter(b => b.名 === 舊 && !b.新 && !b.刪);
+        const 目 = 塊.find(b => b.名 === 到.名 && !!b.新 === !!到.新 && !b.刪 && 走們.indexOf(b) < 0);
+        if (!目) return;
+        const 搬 = [];
+        走們.forEach(b => { b.身.forEach(t => { if (t.trim()) 搬.push(t); }); b.刪 = true; });
+        if (!搬.length) return;
+        // 跳過標題底下的空白行,插在第一個非空白行前面;標題底下沒有空白行就補一行
+        let 插 = 0;
+        while (插 < 目.身.length && 目.身[插].trim() === "") 插++;
+        if (插 === 0) { 目.身.unshift(""); 插 = 1; }
+        目.身.splice(插, 0, ...搬);
+        目.動 = true;
+      });
+      if (計畫.刪.some(([舊]) => 塊.some(b => b.名 === 舊 && !b.新 && !b.刪))) return { 誤: this.T.lost };
+      // ③ 改名(同時對映,兩個分類互換名字也可以)
+      const 改 = new Map(計畫.改名);
+      塊.forEach(b => {
+        if (b.名 !== null && !b.新 && !b.刪 && 改.has(b.名)) b.頭 = b.頭.replace(/^(#{1,6}\s+).*$/, (全, 井) => 井 + 改.get(b.名));
+      });
+      const 留 = 塊.filter(b => !b.刪);
+      // 動過的那幾段(新增的、搬進卡片的):後面還有標題的話,結尾留一行空白。沒動過的段落照原樣
+      留.forEach((b, i) => { if (b.動 && i < 留.length - 1) 補空行(b); });
+      const 出 = [];
+      留.forEach(b => { if (b.頭 !== null) 出.push(b.頭); 出.push(...b.身); });
+      return { 文: 出.join("\n"), 值: true };
     }));
   }
 
@@ -1225,6 +1291,7 @@ const 封存區 = "Archive";
 /* 全新的看板檔案先開好這五區。名字就是 1~5 —— 檔案裡的 `## 標題` 本來就該是中性的,
    要叫什麼在設定裡改「圓點裡的字」就好,不必去動 Markdown。 */
 const 預設分區 = ["1", "2", "3", "4", "5"];
+const 分類上限 = 10;          // 1.6:設定面板裡分類最少 1 個、最多 10 個(封存區不算)
 const 露幾則留言 = 2;      // 平常只露這麼多則,其餘收起來
 /* 尺寸都從調校台調過來(260911v1):
      日期欄 112→110 ‧ 分類欄 78→72 ‧ 統計格 96→98 ‧ 格高 68→60
@@ -1242,7 +1309,24 @@ const 反悔毫秒 = 2000;
 //   本周 / 本月 才疊在下一欄各佔一半高 —— 這樣整條只要兩列就夠,比三列疊矮。
 //   舊版是三層疊在同一欄,不要再做回去。
 // 1.5:週月格 118 → 124。本月 / 本周改成高箭頭,「9/28–10/4」在 118 裡差 3px
-const 日格寬 = 98, 週月格寬 = 124;
+const 日格寬 = 98, 週月格寬 = 132;     // 1.6:124 → 132,週的標籤寫兩次月份(10/12–10/18)
+/* 1.6:標籤放不下就一級一級縮小字(每次 0.04em,最小 0.5em)。分頁還沒顯示(寬度 0)的時候不動。 */
+function 縮到放得下(el) {
+  try {
+    let em = parseFloat(el.style.fontSize) || 0.7;
+    for (let n = 0; n < 6 && el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 0.5 && em > 0.5; n++) {
+      em = Math.round((em - 0.04) * 100) / 100;
+      el.style.fontSize = em + "em";
+    }
+  } catch (e) {}
+}
+/* 1.6 標題列上的字(時間篩選的「今日 09-15(二)」、清單表的標題和張數)。
+   ⚠ 中文字在行框裡本來就偏上,使用者看得出來 → 上面補 2px(flex 置中之後整行往下 1px)。
+   ⚠ 不可以用 line-height:1 去壓:字身比 1em 高,配上 overflow:hidden(省略號要用)上緣就被裁掉(開發中「今日」被吃掉一截)。 */
+// 1.6:主題框(house)和內容框(pen-line)空白時的圖示,兩顆同一個大小
+const 空框圖寬 = 12;
+const 標頭補正 = "line-height:1.4;padding-top:2px;box-sizing:border-box;";
+const 標頭字樣 = "font-size:0.72em;" + 標頭補正 + "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;";
 const 完成色 = "var(--color-green, #3aa76d)";
 
 function st(el, css) { el.style.cssText = css; return el; }
@@ -1815,6 +1899,24 @@ function 短日(d) {
 function 加日(基, n) {
   const d = new Date(基 + "T00:00:00"); d.setDate(d.getDate() + n); return 日字(d);
 }
+function 月末的(日) {
+  return 日字(new Date(Number(String(日).slice(0, 4)), Number(String(日).slice(5, 7)), 0));
+}
+/* 1.6 時間篩選:層(年 / 月 / 週 / 日)⇄ 篩選的型。型的名字沿用舊的(7天內 = 週),設定和顏色表都認這幾個字 */
+const 層鍵 = { 年: "年度", 月: "本月", 週: "7天內", 日: "今日" };
+const 型層 = { 年度: "年", 本月: "月", "7天內": "週", 今日: "日" };
+/* 格子上的字(1.6):月「10月 / Oct」‧ 週「10/12–18」「9/28–10/4」‧ 日「10/15」 */
+function 格標字(層, r, T) {
+  if (層 === "月") return (T.月名 || [])[Number(String(r.起).slice(5, 7)) - 1] || "";
+  if (層 === "週") return 區間短字("7天內", r, T);
+  return 短日(r.起);
+}
+// 標題列的月份:今年只寫月(10月),別的年份帶年(2027年10月 / Oct 2027)
+function 月年字(日, T) {
+  const 月 = (T.月名 || [])[Number(String(日).slice(5, 7)) - 1] || "";
+  if (今年嗎(日)) return 月;
+  return String(T.月年 || "M Y").replace("M", 月).replace("Y", String(日).slice(0, 4));
+}
 function 週一的(基) {
   const d = new Date(基 + "T00:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return 日字(d);
 }
@@ -1826,23 +1928,16 @@ function 週首的(基) {
 }
 /* 本周/本月那一格的標籤(1.4.7):短到放得下,後半段不會被省略號吃掉。
      本月 → 「10月」「Oct」
-     本周 → 同一個月「9/14–20」,跨月「9/28–10/4」
+     本周 → 「9/14–9/20」「9/28–10/4」(1.6 起同一個月也寫兩次月份)
    1.4.6 以前一律「9/28–10/4」這種寫法,「10/26–11/1」在格子裡會被切掉後半。 */
 function 區間短字(鍵, r, T) {
   if (!r || !r.起) return "";
   if (r.起 === r.迄) return 短日(r.起);
   const a = String(r.起).split("-"), b = String(r.迄).split("-");
   if (鍵 === "本月") return (T.月名 || [])[Number(a[1]) - 1] || (Number(a[1]) + "");
-  return a[1] === b[1] ? Number(a[1]) + "/" + Number(a[2]) + "–" + Number(b[2]) : 短日(r.起) + "–" + 短日(r.迄);
+  // 1.6(使用者):同一個月也要寫第二個月份 —— 「9/14–20」的 20 看起來像另一個數字,「9/14–9/20」一眼就是日期
+  return 短日(r.起) + "–" + 短日(r.迄);
 }
-/* 這一段算哪一年(1.4.7):取正中間那一天。本周、本月往後翻到隔年,年份那一格要跟著變成隔年;
-   跨年的那一週(12/28–1/3)正中間是 12/31 還是 1/1,看那一週大半落在哪一年。 */
-function 年份之(r) {
-  if (!r || !r.起) return String(new Date().getFullYear());
-  const 天 = Math.round((new Date((r.迄 || r.起) + "T00:00:00") - new Date(r.起 + "T00:00:00")) / 86400000);
-  return 加日(r.起, Math.floor(天 / 2)).slice(0, 4);
-}
-
 class 看板視圖 extends TextFileView {
   constructor(leaf, 插件) {
     super(leaf);
@@ -1851,14 +1946,18 @@ class 看板視圖 extends TextFileView {
     this.內文 = "";
     const d = new Date(), 今 = 日字(d);
     this.狀態 = {
-      篩: { 型: 插件.設定.預設範圍 || "今日" },   // 型: 今日/7天內/本月/年度/範圍/全部/逾期/未排期/封存
-      起: null, 迄: null, 來源: null,
+      // 型: 今日/7天內/本月/年度/範圍(行事曆)/全部/逾期/週期。設定裡的「本週」就是 7天內
+      篩: { 型: ({ 本週: "7天內" })[插件.設定.預設範圍] || 插件.設定.預設範圍 || "今日" },
+      起: null, 迄: null,
+      /* 1.6:年 / 月 / 週 / 日四格不再各自記「走了幾格」,全部由**同一個游標日期**推出來(見 移游標)。
+         統計年 永遠等於游標的年份,由 設游標() 一起改。 */
+      游標: 今,
       統計年: String(d.getFullYear()),
-      偏移: {},                       // { 今日: -1 } = 往前走了一天
       開行事曆: false, 顯示月: 日字(d).slice(0, 7),
       選起: null, 選迄: null,
       指派: null, 主題: null, 搜尋: "",
-      編修: null, 寫留言: null, 改留: null, 管人開: false,
+      編修: null, 寫留言: null, 改留: null,
+      設定模式: false,                // 1.6:新增卡片那一塊切成「分類與指派人」設定(見 畫設定面板)
       展開: {}, 展開全部: false, 留言展開: {},
       融合中: false, 融合選: {},
       新主題: "", 新內容: "", 新分類: null, 新指派: null
@@ -1968,10 +2067,63 @@ class 看板視圖 extends TextFileView {
     const m = this.插件.設定.釘選主題, p = this.file ? this.file.path : "";
     return (p && m && !Array.isArray(m) && Array.isArray(m[p])) ? m[p] : [];
   }
-  /* 本周從哪一天算起(1.5 設定 週模式):週曆 = 這週的第一天;七天 = 今天。n = 往前 / 往後幾週 */
-  週起點(n) {
-    const 起 = this.插件.設定.週模式 === "七天" ? this.今 : 週首的(this.今);
-    return 加日(起, (n || 0) * 7);
+  /* ---- 1.6 時間游標 ----
+     年 / 月 / 週 / 日四格看的是同一個日期 s.游標:
+       年 = 游標那一年 ‧ 月 = 游標那個月 ‧ 週 = 游標所在的那一週 ‧ 日 = 游標那一天
+     任何一格的箭頭動了,其他三格自然跟著變。移動的規則(移游標):
+       換年 → 那一年 1/1 ‧ 換月 → 那個月 1 號 ‧ 換週 → 下一週 / 上一週的第一天 ‧ 換日 → 前後一天
+     例:在 9/15 想看 10/15 → 月 ▶(10/1)→ 週 ▶▶(10/12–18)→ 日 ▶▶▶(10/15)。
+     ⚠ 週照星期切,**可以跨月**:游標 10/1 的那一週是 9/28–10/4。 */
+  週區間(日) {
+    const 模 = this.插件.設定.週模式;
+    if (模 === "月初") {
+      // 每月 1 號起每七天一段:1–7、8–14、15–21、22–28、29–月底
+      const 起 = 加日(日.slice(0, 8) + "01", Math.floor((Number(日.slice(8, 10)) - 1) / 7) * 7);
+      const 末 = 月末的(日), 七 = 加日(起, 6);
+      return { 起: 起, 迄: 七 < 末 ? 七 : 末 };
+    }
+    // 今天起七天是例外:只有游標落在「今天 ~ 今天+6」裡才這樣算,往前往後翻還是照星期
+    if (模 === "七天" && 日 >= this.今 && 日 <= 加日(this.今, 6)) return { 起: this.今, 迄: 加日(this.今, 6) };
+    const 起 = 週首的(日);
+    return { 起: 起, 迄: 加日(起, 6) };
+  }
+  層區間(層, 日) {
+    日 = 日 || this.狀態.游標 || this.今;
+    if (層 === "日") return { 起: 日, 迄: 日 };
+    if (層 === "週") return this.週區間(日);
+    if (層 === "月") return { 起: 日.slice(0, 8) + "01", 迄: 月末的(日) };
+    return { 起: 日.slice(0, 4) + "-01-01", 迄: 日.slice(0, 4) + "-12-31" };
+  }
+  設游標(日) {
+    const s = this.狀態;
+    s.游標 = 日;
+    s.統計年 = 日.slice(0, 4);
+    if (s.開行事曆) s.顯示月 = 日.slice(0, 7);     // 行事曆開著的話,翻到游標那個月
+  }
+  移游標(層, 步) {
+    const 日 = this.狀態.游標 || this.今;
+    let 新;
+    if (層 === "年") {
+      const y = Number(日.slice(0, 4)) + 步;
+      if (!(y > 1900 && y < 2200)) return;
+      新 = y + "-01-01";
+    } else if (層 === "月") {
+      新 = 日字(new Date(Number(日.slice(0, 4)), Number(日.slice(5, 7)) - 1 + 步, 1));
+    } else if (層 === "週") {
+      const r = this.週區間(日);
+      if (步 > 0) {
+        const 下 = 加日(r.迄, 1), r2 = this.週區間(下);
+        新 = r2.起 > r.迄 ? r2.起 : 下;       // 今天起七天那一段跟下一個週曆週重疊時,不要走回頭
+      } else 新 = this.週區間(加日(r.起, -1)).起;
+    } else 新 = 加日(日, 步);
+    this.設游標(新);
+    this.狀態.篩 = { 型: 層鍵[層] };
+    this.畫();
+  }
+  // 設為今日、新增卡片之後跳轉、標題列的「今日」都走這裡
+  回到今天(型) {
+    this.設游標(this.今);
+    this.狀態.篩 = { 型: 型 || "今日" };
   }
   get 卡片() { return 解析卡片(this.內文, this.名單); }
   get 分類清單() {
@@ -1989,32 +2141,11 @@ class 看板視圖 extends TextFileView {
   /* ---- 篩選 ---- */
   現在區間() {
     const s = this.狀態, f = s.篩 || {};
-    const 偏 = (鍵) => s.偏移[鍵] || 0;
-    if (f.型 === "範圍") {
-      if (s.起) return [s.起, s.迄 || s.起];
-      // 保險:起迄不知怎麼掉了,就照「來源那一層 + 走了幾格」重算一次,
-      // 不然會整個掉回「全部」—— 使用者會以為篩選壞了
-      const 回 = { "今日": (n) => { const d = 加日(this.今, n); return [d, d]; },
-        "7天內": (n) => { const a = this.週起點(n); return [a, 加日(a, 6)]; },
-        "本月": (n) => {
-          const b = new Date(this.今 + "T00:00:00");
-          const m = new Date(b.getFullYear(), b.getMonth() + n, 1);
-          return [日字(m), 日字(new Date(m.getFullYear(), m.getMonth() + 1, 0))];
-        } }[f.來源];
-      return 回 ? 回(偏(f.來源)) : null;
-    }
-    if (f.型 === "今日") { const d = 加日(this.今, 偏("今日")); return [d, d]; }
-    if (f.型 === "7天內") {
-      const a = this.週起點(偏("7天內"));
-      return [a, 加日(a, 6)];
-    }
-    if (f.型 === "本月") {
-      const b = new Date(this.今 + "T00:00:00");
-      const m = new Date(b.getFullYear(), b.getMonth() + 偏("本月"), 1);
-      return [日字(m), 日字(new Date(m.getFullYear(), m.getMonth() + 1, 0))];
-    }
-    if (f.型 === "年度") return [s.統計年 + "-01-01", s.統計年 + "-12-31"];
-    return null;
+    if (f.型 === "範圍") return s.起 ? [s.起, s.迄 || s.起] : null;     // 1.6 起只有行事曆會選出「範圍」
+    const 層 = 型層[f.型];
+    if (!層) return null;
+    const r = this.層區間(層);
+    return [r.起, r.迄];
   }
   // 「合顯示」= 這張卡片在現在的篩選底下算不算數(統計數字和清單用同一套,才不會對不上)
   // 一組關鍵字:拆成幾個字,每一個都要出現(順序不拘)
@@ -2135,19 +2266,16 @@ class 看板視圖 extends TextFileView {
     this.區 = {
       衝突: 根.createDiv(),
       導覽: 根.createDiv(),
-      曆: 根.createDiv(),
       新增: 根.createDiv(),
       清單: 根.createDiv(),
       未定: 根.createDiv(),
       版本: 根.createDiv()
     };
-    this.區.曆.addClass("tk-空隱");
     this.區.衝突.addClass("tk-空隱");
     this.區.未定.addClass("tk-空隱");
     /* 1.5.1:時間篩選 → (行事曆)→ 新增卡片 這兩三塊是同一組控制區,彼此只隔 4px;
        底下的卡片表之間維持 styles.css 的 8px。 */
     this.區.導覽.style.marginBottom = "4px";
-    this.區.曆.style.marginBottom = "4px";
   }
 
   畫() {
@@ -2159,7 +2287,6 @@ class 看板視圖 extends TextFileView {
     this.插件.設分類順序(this.分類清單.filter(x => !/archive|封存/i.test(x)));
     this.畫衝突提示(this.區.衝突);
     this.畫導覽列(this.區.導覽, 全);
-    this.畫行事曆(this.區.曆, 全);
     this.畫新增區(this.區.新增, 全);
     this.畫清單(this.區.清單, 全);
     this.畫未定區(this.區.未定, 全);
@@ -2250,24 +2377,64 @@ class 看板視圖 extends TextFileView {
       圖備(圖框, [].concat(圖示, "square"), 14);
       標頭.setAttribute("aria-label", 標題);
     } else st(標頭.createDiv({ text: 標題 }),
-      "font-size:0.82em;font-weight:700;color:var(--text-normal);white-space:nowrap;");
-    if (收 && 摘要) st(標頭.createDiv({ text: 摘要 }),
-      "font-size:0.72em;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;");
+      "font-size:0.82em;font-weight:700;color:var(--text-normal);white-space:nowrap;" + 標頭補正);
+    if (收 && 摘要) st(標頭.createDiv({ text: 摘要 }), 標頭字樣 + "color:var(--text-faint);");
     標頭.title = 標題 + " · " + (收 ? T.unfold : T.fold);
     標頭.onclick = 切收;
     標頭.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 切收(); } };
     return 塊;
   }
 
+  /* 1.6:所有塊的標題列收合 / 展開都滑動(時間篩選、新增卡片、置頂表、清單表)。
+       收 → 本體先淡出、整塊高度滑到只剩標題列,滑完才真的重畫(收合狀態也在那時候才存)
+       展 → 先重畫,新的塊從「只有標題列」的高度滑開,本體淡入
+     找新塊:重畫之後塊是新的 DOM,由呼叫的人告訴我去哪裡找。
+     ⚠ 動畫中再按一次不理它,不然舊的塊還在滑、狀態已經被翻兩次。系統要求減少動態就直接重畫。 */
+  收合滑動(塊, 收, 重畫, 找新塊) {
+    if (this.__收合中) return;
+    const 頭 = 塊 && 塊.firstElementChild;
+    if (!要動畫() || !塊 || !塊.isConnected || !頭) { 重畫(); return; }
+    const 頭高 = 頭.offsetHeight;
+    if (收) {
+      const 高 = 塊.clientHeight;
+      if (高 - 頭高 < 10) { 重畫(); return; }
+      const 秒 = Math.min(0.3, 0.16 + (高 - 頭高) / 1600);
+      this.__收合中 = true;
+      塊.style.transition = "";
+      塊.style.height = 高 + "px";
+      void 塊.offsetHeight;
+      塊.style.transition = "height " + 秒.toFixed(3) + "s cubic-bezier(.4,0,.2,1)";
+      塊.style.height = 頭高 + "px";
+      [...塊.children].slice(1).forEach(c => { c.style.transition = "opacity .14s ease"; c.style.opacity = "0"; });
+      setTimeout(() => { this.__收合中 = false; 重畫(); }, 秒 * 1000 + 20);
+      return;
+    }
+    重畫();
+    const 新 = 找新塊 ? 找新塊() : null;
+    if (!新) return;
+    滑開(新, 頭高);
+    [...新.children].slice(1).forEach(c => {
+      if (typeof c.animate === "function") c.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
+    });
+  }
+
   畫導覽列(根, 全) {
     根.empty();
     /* 1.4.9:篩選列是一張可以收合的表,收起來時標題旁邊顯示現在篩的是哪一段。 */
     const 收 = 讀收合(篩選收合鍵);
-    const 導 = this.畫收合塊(根, this.T.filterBlock, 收, this.篩選標題(), () => {
+    const 導 = this.畫收合塊(根, this.T.filterBlock, 收, null, () => this.收合滑動(導, !收, () => {
       存收合(篩選收合鍵, !收);
-      if (!收) this.狀態.開行事曆 = false;   // 收起來就把行事曆一起關掉,不然它孤零零掛在外面
       this.畫();
-    }, ["calendar", "calendar-days"]);
+    }, () => this.區.導覽.firstElementChild), ["calendar", "calendar-days"]);
+    /* 1.6 標題列**固定**寫「今日 09-15(二)」(展開、收起都一樣)—— 格子上不再寫「本日」,這裡是認得出今天的地方;點它回到今天。
+       ⚠ 收起來的時候不寫「現在篩的是哪一段」:底下清單表的標題列已經寫了(使用者:兩個地方寫同一件事是多的)。 */
+    {
+      const 標頭 = 導.firstElementChild;
+      const 今 = 標頭.createDiv({ text: this.T.today + "  " + 日期範圍字(this.今) });
+      st(今, 標頭字樣 + "color:var(--text-muted);cursor:pointer;");
+      今.title = this.T.backToToday;
+      今.onclick = (e) => { e.stopPropagation(); this.回到今天(); this.畫(); };
+    }
     /* 1.5.1:未完成 / 已完成 / 含封存 收進標題列右上角的「⋯」(以前是篩選列最右邊一格)。
        篩選列只剩篩選,手機才排得成一排。設定跟預設(未完成 ✓ 已完成 ✓ 封存 ✗)不一樣時「⋯」變重點色,
        提醒「現在有東西被藏起來」。收起來的時候也在。 */
@@ -2303,6 +2470,10 @@ class 看板視圖 extends TextFileView {
     /* 1.5.1:「未完成 / 已完成 / 含封存」手機收進標題列的「⋯」(見上面 管顯示、開顯示選單),桌機照舊畫在最右邊。
        1.4.7 那段「擠到第二行就收成 ⋯」的判斷不需要了:手機一律收,桌機的篩選列放得下。 */
     if (!this.窄) this.畫顯示格(條, 全, false);
+    // 1.6:整排都畫好、寬度定了才量得準(窄螢幕的格子是照比例分的,後面的格子還沒畫之前量到的都偏寬)
+    const 待 = this.__待縮 || [];
+    this.__待縮 = [];
+    待.forEach(縮到放得下);
   }
 
   格子樣式(亮, 色, 底) {
@@ -2370,7 +2541,8 @@ class 看板視圖 extends TextFileView {
     const T = this.T, s = this.狀態, f = s.篩 || {};
     /* 年那一格(1.4.7):**框永遠是重點色** —— 它表示「現在看的是哪一年」,
        本日/本周/本月都是在這一年裡面。底色只在「真的在看整年」或行事曆開著的時候才加。 */
-    const 年選 = !!s.開行事曆 || f.型 === "年度";
+    // 1.6:年格只有「真的在看整年」才亮(以前框永遠是重點色,使用者覺得一直有東西被選著)
+    const 年選 = f.型 === "年度";
     const 窄 = this.窄;
 
     const 複合格 = 條.createDiv();
@@ -2398,20 +2570,15 @@ class 看板視圖 extends TextFileView {
       "width:" + (窄 ? 88 : 年格寬) + "px;min-width:0;border-radius:6px;" +
       // padding 跟本日那一格一樣是 2px —— 桌機以前 3px,年的箭頭就比本日的矮 2px、低 1px
       "padding:2px;user-select:none;" +
-      "box-shadow:inset 0 0 0 1px var(--text-accent);" +
+      "box-shadow:inset 0 0 0 1px " + (年選 ? "var(--text-accent)" : "var(--background-modifier-border)") + ";" +
       (年選 ? "background:var(--background-modifier-hover);" : ""));
 
     const 看整年 = () => { s.篩 = { 型: "年度" }; s.開行事曆 = false; this.畫(); };
-    const 換年 = (步) => {
-      const y = Number(s.統計年) + 步;
-      if (!(y > 1900 && y < 2200)) return;
-      s.統計年 = String(y);
-      s.顯示月 = s.統計年 + "-" + this.今.slice(5, 7);   // 換年保持在同一個月份
-      看整年();                                  // 換年就直接看那一年
-    };
-    // 點年份或數字(1.4.7):回到**今年**並看整年 —— 翻年翻遠了,一下就回得來
+    // 1.6:換年 = 游標跳到那一年的 1/1,月 / 週 / 日一起到一月第一天
+    const 換年 = (步) => this.移游標("年", 步);
+    // 點年份或數字(1.4.7):回到**今年**並看整年 —— 翻年翻遠了,一下就回得來。1.6 起游標也回到今天
     const 回今年 = () => {
-      s.統計年 = String(new Date().getFullYear());
+      this.設游標(this.今);
       s.顯示月 = this.今.slice(0, 7);
       看整年();
     };
@@ -2432,7 +2599,7 @@ class 看板視圖 extends TextFileView {
     });
     /* ⚠⚠ 1.5:三排固定高度 —— 張數 18 / 年份 20 / 行事曆 18,本日那一格是 張數 18 / 日期 20 / 星期 18,
        兩格的每一排才會在同一個高度。張數字小、年份字大又粗,一眼分得出「幾張」和「哪一年」。 */
-    st(年數, "font-size:0.8em;font-weight:600;color:var(--text-accent);font-variant-numeric:tabular-nums;" +
+    st(年數, "font-size:0.8em;font-weight:600;color:var(--text-accent);font-variant-numeric:tabular-nums;" + (年選 ? "" : "opacity:0.75;") +
       "height:18px;line-height:18px;cursor:pointer;");
     年數.title = new Date().getFullYear() + "";
     年數.onclick = (e) => { e.stopPropagation(); 回今年(); };
@@ -2459,27 +2626,27 @@ class 看板視圖 extends TextFileView {
     曆鈕.title = s.開行事曆 ? "收起行事曆" : "打開行事曆:點一天、點起迄選一段";
     曆鈕.onclick = (e) => {
       e.stopPropagation();
-      s.開行事曆 = !s.開行事曆; s.選起 = null; s.選迄 = null;
-      /* ⚠ 打開行事曆一律從**這個月**開始(1.4.7)。
-         1.4.6 以前是跳到「現在篩選的那一段」所在的月份 —— 翻到隔年某一週再打開,
-         行事曆就停在那個月,每次都要自己翻回來。更早以前是統計年的一月。 */
-      if (s.開行事曆) s.顯示月 = this.今.slice(0, 7);
-      this.畫();
+      /* 1.6:行事曆**換掉新增卡片那一塊的內容**(跟「⋯」切到分類與指派人一樣),不再在篩選列底下長出一塊。
+         分類設定改到一半就按行事曆 → 先問要不要放棄修改。 */
+      const 切 = () => {
+        s.開行事曆 = !s.開行事曆; s.選起 = null; s.選迄 = null;
+        /* ⚠ 打開行事曆一律從**這個月**開始(1.4.7)。
+           1.4.6 以前是跳到「現在篩選的那一段」所在的月份 —— 翻到隔年某一週再打開,
+           行事曆就停在那個月,每次都要自己翻回來。更早以前是統計年的一月。 */
+        if (s.開行事曆) { s.顯示月 = this.今.slice(0, 7); if (讀新增收合()) 存新增收合(false); }
+        this.畫();
+      };
+      if (!s.開行事曆 && s.設定模式) { this.離開設定模式(切); return; }
+      切();
     };
 
     /* ⚠ 本日自己一欄(整欄就它一列,所以垂直置中、字最大);
          本周 / 本月 疊在下一欄各佔一半高。整條只要兩列高,比三列疊矮。 */
+    // 1.6:三格都看同一個游標(層區間),箭頭走的也是同一個游標(移游標)
     const 小層定義 = [
-      { 名: T.dayLayer, 鍵: "今日", 色: "var(--color-orange, #e08a2e)",
-        區間: (n) => { const d = 加日(this.今, n); return { 起: d, 迄: d }; } },
-      { 名: T.weekLayer, 鍵: "7天內", 色: "var(--color-yellow, #c99a2e)",
-        區間: (n) => { const a = this.週起點(n); return { 起: a, 迄: 加日(a, 6) }; } },
-      { 名: T.monthLayer, 鍵: "本月", 色: "var(--color-cyan, #45a7bd)",
-        區間: (n) => {
-          const b = new Date(this.今 + "T00:00:00");
-          const m = new Date(b.getFullYear(), b.getMonth() + n, 1);
-          return { 起: 日字(m), 迄: 日字(new Date(m.getFullYear(), m.getMonth() + 1, 0)) };
-        } }
+      { 名: T.dayLayer, 鍵: "今日", 層: "日", 色: "var(--color-orange, #e08a2e)", 區間: () => this.層區間("日") },
+      { 名: T.weekLayer, 鍵: "7天內", 層: "週", 色: "var(--color-yellow, #c99a2e)", 區間: () => this.層區間("週") },
+      { 名: T.monthLayer, 鍵: "本月", 層: "月", 色: "var(--color-cyan, #45a7bd)", 區間: () => this.層區間("月") }
     ];
     // 1.5 順序:年 → 本月 / 本周(本月在上)→ 本日(以前本日在年份旁邊、本周在本月上面)
     this.畫小層(複合格, [小層定義[2], 小層定義[1]], 週月格寬, 全, true, false);
@@ -2639,8 +2806,7 @@ class 看板視圖 extends TextFileView {
       // 窄螢幕照比例分:本月 / 本周的日期標籤最長(「9/28–10/4」),多拿一點(1.5:1.2 → 1.45;1.6 會把本日擠到放不下「10/4」)
       (窄 ? "flex:" + (大 ? "1" : "1.45") + " 1 0;width:auto;" : "flex:0 0 " + (寬 - 4) + "px;width:" + (寬 - 4) + "px;"));
     定義們.forEach((定, i) => {
-      const n = 有箭 ? (s.偏移[定.鍵] || 0) : 0;
-      const 亮 = f.型 === 定.鍵 || (f.型 === "範圍" && f.來源 === 定.鍵);
+      const 亮 = f.型 === 定.鍵;
       /* 高箭頭:◀ ▶ 跨整格高,中間夾著數字和標籤。
          窄螢幕的區間層全部是(1.4.6);桌機 1.4.7 起「本日」也是 —— 那一格最常按。 */
       // 1.5:本月 / 本周也是高箭頭(跨自己那一半的整個高度),跟本日、年份同一種點法
@@ -2657,17 +2823,13 @@ class 看板視圖 extends TextFileView {
 
       let 字 = 定.名, 數, 這段 = null;
       if (定.區間) {
-        這段 = 定.區間(n);
+        這段 = 定.區間();
         數 = this.區間張數(全, 這段.起, 這段.迄);
-        if (n || 亮) 字 = 區間短字(定.鍵, 這段, T);
+        字 = 格標字(定.層, 這段, T);      // 1.6:一律寫實際的月 / 週 / 日,不再寫「本月 / 本周 / 本日」
       } else 數 = 定.數();
-
-      const 走 = (步) => {
-        s.偏移[定.鍵] = n + 步; s.篩 = { 型: "範圍", 來源: 定.鍵 };
-        const r = 定.區間(n + 步); s.起 = r.起; s.迄 = r.迄;
-        s.統計年 = 年份之(r);          // 1.4.7:翻到隔年,年份那一格跟著變
-        this.畫();
-      };
+      const 含今 = !!這段 && 這段.起 <= this.今 && this.今 <= 這段.迄;
+      // 1.6:箭頭移的是共用的游標,四格一起變(見 移游標)
+      const 走 = (步) => this.移游標(定.層, 步);
       if (直箭) this.畫箭(列, false, "往前一格", () => 走(-1), true);
       const 中 = 直箭 ? 列.createDiv() : 列;
       if (直箭) st(中, "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
@@ -2684,13 +2846,21 @@ class 看板視圖 extends TextFileView {
         (大 ? "height:20px;" : ""));
       // 窄螢幕的本日標籤小一號:英文 360px 的手機上「Day」夾在兩條箭頭中間只剩 29px(0.9em 要 31)
       // 1.5.1 窄螢幕一排之後再小一號:本日 0.72em、本月 / 本周 0.7em(「9/28–10/4」「10/4」才放得下)
-      const 標字 = (大 ? "font-size:" + (窄 ? "0.72em" : "0.9em") + ";line-height:20px;"
-                       : "font-size:" + (窄 ? "0.7em" : "0.76em") + ";line-height:1.3;") +
+      /* 1.6:格子寫實際日期、週寫兩次月份(「10/12–10/18」)之後標籤變長,字再小一號(使用者:字可以縮小,不要溢出)。
+         還是放不下的,整排畫完之後再一級一級縮(見 縮到放得下),不出省略號。 */
+      const 標字 = (大 ? "font-size:" + (窄 ? "0.7em" : "0.86em") + ";line-height:20px;"
+                       : "font-size:" + (窄 ? "0.62em" : "0.7em") + ";line-height:1.3;") +
         "font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
         (亮 ? "color:" + 定.色 + ";" : "color:var(--text-muted);");
       if (定.區間) {
         if (!直箭) this.畫箭(行, false, "往前一格", () => 走(-1));
-        st(行.createDiv({ text: 字 }), 標樣 + "text-align:center;" + 標字);
+        const 標 = 行.createDiv();
+        st(標, 標樣 + "text-align:center;" + 標字);
+        (this.__待縮 = this.__待縮 || []).push(標);
+        const 標字元 = 標.createSpan({ text: 字 });
+        // 1.6:這一段包含今天 → 字底下一條細線。標籤不再寫「本日」,要靠它認出今天在哪一格
+        // 本日那一格不畫(使用者:日期本身就是今天,標題列也寫了今日,底線是多的);月、週照畫
+        if (含今 && 定.層 !== "日") st(標字元, "box-shadow:inset 0 -1.5px 0 currentColor;padding-bottom:1px;");
         if (!直箭) this.畫箭(行, true, "往後一格", () => 走(1));
       } else if (定.圖示) {
         // 1.5.1:已逾期 / 週期 只放圖示,名字留在 title
@@ -2707,14 +2877,20 @@ class 看板視圖 extends TextFileView {
          「全部」沒有星期,但一樣留一排空的,數字和名稱才跟年份對齊。 */
       if (大) {
         const 週 = 這段 ? "(" + 語().週名[new Date(這段.起 + "T00:00:00").getDay()] + ")" : "";
-        st(中.createDiv({ text: 週 }),
-          "height:18px;line-height:18px;font-size:0.66em;white-space:nowrap;" +
+        const 週列 = 中.createDiv({ text: 週 });
+        // 1.6:英文 360px 手機上「(Mon)」比格子寬 2px(實測)→ 窄螢幕小一號,放不下再縮
+        if (窄) (this.__待縮 = this.__待縮 || []).push(週列);
+        st(週列,
+          "height:18px;line-height:18px;font-size:" + (窄 ? "0.6em" : "0.66em") + ";white-space:nowrap;overflow:hidden;max-width:100%;" +
           (亮 ? "font-weight:700;color:" + 定.色 + ";" : "color:var(--text-faint);"));
       }
       if (直箭) this.畫箭(列, true, "往後一格", () => 走(1), true);
+      /* 1.6:點格子 = 看游標所在的這一段(不跳回今天,不然剛翻好的日期就丟了);
+         已經選著這一格、而且不在今天,再點一次才回到今天。 */
+      if (定.區間) 列.title = 定.名 + " · " + T.tileHint;
       列.onclick = () => {
-        s.偏移[定.鍵] = 0; s.篩 = { 型: 定.鍵 };
-        s.統計年 = String(new Date().getFullYear());
+        if (定.區間 && 亮 && !含今) this.設游標(this.今);
+        s.篩 = { 型: 定.鍵 };
         s.開行事曆 = false; this.畫();
       };
     });
@@ -2722,14 +2898,11 @@ class 看板視圖 extends TextFileView {
   }
 
   /* ---- ② 行事曆:點第一下 = 起,點第二下 = 迄,選滿一段就自動收起來 ---- */
-  畫行事曆(根, 全) {
-    根.empty();
-    if (!this.狀態.開行事曆) return;
+  /* 1.6:行事曆是新增卡片那一塊的第三種內容(見 畫新增區),畫在塊的標題列底下;收起鈕在標題列上。 */
+  畫行事曆(外塊, 全) {
     const T = this.T, s = this.狀態;
-    const 盒 = 根.createDiv();
-    盒.addClass("tk-塊");
-    st(盒, "padding:9px 10px;border-radius:10px;background:var(--background-secondary);" +
-      "border:1px solid var(--background-modifier-border);");
+    const 盒 = 外塊.createDiv();
+    st(盒, "padding:9px 10px;");
 
     const 頭 = 盒.createDiv();
     st(頭, "display:flex;align-items:center;gap:6px;margin-bottom:6px;");
@@ -2739,9 +2912,6 @@ class 看板視圖 extends TextFileView {
     this.畫箭(頭, true, "", () => { s.顯示月 = this.移月(s.顯示月, 1); this.畫(); });
     const 提示 = 頭.createDiv({ text: s.選起 ? T.pickEnd : T.pickStart });
     st(提示, "font-size:0.72em;color:var(--text-faint);margin-left:6px;");
-    const 收 = 頭.createEl("button", { text: T.close });
-    st(收, "margin-left:auto;font-size:0.72em;height:22px;padding:0 10px;border-radius:6px;cursor:pointer;");
-    收.onclick = () => { s.開行事曆 = false; s.選起 = null; s.選迄 = null; this.畫(); };
 
     const 每日 = {};
     this.清單池(全).forEach(k => {
@@ -2780,7 +2950,7 @@ class 看板視圖 extends TextFileView {
         if (!s.選起) { s.選起 = 日; this.畫(); return; }
         const a = s.選起 <= 日 ? s.選起 : 日, b = s.選起 <= 日 ? 日 : s.選起;
         s.篩 = { 型: "範圍", 來源: "行事曆" }; s.起 = a; s.迄 = b;
-        s.統計年 = 年份之({ 起: a, 迄: b });          // 年份那一格跟著選的那一段走
+        this.設游標(a);                  // 年 / 月 / 週 / 日四格跟著選的那一段走
         s.選起 = null; s.開行事曆 = false; this.畫();
       };
     }
@@ -2847,8 +3017,32 @@ class 看板視圖 extends TextFileView {
     return 身;
   }
 
+  /* 1.6:新增卡片這一塊有三種內容 —— 新增 / 分類與指派人(「⋯」)/ 行事曆(年格的行事曆鈕)。
+     換內容的時候:整塊的高度從舊的滑到新的,新內容同時淡入、從旁邊滑進來
+     (去設定和行事曆從右邊進,回到新增從左邊進 —— 看得出是「進去」還是「回來」)。
+     ⚠ 只有「換了內容」才動;平常的重畫(打字篩選、打勾、翻日期)不動。系統要求減少動態就不動。 */
   畫新增區(根, 全) {
+    const s = this.狀態;
+    const 模式 = s.開行事曆 ? "曆" : (s.設定模式 && this.設草 ? "設" : "新");
+    const 舊模式 = this.__新增模式, 舊塊 = 根.firstElementChild;
+    const 舊高 = 舊塊 ? 舊塊.clientHeight : 0;
+    this.畫新增區內(根, 全);
+    this.__新增模式 = 模式;
+    const 塊 = 根.firstElementChild;
+    if (!舊模式 || 舊模式 === 模式 || !塊 || !舊高 || 讀新增收合() || !要動畫()) return;
+    滑開(塊, 舊高);
+    const 身 = 塊.children[1];
+    if (身 && typeof 身.animate === "function") {
+      const 位 = (模式 === "新" ? -14 : 14) + "px";
+      身.animate([{ opacity: 0, transform: "translateX(" + 位 + ")" }, { opacity: 1, transform: "translateX(0)" }],
+        { duration: 220, easing: "cubic-bezier(.22,.61,.36,1)" });
+    }
+  }
+
+  畫新增區內(根, 全) {
     根.empty();
+    // 主題的下拉建議掛在 body 上,重畫新增區的時候一起收掉(輸入框換掉了,它會變成孤兒)
+    document.body.querySelectorAll(".tk-主題建議").forEach(x => { try { x.remove(); } catch (e) {} });
     const T = this.T, s = this.狀態;
     /* ⚠ 右欄寬以前是 172,那是照中文標籤(「分類」「指派人」)量出來的數字。
        換成英文之後 Section(64) + 間隔(8) + Assignee(101) = 173,**差一個 pixel**,
@@ -2885,40 +3079,57 @@ class 看板視圖 extends TextFileView {
          清單標題列那顆搜尋膠囊還在,點它就清掉 —— 不會卡在一個看不到搜尋框的篩選裡。 */
     const 收 = 讀新增收合();
     // 1.5.1:收起來的時候標題列只留圖示和「⋯」,不再寫「新卡片會放到哪一天」(送出鈕上本來就有)
+    // 1.6:標題列的圖示跟著內容換:新增 square-pen、分類與指派人 settings、行事曆 calendar-days
+    const 標圖 = s.開行事曆 ? ["calendar-days", "calendar"]
+      : (s.設定模式 && this.設草) ? ["settings", "cog"] : ["square-pen", "pen-square", "pencil"];
     const 外塊 = this.畫收合塊(根, T.addBlock, 收, null,
-      () => { 存新增收合(!收); this.畫新增區(根, this.卡片); }, ["square-pen", "pen-square", "pencil"]);
-    /* 1.5.1:分類名稱與顏色的「⋯」放在標題列最右邊。點它**不收合**(stopPropagation),
-       收起來的時候也還在 —— 改分類不需要先展開新增區。 */
+      () => this.收合滑動(外塊, !收, () => { 存新增收合(!收); this.畫新增區(根, this.卡片); }, () => 根.firstElementChild), 標圖);
+    // 1.6:這一塊的標題列不要滑鼠提示 —— 「新增卡片」的提示會蓋在右上角「⋯」(分類與指派人)的提示上
+    外塊.firstElementChild.removeAttribute("title");
+    外塊.firstElementChild.removeAttribute("aria-label");
+    /* 1.6:標題列右上角的「⋯」是**切換鈕**:按下去,新增卡片的欄位整塊換成「分類與指派人」設定
+       (左半邊分類的名稱與顏色、右半邊指派人),再按一次切回來,標題列不動。
+       設定模式多兩顆:↩ 返回(放棄這次的修改,有改過會先問)、✓ 儲存。收著的時候也按得到(會順便展開)。
+       1.5.1 的「分類名稱與顏色」浮動面板和「管理指派人」那一塊拿掉了,這裡是唯一的入口。 */
     {
       const 標頭 = 外塊.firstElementChild;
-      const 管分類 = 標頭.createDiv();
-      管分類.setAttribute("role", "button");
-      管分類.setAttribute("tabindex", "0");
-      st(管分類, "margin-left:auto;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;" +
-        // 上下不留 padding:這顆不可以把標題列撐得比時間篩選那一條高
-        "line-height:0;color:var(--text-muted);padding:0 4px;border-radius:5px;flex:0 0 auto;");
-      圖(管分類, "ellipsis", 15);
-      /* 1.5.1:個人使用 → 直接開分類名稱與顏色;有指派人 → 一個選單兩項(分類名稱與顏色 / 管理指派人)。
-         指派人欄位裡原本那一顆「⋯」拿掉了,這裡是唯一的入口。 */
-      const 標題字 = this.個人 ? T.editSections : T.editSections + " / " + T.managePeople;
-      管分類.title = 標題字;
-      管分類.setAttribute("aria-label", 標題字);
-      const 分類們 = () => this.分類清單.filter(x => !/archive|封存/i.test(x));
-      const 開 = (e) => {
-        e.stopPropagation();
-        if (this.個人) { this.開分類設定(e, 分類們()); return; }
-        const m = new Menu();
-        m.addItem(i => i.setTitle(T.editSections).setIcon("palette")
-          .onClick(() => this.開分類設定({ currentTarget: 管分類 }, 分類們())));
-        m.addItem(i => i.setTitle(T.managePeople).setIcon("users").setChecked(!!this.狀態.管人開)
-          .onClick(() => { this.狀態.管人開 = !this.狀態.管人開; this.畫(); }));
-        if (typeof e.clientX === "number" && (e.clientX || e.clientY)) m.showAtMouseEvent(e);
-        else { const r = 管分類.getBoundingClientRect(); m.showAtPosition({ x: r.left, y: r.bottom }); }
+      const 小鈕 = (圖名們, 提示, 動作, 色) => {
+        const b = 標頭.createDiv();
+        b.setAttribute("role", "button");
+        b.setAttribute("tabindex", "0");
+        // 上下不留 padding:這幾顆不可以把標題列撐得比時間篩選那一條高
+        st(b, "display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:0;" +
+          "padding:0 4px;border-radius:5px;flex:0 0 auto;color:" + (色 || "var(--text-muted)") + ";");
+        圖備(b, 圖名們, 15);
+        b.title = 提示;
+        b.setAttribute("aria-label", 提示);
+        const 做 = (e) => { e.stopPropagation(); 動作(e); };       // 不收合
+        b.onclick = 做;
+        b.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 做(e); } };
+        return b;
       };
-      管分類.onclick = 開;
-      管分類.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 開(e); } };
+      // 1.6:標題列只放圖示(使用者:「分類與指派人」「行事曆」的字拿掉,圖示已經換了)
+      if (s.開行事曆) {
+        const 關 = 小鈕(["x"], T.close, () => { s.開行事曆 = false; s.選起 = null; s.選迄 = null; this.畫(); });
+        關.style.marginLeft = "auto";
+      } else if (s.設定模式) {
+        const 回 = 小鈕(["undo-2", "undo", "rotate-ccw"], T.backDiscard, () => this.離開設定模式());
+        回.style.marginLeft = "auto";
+        小鈕(["check"], T.save, () => this.存設草(), "var(--text-accent)");
+      }
+      const 切 = 小鈕(["ellipsis"], T.sectionsAndPeople, () => {
+        if (s.設定模式) { this.離開設定模式(); return; }
+        s.開行事曆 = false; s.選起 = null; s.選迄 = null;      // 行事曆開著的話,換成設定
+        s.設定模式 = true;
+        this.設草 = this.建設草();
+        if (讀新增收合()) 存新增收合(false);
+        this.畫新增區(根, this.卡片);
+      }, s.設定模式 ? "var(--text-accent)" : null);
+      if (!s.設定模式 && !s.開行事曆) 切.style.marginLeft = "auto";
     }
-    if (收) { if (s.管人開) this.畫管人(根); return; }
+    if (收) return;
+    if (s.開行事曆) { this.畫行事曆(外塊, 全); return; }
+    if (s.設定模式 && this.設草) { this.畫設定面板(外塊); return; }
 
     const 本體 = 外塊.createDiv();
     本體.addClass("tk-新增列"); 本體.addClass("tk-本體");
@@ -2963,7 +3174,7 @@ class 看板視圖 extends TextFileView {
     const 題框 = this.建框(第一左, null, 窄 ? "flex:1 1 auto;min-width:0;"
       : "flex:0 0 " + 題格寬 + "px;width:" + 題格寬 + "px;min-width:0;");
     題框.parentElement.addClass("tk-主題框");
-    st(題框, "display:flex;align-items:center;width:100%;");
+    st(題框, "position:relative;display:flex;align-items:center;width:100%;");
     /* ⚠ 主題框同時就是搜尋框(準則:同一個功能只給一個入口)——
        所以表格上不再另外做一個搜尋欄。打字 → 只重畫清單,這兩個框完全不碰,
        游標和正在打的字都留著,可以一直打下去。 */
@@ -2973,11 +3184,19 @@ class 看板視圖 extends TextFileView {
     /* 1.5.1:主題框長得跟卡片上的主題膠囊一樣(圓角 11、分類色的淡底和字)。
        顏色要等分類決定之後才知道,在下面算出 nc 的地方補上。
        ⚠ 上面的「主題」標籤拿掉了,所以改放 placeholder(1.4.1 不放,是因為那時候有標籤)。 */
+    /* 1.6 修 Windows 的 I 形游標:line-height 寫死 normal、margin 0 —— 繼承到的行高比 24px 的框還高時,
+       Windows 的 Chromium 會把插入點畫偏;而且整個框(不只輸入框本身)都是文字游標、點哪裡都聚焦。 */
     st(題輸, "flex:1 1 auto;min-width:0;width:100%;font-size:0.84em;font-weight:700;box-sizing:border-box;" +
-      "border:0;box-shadow:none;border-radius:11px;padding:0 9px;" + (窄 ? "height:32px;" : "height:24px;"));
-    題輸.placeholder = T.topic;
+      "border:0;box-shadow:none;border-radius:11px;padding:0 9px;margin:0;line-height:normal;cursor:text;" +
+      (窄 ? "height:32px;" : "height:24px;"));
     題輸.value = s.新主題;
-    題輸.oninput = () => { s.新主題 = 題輸.value; this.搜尋變動(); };
+    題輸.oninput = () => {
+      s.新主題 = 題輸.value;
+      清.style.display = 題輸.value ? "inline-flex" : "none";
+      題圖.style.display = 題輸.value ? "none" : "inline-flex";
+      this.記主題分類(全, 題輸.value);      // 1.6:打出用過的主題,分類自動換成它上一次的分類
+      this.搜尋變動();
+    };
     // 送出鍵照設定(是送出);另一種 Enter 在主題框裡是「跳到內容框」
     題輸.onkeydown = (e) => {
       if (是送出(e)) { e.preventDefault(); this.送出新增(); return; }
@@ -2986,14 +3205,27 @@ class 看板視圖 extends TextFileView {
       if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); this.清除搜尋(); }
     };
     this.題輸 = 題輸;
-    if (s.新主題) {
-      const 清 = 題框.createDiv();
-      st(清, "flex:0 0 auto;margin-left:4px;cursor:pointer;color:var(--text-faint);" +
-        "display:inline-flex;line-height:0;user-select:none;");
-      圖(清, "x", 12);
-      清.title = T.clearSearch;
-      清.onclick = () => this.清除搜尋();
-    }
+    /* 1.6 修:自己打字打出來的主題也要有 ✕。以前只有「重畫那一刻框裡已經有字」才畫 ✕ ——
+       打字只重畫清單、不重畫新增區,所以 ✕ 永遠不出來。現在一律建好,打字時切換顯示。 */
+    const 清 = 題框.createDiv();
+    st(清, "flex:0 0 auto;margin-left:4px;cursor:pointer;color:var(--text-faint);" +
+      "display:" + (s.新主題 ? "inline-flex" : "none") + ";line-height:0;user-select:none;");
+    圖(清, "x", 12);
+    清.title = T.clearSearch;
+    清.onclick = () => this.清除搜尋();
+    /* 1.6:空白的主題框裡放一顆 house(取代「主題」兩個字的 placeholder)。
+       ⚠ 放在游標右邊一點點(left 11px,輸入框 padding 9px),空的時候游標和圖示不會疊在一起;打字就消失,字不會跳。 */
+    const 題圖 = 題框.createDiv();
+    st(題圖, "position:absolute;left:11px;top:50%;transform:translateY(-50%);line-height:0;pointer-events:none;" +
+      "color:var(--text-faint);display:" + (s.新主題 ? "none" : "inline-flex") + ";");
+    圖備(題圖, ["house", "home"], 空框圖寬);
+    題框.parentElement.style.cursor = "text";
+    題框.parentElement.addEventListener("mousedown", (e) => {
+      if (e.target === 題輸 || 清.contains(e.target)) return;
+      e.preventDefault();
+      題輸.focus();
+    });
+    this.掛主題建議(題輸, 全);          // 1.6:打字就列出用過的主題
 
     /* ---- 常用主題 ----
        ⚠ 固定就是一橫列,放不下的收進「☰ 更多」(擺在**最前面**,再窄的螢幕也切不掉),
@@ -3002,7 +3234,8 @@ class 看板視圖 extends TextFileView {
          新增或編修過某個主題,它也會跟著往前排(最近動過的優先)。 */
     /* 窄螢幕沒有常用主題:第一列只放得下主題框和右欄。主題框本身就是搜尋框,
        打兩個字一樣篩得出來。 */
-    if (!窄) this.畫常用主題(第一左, 全);
+    // 1.6:手機把常用主題加回來,但只放「☰ 更多」一顆(排在分類圓點右邊)
+    this.畫常用主題(第一左, 全, 窄);
 
     // 第一列右群:分類 + 指派人
     /* 個人使用(1.4.6):右群只剩分類,寬度跟著它走,常用主題吃掉剩下的全部 */
@@ -3023,17 +3256,36 @@ class 看板視圖 extends TextFileView {
     st(分框, "display:flex;align-items:center;justify-content:center;width:100%;");
     /* ⚠ 顏色和名字兩個都要看得到,不是一個下拉選單的文字 ——
        顏色是分類的語言,名字是它的代號,少一個就要猜。 */
-    const 點 = 分框.createDiv();
-    const nc = this.插件.分類色(s.新分類);
-    題輸.style.color = nc;                    // 主題膠囊跟著要放進去的分類變色(跟卡片上的主題一樣)
-    題輸.style.background = 透明(nc, 0.16);
-    st(點, "width:22px;height:22px;border-radius:50%;cursor:pointer;flex:0 0 auto;" +
-      "color:" + nc + ";border:2px solid " + nc + ";background:" + 透明(nc, 0.14) + ";");
-    點.title = s.新分類 + " —— 點一下換要放到哪一區";
+    /* 1.6:圓點右上角一顆小小的 chevron-down,看得出點下去會展開;**點到箭頭也會打開**(它在 點座 裡面,click 冒泡上去)。
+       ⚠ 箭頭不可以用負的 right 凸出去:凸出去的那一截不在任何會接 click 的盒子裡(點了沒反應),
+         check4 也會報「30>22」溢出。所以圓點這一格拿掉左右 padding,點座自己 38px 寬、圓點置中,箭頭貼在點座的右上角。 */
+    分框.parentElement.style.paddingLeft = "0";
+    分框.parentElement.style.paddingRight = "0";
+    const 點座 = 分框.createDiv();
+    st(點座, "position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 auto;" +
+      "width:" + 圓格寬 + "px;padding:4px 0;box-sizing:border-box;cursor:pointer;");
+    const 點 = 點座.createDiv();
+    st(點, "width:22px;height:22px;border-radius:50%;flex:0 0 auto;");
+    const 尖 = 點座.createDiv();
+    st(尖, "position:absolute;top:0;right:2px;line-height:0;color:var(--text-muted);");
+    圖(尖, "chevron-down", 10);
+    /* 主題膠囊和圓點跟著要放進去的分類變色(跟卡片上的主題一樣)。
+       1.6:打出用過的主題時分類會自己換(記主題分類),換完只重上這兩個的顏色,輸入框不重建、字和游標都留著。 */
+    const 上色 = () => {
+      const nc = this.插件.分類色(s.新分類);
+      題輸.style.color = nc;
+      題輸.style.background = 透明(nc, 0.16);
+      點.style.color = nc;
+      點.style.border = "2px solid " + nc;
+      點.style.background = 透明(nc, 0.14);
+      點座.title = s.新分類 + " —— 點一下換要放到哪一區";
+    };
+    this.套新分類色 = 上色;
+    上色();
     /* ⚠ 以前這裡開的是 Obsidian 的選單,一條一條都是**文字**(Markdown 的 `##` 標題名)。
        但分類在看板上的語言是**顏色** —— 使用者記得的是「藍色那一區」,
        不是「## 藍色」這五個字。所以改成一排真正的色點,挑顏色就是挑分區。 */
-    點.onclick = (e) => {
+    點座.onclick = (e) => {
       e.stopPropagation();
       const 舊 = document.body.querySelector(".tk-分類挑");
       if (舊) { try { 舊.remove(); } catch (x) {} return; }
@@ -3066,7 +3318,7 @@ class 看板視圖 extends TextFileView {
         };
       });
       const 關 = (ev) => {
-        if (盤.contains(ev.target) || 點.contains(ev.target)) return;
+        if (盤.contains(ev.target) || 點座.contains(ev.target)) return;
         try { 盤.remove(); } catch (x) {}
         document.removeEventListener("mousedown", 關, true);
       };
@@ -3108,7 +3360,7 @@ class 看板視圖 extends TextFileView {
     // 1.5.1:內容框也不要標籤(圖示也拿掉);送出欄同樣不留標籤那一行,兩邊上緣才對齊
     const 內框 = this.建框(主行, null, 窄 ? "flex:1 1 0;min-width:0;" : "flex:1 1 250px;min-width:0;max-width:100%;");
     內框.parentElement.addClass("tk-內容框");
-    st(內框, "display:flex;align-items:stretch;width:100%;");
+    st(內框, "position:relative;display:flex;align-items:stretch;width:100%;");
     const 內輸 = 內框.createEl("textarea");
     // 最小高度 = 送出鈕的高度,空的時候兩個上下都對齊
     const 送高 = 窄 ? 40 : 38;
@@ -3117,7 +3369,7 @@ class 看板視圖 extends TextFileView {
     內輸.value = s.新內容;
     // 打字造成的長高不要做過場,瞬間到位就好(準則第五章)
     const 長高 = () => 撐高(內輸);
-    內輸.oninput = () => { s.新內容 = 內輸.value; 長高(); this.搜尋變動(); };
+    內輸.oninput = () => { s.新內容 = 內輸.value; 內圖.style.display = 內輸.value ? "none" : "inline-flex"; 長高(); this.搜尋變動(); };
     /* 鍵盤跟編修框、留言框完全一樣,不用記好幾套(見 是送出) ‧ Esc 清空 */
     內輸.onkeydown = (e) => {
       if (是送出(e)) { e.preventDefault(); this.送出新增(); return; }
@@ -3134,6 +3386,18 @@ class 看板視圖 extends TextFileView {
        (元素這時候已經掛在畫面上了,量得到。setTimeout 那一次留著當保險:字型晚到時再撐一次。) */
     長高();
     setTimeout(長高, 0);
+    /* 1.6:空白的內容框裡放一顆 pen-line,跟主題框的 house 一樣大(空框圖寬)。
+       位置照 textarea 實際的 padding 和第一行的行高算(主題換了行高也對得上) */
+    const 內圖 = 內框.createDiv();
+    st(內圖, "position:absolute;left:10px;top:9px;line-height:0;pointer-events:none;color:var(--text-faint);" +
+      "display:" + (s.新內容 ? "none" : "inline-flex") + ";");
+    圖備(內圖, ["pen-line", "pencil-line", "pencil"], 空框圖寬);
+    try {
+      const cs = window.getComputedStyle(內輸);
+      const 行高 = parseFloat(cs.lineHeight) || 20;
+      內圖.style.left = Math.round((parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0) + 2) + "px";
+      內圖.style.top = Math.round((parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.borderTopWidth) || 0) + (行高 - 空框圖寬) / 2) + "px";
+    } catch (e) {}
 
     /* ---- 送出欄 ----
        ⚠ 1.4.2 重做。以前這一格是「一行小灰字 + 一顆 32px 的純 ＋」,
@@ -3178,18 +3442,21 @@ class 看板視圖 extends TextFileView {
        至少留 110px:個人使用只剩一顆圓點,太窄的話送出鈕上的日期放不下。 */
     if (窄) {
       // 主題框右邊是 [圓點] + [指派人](個人使用沒有指派人),送出欄取一樣的寬度
+      // 1.6:圓點右邊多了「☰ 更多」,一起算進主題框右邊那一截
+      const 更多盒 = 第一左.querySelector(".tk-常用主題");
+      const 更寬 = 更多盒 ? 更多盒.getBoundingClientRect().width : 0;
       const 分寬 = 分框.parentElement.getBoundingClientRect().width;
       const 人寬 = 第一右.getBoundingClientRect().width;
-      const 寬 = Math.max(Math.ceil(分寬 + 人寬), 110);
+      const 寬 = Math.max(Math.ceil(分寬 + 更寬 + 人寬), 110);
       送欄.style.flex = "0 0 " + 寬 + "px"; 送欄.style.width = 寬 + "px";
       // 不夠 110 的那一截給圓點那一格(圓點在裡面置中),主題框跟內容框才會一樣寬
-      if (分寬 + 人寬 < 寬) {
-        const 圓寬 = 寬 - 人寬;
+      if (分寬 + 更寬 + 人寬 < 寬) {
+        const 圓寬 = 寬 - 人寬 - 更寬;
         分框.parentElement.style.flex = "0 0 " + 圓寬 + "px"; 分框.parentElement.style.width = 圓寬 + "px";
       }
     }
+    縮到放得下(送日);                     // 1.6:寬度都定了才量;還是放不下就縮字,不出省略號
 
-    if (s.管人開) this.畫管人(根);
   }
 
   /* ---- 常用主題 ----
@@ -3197,9 +3464,9 @@ class 看板視圖 extends TextFileView {
        而且「更多」裡面可以打字查主題。
      ⚠ 清單跟著現在篩出來的結果走 —— 打了關鍵字,常用主題就只剩相關的那幾個;
        新增或編修過某個主題,它也會跟著往前排(最近動過的優先)。 */
-  畫常用主題(第一左, 全) {
+  畫常用主題(第一左, 全, 只更多) {
     const T = this.T;
-    const 常框 = this.建框(第一左, null, "flex:2 1 200px;min-width:0;");
+    const 常框 = this.建框(第一左, null, 只更多 ? "flex:0 0 auto;padding-left:2px;" : "flex:2 1 200px;min-width:0;");
     常框.parentElement.addClass("tk-常用主題");
     /* ⚠ 1.4.5:放不下的主題膠囊要**整顆消失**,不是被裁掉半顆。
        以前是 nowrap + overflow:hidden,窄版(700px)底下第五、六顆會被從字中間切開。
@@ -3234,9 +3501,10 @@ class 看板視圖 extends TextFileView {
     const 更多 = 常框.createEl("button");
     st(更多, "flex:0 0 auto;font-size:0.72em;height:20px;padding:0 8px;border-radius:10px;" +
       "cursor:pointer;white-space:nowrap;box-shadow:none;color:var(--text-muted);");
-    圖鈕(更多, "list", String(其餘.length || 全主題.length), 12);
+    圖鈕(更多, "list", String(只更多 ? 全主題.length : (其餘.length || 全主題.length)), 12);
     更多.title = T.topicsPinHint;
     更多.onclick = (e) => { e.stopPropagation(); this.開主題面板(e, 全主題, 次); };
+    if (只更多) return;
 
     if (this.搜尋中()) {
       const 清 = 常框.createEl("button");
@@ -3290,6 +3558,7 @@ class 看板視圖 extends TextFileView {
   清除搜尋() {
     const s = this.狀態;
     s.新主題 = ""; s.新內容 = ""; s.搜尋 = ""; s.主題 = null; s.指派 = null;
+    this.__記題 = null; this.__記前 = null;
     this.畫();
     setTimeout(() => { try { this.題輸.focus(); } catch (e) {} }, 0);
   }
@@ -3297,6 +3566,8 @@ class 看板視圖 extends TextFileView {
   帶入主題(名) {
     const s = this.狀態;
     s.新主題 = String(名 || "");
+    this.__記題 = null;
+    this.記主題分類(this.卡片, s.新主題);   // 1.6:點常用主題 / 下拉建議也帶入它上一次的分類
     s.主題 = null;                       // 用搜尋做,不再另外掛一個主題篩選
     s.搜尋 = (s.新主題 + " " + String(s.新內容 || "")).trim();
     this.畫();
@@ -3388,7 +3659,7 @@ class 看板視圖 extends TextFileView {
       "background:var(--background-primary);border:1px solid var(--background-modifier-border);" +
       "box-shadow:0 6px 22px rgba(0,0,0,0.34);");
     const r = e.currentTarget.getBoundingClientRect();
-    const 觸 = e.currentTarget;          // 1.5 修:再按一次「☰」是關掉,不是關了又開(理由同 開分類設定)
+    const 觸 = e.currentTarget;          // 1.5 修:再按一次「☰」是關掉,不是關了又開(mousedown 先關、click 又開)
     盒.style.left = Math.max(6, Math.min(r.left, window.innerWidth - 272)) + "px";
     盒.style.top = (r.bottom + 5) + "px";
     const 查 = 盒.createEl("input", { type: "text" });
@@ -3460,9 +3731,116 @@ class 看板視圖 extends TextFileView {
     this.插件.存設定();
   }
 
-  主題分類(全, 題) {
-    const k = 全.find(x => x.主題 === 題);
-    return k ? k.分類 : "";
+  // 常用主題膠囊的顏色:1.6 起看這個主題**最近一次**寫在哪個分類(以前是檔案裡第一張)
+  主題分類(全, 題) { return this.主題最近分類(全, 題) || ""; }
+  主題最近分類(全, 題) {
+    const 活區 = this.分類清單.filter(x => !/archive|封存/i.test(x));
+    let 最 = null;
+    全.forEach(k => {
+      if (k.主題 !== 題 || 活區.indexOf(k.分類) < 0) return;
+      if (!最 || String(k.編修戳 || "") > String(最.編修戳 || "")) 最 = k;
+    });
+    return 最 ? 最.分類 : null;
+  }
+  /* 1.6:打出(或點選)一個用過的主題 → 新卡片的分類換成那個主題**上一次寫進去的分類**
+     (「訂貨」上次放紫色,下次打訂貨或點常用主題就自動跳紫色)。
+     同一個主題只帶一次:帶完之後使用者自己換了分類,繼續打字不會又被蓋回去。 */
+  記主題分類(全, 題) {
+    /* 1.6(使用者):**一字不差**才算(不去頭尾空白)。不再相符 → 退回換色之前的分類,
+       除非使用者在中間自己換過分類(那就尊重他選的)。以前對上一次就一直留著那個顏色,打別的字也還是那個色。 */
+    const s = this.狀態, t = String(題 || "");
+    const 區 = t ? this.主題最近分類(全, t) : null;
+    const 上色 = () => { if (this.套新分類色 && this.題輸 && this.題輸.isConnected) this.套新分類色(); };
+    if (!區) {
+      if (this.__記題 && this.__記前 && s.新分類 === this.__記後 && this.__記前 !== s.新分類) { s.新分類 = this.__記前; 上色(); }
+      this.__記題 = null; this.__記前 = null; this.__記後 = null;
+      return;
+    }
+    if (t === this.__記題) return;
+    if (!this.__記題) this.__記前 = s.新分類;          // 第一次對上:記住原本的分類
+    this.__記題 = t; this.__記後 = 區;
+    if (區 !== s.新分類) { s.新分類 = 區; 上色(); }
+  }
+  // 所有用過的主題:這份筆記釘選的在前,其他照最近動過
+  主題清單(全) {
+    const 新 = Object.create(null);
+    全.forEach(k => {
+      if (!k.主題) return;
+      const t = String(k.編修戳 || "");
+      if (!(k.主題 in 新) || t > 新[k.主題]) 新[k.主題] = t;
+    });
+    const 釘 = this.釘選主題們.filter(t => t in 新);
+    return 釘.concat(Object.keys(新).filter(t => 釘.indexOf(t) < 0).sort((a, b) => 新[b].localeCompare(新[a])));
+  }
+  /* 1.6:主題框的下拉建議 —— 打字就列出用過、而且含這幾個字的主題;框是空的時候按 ↓ 列出全部。
+     ↑↓ 選、Enter / Tab 帶入、Esc 關掉。⚠ 沒有選中任何一個的時候,Enter 照舊是「跳到內容框」,不攔。
+     ⚠ 用 stopImmediatePropagation:capture 跟框自己的 onkeydown 在同一個元素上,只擋冒泡擋不住它
+       (Esc 會連搜尋一起清掉)。 */
+  掛主題建議(框, 全) {
+    let 面板 = null, 候選 = [], 選中 = -1;
+    const 主題們 = this.主題清單(全);
+    const 關 = () => {
+      if (面板) { try { 面板.remove(); } catch (e) {} 面板 = null; }
+      候選 = []; 選中 = -1;
+    };
+    const 擋 = (e) => { e.preventDefault(); e.stopImmediatePropagation(); };
+    const 帶 = (i) => { const t = 候選[i]; 關(); if (t) this.帶入主題(t); };
+    const 畫 = () => {
+      if (!框.isConnected) { 關(); return; }
+      if (!面板) {
+        面板 = document.body.createDiv();
+        面板.addClass("tk-可捲"); 面板.addClass("tk-主題建議");
+        st(面板, "position:fixed;z-index:10000;max-height:230px;overflow-y:auto;box-sizing:border-box;" +
+          "padding:4px;border-radius:8px;background:var(--background-primary);" +
+          "border:1px solid var(--background-modifier-border);box-shadow:0 6px 22px rgba(0,0,0,0.34);");
+      }
+      const r = 框.getBoundingClientRect();
+      const 寬 = Math.max(200, Math.round(r.width));
+      面板.style.width = 寬 + "px";
+      面板.style.left = Math.max(6, Math.min(r.left, window.innerWidth - 寬 - 6)) + "px";
+      面板.style.top = Math.min(r.bottom + 4, window.innerHeight - 240) + "px";
+      面板.empty();
+      候選.forEach((t, i) => {
+        const 行 = 面板.createDiv();
+        st(行, "display:flex;align-items:center;gap:7px;padding:3px 7px;border-radius:5px;cursor:pointer;font-size:0.84em;" +
+          (i === 選中 ? "background:var(--background-modifier-hover);" : ""));
+        st(行.createDiv(), "flex:0 0 8px;width:8px;height:8px;border-radius:50%;" +
+          "background:" + this.插件.分類色(this.主題分類(全, t)) + ";");
+        st(行.createDiv({ text: t }), "flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
+          (i === 選中 ? "font-weight:700;" : ""));
+        if (this.釘選主題們.indexOf(t) >= 0) {
+          const 釘 = 行.createDiv();
+          st(釘, "display:inline-flex;line-height:0;color:var(--text-faint);");
+          圖(釘, "pin", 11);
+        }
+        行.onmousedown = (e) => { e.preventDefault(); 帶(i); };
+      });
+    };
+    const 查 = (全部) => {
+      const q = String(框.value || "").trim().toLowerCase();
+      候選 = 主題們.filter(t => {
+        if (全部) return true;
+        const x = t.toLowerCase();
+        return !!q && x.indexOf(q) >= 0 && x !== q;       // 已經打得一模一樣就不必再列它
+      }).slice(0, 40);
+      選中 = -1;
+      if (!候選.length) { 關(); return; }
+      畫();
+    };
+    框.addEventListener("input", () => 查(false));
+    框.addEventListener("blur", () => setTimeout(關, 140));
+    框.addEventListener("keydown", (e) => {
+      if (e.isComposing || e.keyCode === 229) return;
+      if (e.key === "ArrowDown") {
+        擋(e);
+        if (!面板) { 查(!String(框.value || "").trim()); if (面板) { 選中 = 0; 畫(); } return; }
+        選中 = (選中 + 1) % 候選.length; 畫(); return;
+      }
+      if (!面板) return;
+      if (e.key === "ArrowUp") { 擋(e); 選中 = 選中 <= 0 ? 候選.length - 1 : 選中 - 1; 畫(); return; }
+      if ((是Enter鍵(e) || e.key === "Tab") && 選中 >= 0 && !是送出(e)) { 擋(e); 帶(選中); return; }
+      if (e.key === "Escape" || e.code === "Escape") { 擋(e); 關(); }
+    }, true);
   }
   // 新卡片會被放到哪一天:完全看上面統計列現在選的是哪一格
   /* 新卡片會被放到哪一天,完全看上面統計列現在選的是哪一格:
@@ -3485,181 +3863,331 @@ class 看板視圖 extends TextFileView {
     const d = this.新增日期();
     if (d.週期) return this.T.longTerm;
     if (!d.起) return this.T.undated;
-    return 日期範圍字(d.起, d.迄);
+    return 日期無週字(d.起, d.迄);        // 1.6:送出鈕上不寫星期(手機上「09-14(一) – 09-20(日)」放不下)
   }
 
-  /* ---- 分類設定(從分類圓點旁邊的「⋯」打開) ----
-     改的是「圓點裡顯示什麼字」和「這一區是什麼顏色」。
-     ⚠ Markdown 裡的 `## 標題` 一個字都不會動 —— 標題是卡片的家,改了等於全部搬家。 */
-  開分類設定(e, 區) {
-    const T = this.T;
-    const 舊 = document.body.querySelector(".tk-分類設定");
-    if (舊) { try { 舊.remove(); } catch (x) {} return; }
-    const 盒 = document.body.createDiv();
-    盒.addClass("tk-分類設定");
-    st(盒, "position:fixed;z-index:9999;padding:12px;border-radius:10px;min-width:260px;" +
-      "display:flex;flex-direction:column;gap:9px;" +
-      "background:var(--background-primary);border:1px solid var(--background-modifier-border);" +
-      "box-shadow:0 6px 22px rgba(0,0,0,0.3);");
-    const r0 = e.currentTarget.getBoundingClientRect();
-    /* ⚠ 1.5 修:再按一次「⋯」要**關掉**。以前底下那個「點外面就關」在 mousedown 就先把面板收了,
-       接著 click 進來看到沒有面板,又開一個新的 —— 看起來就是「按了關不掉」。
-       所以點在開它的那顆鈕上,不算點外面。 */
-    const 觸 = e.currentTarget;
-    盒.style.left = Math.max(6, Math.min(r0.left - 120, window.innerWidth - 290)) + "px";
-    盒.style.top = Math.min(r0.bottom + 6, window.innerHeight - 60) + "px";
+  /* ============================================================
+     1.6 分類與指派人設定(新增卡片標題列的「⋯」切換進來)
+     ------------------------------------------------------------
+     左半邊分類(名稱、顏色、新增、刪除)、右半邊指派人(開關、名稱、顏色、這台電腦是誰)。
+     ⚠ 全部先改在草稿(this.設草)上,按 ✓ 才一次寫進去;按 ↩ 或再按一次「⋯」放棄,有改過會先問。
+     ⚠ 筆記裡的標題(新增、刪除、改名、搬卡片)在**同一次原子寫入**裡做完(寫手.改分類們),
+       中途對不上就整份不動。
+     ⚠ 分類的自動顏色是照順序配的:刪掉前面一個,後面的會全部換色。所以存的時候
+       「原本就是自動色、而且位置變了」的分類,把它現在的顏色釘住 —— 畫面上看到什麼,存完就是什麼。
+     ============================================================ */
+  建設草() {
+    const 設 = this.插件.設定, 我 = 讀我是誰();
+    let 號 = 0;
+    const 草 = {
+      分類: this.分類清單.filter(x => !/archive|封存/i.test(x)).map(n => {
+        const 色 = (設.分類顏色 || {})[n] || null;
+        return { id: 號++, 原: n, 名: n, 色: 色, 原色: 色, 刪: false, 搬到: null };
+      }),
+      用人: !設.個人模式,
+      人: (設.指派人 || []).map(n => ({ id: 號++, 原: n, 名: n, 色: (設.指派人顏色 || {})[n] || null, 刪: false })),
+      我: ""
+    };
+    const 我項 = 草.人.find(x => x.原 === 我);
+    草.我 = 我項 ? String(我項.id) : "";
+    草.下號 = 號;
+    草.原樣 = this.草指紋(草);
+    return 草;
+  }
+  草指紋(草) { return JSON.stringify([草.分類, 草.用人, 草.人, 草.我]); }
+  草改過() { return !!this.設草 && this.草指紋(this.設草) !== this.設草.原樣; }
+  // 草稿裡一個分類現在該是什麼顏色(i = 它在還活著的分類裡排第幾)
+  草分類色(項, i) {
+    const 解 = (c) => 標籤色[c] || (是色碼(c) ? c : null);
+    if (項.色 && 解(項.色)) return 解(項.色);
+    if (項.原 && !項.原色) return 標籤色[自動色名[this.插件.分類序序號(項.原) % 自動色名.length]];
+    // 新的分類剛好叫一個已經有顏色的名字(顏色照名字記、所有看板共用):存了之後就是那個顏色,先照它畫
+    const 共用 = !項.原 ? (this.插件.設定.分類顏色 || {})[String(項.名 || "").trim()] : null;
+    if (共用 && 解(共用)) return 解(共用);
+    return 標籤色[自動色名[i % 自動色名.length]];
+  }
+  離開設定模式(然後) {
+    const 走 = () => {
+      this.狀態.設定模式 = false; this.設草 = null;
+      if (然後) 然後(); else this.畫新增區(this.區.新增, this.卡片);
+    };
+    if (!this.草改過()) { 走(); return; }
+    new 確認框(this.app, this.T.discardAsk, this.T.discard, 走).open();
+  }
 
-    const 頭 = 盒.createDiv();
-    st(頭, "font-size:0.82em;font-weight:700;color:var(--text-normal);");
-    頭.setText(T.editSections);
-    st(盒.createDiv({ text: T.sectionColorHint }), "font-size:0.72em;color:var(--text-faint);margin-top:-4px;");
-
-    (區 || []).slice(0, 5).forEach(n => {
-      const 列 = 盒.createDiv();
-      st(列, "display:flex;align-items:center;gap:8px;");
-      const c = this.插件.分類色(n);
+  畫設定面板(外塊) {
+    const T = this.T, 草 = this.設草, 窄 = this.窄;
+    const 重畫 = (焦點) => { this.__設焦點 = 焦點 || null; this.畫新增區(this.區.新增, this.卡片); };
+    const 淨 = (v) => String(v || "").replace(/[\r\n]+/g, " ").trim();
+    const 本體 = 外塊.createDiv();
+    本體.addClass("tk-設定面板");
+    // 桌機左右兩半;手機太窄,上下疊(分類在上)
+    st(本體, "display:flex;flex-direction:" + (窄 ? "column" : "row") + ";align-items:stretch;min-width:0;");
+    const 半 = "flex:1 1 0;min-width:0;padding:8px 10px 10px;display:flex;flex-direction:column;gap:6px;box-sizing:border-box;";
+    const 左 = 本體.createDiv(), 右 = 本體.createDiv();
+    st(左, 半);
+    st(右, 半 + (窄 ? "border-top:1px solid var(--background-modifier-border);"
+                    : "border-left:1px solid var(--background-modifier-border);"));
+    // 1.6:兩半的標題只放圖示(分類 swatch-book、指派人 user-pen),名字在滑鼠提示
+    const 小標 = (容器, 圖名們, 提示) => {
+      const 行 = 容器.createDiv();
+      st(行, "display:flex;align-items:center;gap:8px;min-height:22px;min-width:0;");
+      const 框 = 行.createDiv();
+      st(框, "display:inline-flex;align-items:center;line-height:0;color:var(--text-muted);");
+      圖備(框, 圖名們, 15);
+      框.setAttribute("aria-label", 提示);
+      return 行;
+    };
+    const 輸入樣 = "flex:1 1 auto;min-width:0;height:26px;min-height:0;font-size:0.84em;padding:0 7px;margin:0;" +
+      "border-radius:5px;box-sizing:border-box;";
+    const 圖鈕樣 = "display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:22px;" +
+      "border-radius:5px;cursor:pointer;line-height:0;color:var(--text-faint);";
+    const 六碼 = (c) => /^#[0-9a-f]{3}$/i.test(c) ? "#" + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c;
+    const 色圓 = (列, c, 改) => {
       const 圓 = 列.createDiv();
-      st(圓, "position:relative;width:20px;height:20px;border-radius:50%;flex:0 0 auto;" +
-        "cursor:pointer;overflow:hidden;background:" + c + ";");
+      st(圓, "position:relative;width:20px;height:20px;border-radius:50%;flex:0 0 auto;cursor:pointer;overflow:hidden;background:" + c + ";");
+      圓.title = T.pickColor;
       const 色輸 = 圓.createEl("input", { type: "color" });
-      色輸.value = c;
+      色輸.value = 六碼(c);
       st(色輸, "position:absolute;inset:0;opacity:0;cursor:pointer;padding:0;border:0;");
-      /* ⚠ 抖動的原因在這裡。色盤拖曳的時候 oninput 每幾毫秒就發一次,
-         舊版每一次都「存設定 + 重畫所有看板」—— 整份清單一秒重建幾十次,
-         畫面當然會抖,而且色盤面板自己也被重畫掉。
-         現在:拖的時候只改這一顆圓點的顏色(便宜),放開手(change)才真的存檔和重畫。 */
+      // 拖色盤的時候只改這顆圓點(便宜),放開手才重畫(理由同 1.4 的色盤抖動)
       色輸.oninput = () => { 圓.style.background = 色輸.value; };
-      色輸.onchange = async () => {
-        this.插件.設定.分類顏色 = this.插件.設定.分類顏色 || {};
-        this.插件.設定.分類顏色[n] = 色輸.value;
-        await this.插件.存設定();
-        this.插件.重畫所有看板();
-      };
-      /* 1.5:名字是輸入框,按 Enter(或點別的地方)就改名 —— 直接改筆記裡的 `## 標題`。 */
+      色輸.onchange = () => 改(色輸.value);
+    };
+    const 小圖鈕 = (列, 名們, 提示, 動作, 淡) => {
+      const b = 列.createDiv();
+      b.setAttribute("role", "button");
+      st(b, 圖鈕樣 + (淡 ? "opacity:0.3;cursor:default;" : ""));
+      圖備(b, 名們, 13);
+      b.title = 提示;
+      b.onclick = 動作;
+      return b;
+    };
+
+    /* ---- 左半:分類 ---- */
+    const 活 = 草.分類.filter(x => !x.刪);
+    小標(左, ["swatch-book", "palette"], T.sections);
+    const 張數 = {};
+    this.卡片.forEach(k => { 張數[k.分類] = (張數[k.分類] || 0) + 1; });
+    活.forEach((項, i) => {
+      const 列 = 左.createDiv();
+      st(列, "display:flex;align-items:center;gap:6px;min-width:0;");
+      色圓(列, this.草分類色(項, i), (v) => { 項.色 = v; 重畫(); });
       const 名 = 列.createEl("input", { type: "text" });
-      名.value = n;
-      st(名, "flex:1 1 auto;min-width:0;font-size:0.82em;height:24px;min-height:0;padding:0 6px;" +
-        "border-radius:5px;box-sizing:border-box;");
-      名.title = T.renameSection;
-      let 送了 = false;
-      const 送名 = async () => {
-        if (送了) return;
-        const v = String(名.value || "").trim();
-        if (!v || v === n) { 名.value = n; return; }
-        送了 = true;
-        try { 盒.remove(); } catch (x) {}
-        document.removeEventListener("mousedown", 關, true);
-        await this.改分類名(n, v);
+      名.value = 項.名;
+      名.placeholder = T.sectionNamePh;
+      名.setAttribute("data-設", "分" + 項.id);
+      st(名, 輸入樣);
+      名.oninput = () => { 項.名 = 名.value; };
+      const n = 項.原 ? (張數[項.原] || 0) : 0;
+      st(列.createDiv({ text: n ? String(n) : "" }),
+        "flex:0 0 18px;width:18px;text-align:right;font-size:0.7em;color:var(--text-faint);font-variant-numeric:tabular-nums;");
+      if (項.色) 小圖鈕(列, ["rotate-ccw"], T.resetColor, () => { 項.色 = null; 重畫(); });
+      const 最後一個 = 活.length <= 1;
+      小圖鈕(列, ["x"], 最後一個 ? T.sectionLimit : T.deleteSection, (e) => {
+        if (最後一個) { new Notice(T.sectionLimit); return; }
+        if (!項.原) { 草.分類 = 草.分類.filter(x => x !== 項); 重畫(); return; }
+        if (!n) { 項.刪 = true; 重畫(); return; }
+        // 裡面有卡片:先問要搬到哪一個分類
+        const m = new Menu();
+        m.addItem(it => it.setTitle(T.moveCardsTo.replace("N", String(n))).setDisabled(true));
+        活.filter(x => x !== 項).forEach(x => m.addItem(it => it
+          .setTitle(淨(x.名) || "—").setIcon("arrow-right")
+          .onClick(() => { 項.刪 = true; 項.搬到 = x.id; 重畫(); })));
+        m.showAtMouseEvent(e);
+      }, 最後一個);
+    });
+    if (活.length < 分類上限) {
+      const 加 = 左.createDiv();
+      加.setAttribute("role", "button");
+      st(加, "display:inline-flex;align-items:center;gap:5px;align-self:flex-start;cursor:pointer;" +
+        "font-size:0.76em;color:var(--text-muted);padding:2px 6px;border-radius:5px;");
+      // 1.6:只放圖示(字在滑鼠提示)
+      圖備(加, ["circle-plus", "plus-circle", "plus"], 16);
+      加.setAttribute("aria-label", T.addSection);
+      加.onclick = () => {
+        const id = 草.下號++;
+        草.分類.push({ id: id, 原: null, 名: "", 色: null, 原色: null, 刪: false, 搬到: null });
+        重畫("分" + id);
       };
-      名.onkeydown = (ev) => {
-        if (ev.isComposing || ev.keyCode === 229) return;
-        if (是Enter鍵(ev)) { ev.preventDefault(); 送名(); }
-        else if (ev.key === "Escape") { ev.preventDefault(); 名.value = n; 名.blur(); }
-      };
-      名.onblur = () => { 送名(); };
-      if ((this.插件.設定.分類顏色 || {})[n]) {
-        const 回 = 列.createDiv();
-        st(回, "display:inline-flex;cursor:pointer;color:var(--text-faint);line-height:0;");
-        圖(回, "rotate-ccw", 13);
-        回.title = T.resetColor;
-        回.onclick = async () => {
-          delete this.插件.設定.分類顏色[n];
-          await this.插件.存設定();
-          this.插件.重畫所有看板();
-          try { 盒.remove(); } catch (x) {}
-        };
+    }
+    // 準備刪掉的分類列在最底下,可以反悔
+    const 找活 = (項) => { let x = 項; for (let i = 0; x && x.刪 && i < 50; i++) x = 草.分類.find(y => y.id === x.搬到); return (x && !x.刪) ? x : null; };
+    草.分類.filter(x => x.刪 && x.原).forEach(項 => {
+      const 行 = 左.createDiv();
+      st(行, "display:flex;align-items:center;gap:6px;min-width:0;font-size:0.72em;color:var(--text-faint);");
+      const 到 = 項.搬到 !== null ? 找活(項) : null;
+      st(行.createDiv({ text: T.willDelete.replace("N", 項.原) + (到 ? "  → " + (淨(到.名) || "—") : "") }),
+        "flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:line-through;");
+      小圖鈕(行, ["undo-2", "undo", "rotate-ccw"], T.undoDelete, () => {
+        if (活.length >= 分類上限) { new Notice(T.sectionLimit); return; }
+        項.刪 = false; 項.搬到 = null; 重畫();
+      });
+    });
+
+    /* ---- 右半:指派人 ---- */
+    const 人頭 = 小標(右, ["user-pen", "user-cog", "users"], T.people);
+    const 開關 = 人頭.createDiv({ cls: "checkbox-container" });
+    開關.toggleClass("is-enabled", !!草.用人);
+    開關.setAttribute("role", "switch");
+    開關.setAttribute("aria-checked", 草.用人 ? "true" : "false");
+    開關.style.marginLeft = "auto";
+    開關.title = T.useAssignees;
+    開關.onclick = () => { 草.用人 = !草.用人; 重畫(); };
+    const 人區 = 右.createDiv();
+    // 關著 = 個人使用:名單整塊變灰、點不到(資料留著,打開就回來)
+    // 1.6:人區撐滿右半邊的高度,「這台電腦是誰」那一行才落得到右下角
+    st(人區, "display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 1 auto;" +
+      (草.用人 ? "" : "opacity:0.4;filter:grayscale(1);pointer-events:none;"));
+    const 活人 = 草.人.filter(x => !x.刪);
+    活人.forEach((項, i) => {
+      const 列 = 人區.createDiv();
+      st(列, "display:flex;align-items:center;gap:6px;min-width:0;");
+      色圓(列, 項.色 || (項.原 ? this.插件.人色(項.原) : 人色盤[i % 人色盤.length]), (v) => { 項.色 = v; 重畫(); });
+      const 名 = 列.createEl("input", { type: "text" });
+      名.value = 項.名;
+      名.placeholder = T.newPerson;
+      名.setAttribute("data-設", "人" + 項.id);
+      st(名, 輸入樣);
+      名.oninput = () => { 項.名 = 名.value; };
+      小圖鈕(列, ["x"], T.removePerson, () => {
+        if (!項.原) 草.人 = 草.人.filter(x => x !== 項); else 項.刪 = true;
+        if (草.我 === String(項.id)) 草.我 = "";
+        重畫();
+      });
+    });
+    草.人.filter(x => x.刪 && x.原).forEach(項 => {
+      const 行 = 人區.createDiv();
+      st(行, "display:flex;align-items:center;gap:6px;min-width:0;font-size:0.72em;color:var(--text-faint);");
+      st(行.createDiv({ text: T.willRemove.replace("N", 項.原) }),
+        "flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;");
+      小圖鈕(行, ["undo-2", "undo", "rotate-ccw"], T.undoDelete, () => { 項.刪 = false; 重畫(); });
+    });
+    // 1.6:跟「＋ 新增分類」一樣:加一列空白的名字、游標放進去(空白的存檔時自動略過)
+    const 加人 = 人區.createDiv();
+    加人.setAttribute("role", "button");
+    st(加人, "display:inline-flex;align-items:center;gap:5px;align-self:flex-start;cursor:pointer;" +
+      "font-size:0.76em;color:var(--text-muted);padding:2px 6px;border-radius:5px;");
+    圖備(加人, ["user-plus", "plus"], 16);
+    加人.setAttribute("aria-label", T.addPerson);
+    加人.onclick = () => {
+      const id = 草.下號++;
+      草.人.push({ id: id, 原: null, 名: "", 色: null, 刪: false });
+      重畫("人" + id);
+    };
+    const 我行 = 人區.createDiv();
+    // 1.6:圖示和名字一起靠右下角(margin-top:auto 推到底、圖示 margin-left:auto 推到右邊)
+    st(我行, "display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0;margin-top:auto;padding-top:2px;");
+    /* 1.6:「這台電腦是誰在用」換成兩顆圖示:square-user(這台電腦的人)+ message-square-more(留言靠它認人),
+       完整說明在滑鼠提示 */
+    const 我圖 = 我行.createDiv();
+    st(我圖, "display:inline-flex;align-items:center;gap:4px;line-height:0;color:var(--text-muted);flex:0 0 auto;margin-left:auto;");
+    圖備(我圖, ["square-user", "user-square", "user"], 15);
+    圖備(我圖, ["message-square-more", "message-square", "message-circle"], 15);
+    我圖.setAttribute("aria-label", T.whoAmI + " · " + T.whoAmIShort);
+    const 我選 = 我行.createEl("select");
+    我選.createEl("option", { value: "", text: "—" });
+    活人.filter(x => 淨(x.名)).forEach(x => 我選.createEl("option", { value: String(x.id), text: 淨(x.名) }));
+    我選.value = 草.我;
+    st(我選, "flex:0 0 auto;max-width:50%;height:24px;min-height:0;font-size:0.76em;padding:0 6px;border-radius:5px;");
+    我選.onchange = () => { 草.我 = 我選.value; };
+
+    if (this.__設焦點) {
+      const el = 本體.querySelector('[data-設="' + this.__設焦點 + '"]');
+      this.__設焦點 = null;
+      if (el) setTimeout(() => { try { el.focus({ preventScroll: true }); } catch (e) {} }, 0);
+    }
+  }
+
+  async 存設草() {
+    const T = this.T, 草 = this.設草, 設 = this.插件.設定, s = this.狀態;
+    if (!草 || this.__存設中) return;
+    const 淨 = (v) => String(v || "").replace(/[\r\n]+/g, " ").trim();
+
+    const 活 = 草.分類.filter(x => !x.刪);
+    const 名們 = 活.map(x => 淨(x.名));
+    if (!活.length || 活.length > 分類上限) { new Notice(T.sectionLimit); return; }
+    if (名們.some(n => !n)) { new Notice(T.sectionNameEmpty); return; }
+    if (名們.some(n => /archive|封存/i.test(n))) { new Notice(T.sectionReserved); return; }
+    if (new Set(名們).size !== 名們.length) { new Notice(T.sectionExists); return; }
+    const 活人 = 草.人.filter(x => !x.刪 && 淨(x.名));
+    const 人名 = 活人.map(x => 淨(x.名));
+    if (new Set(人名).size !== 人名.length) { new Notice(T.dupName); return; }
+    const 原人 = 草.人.filter(x => x.原).map(x => x.原);
+    const 人改 = 活人.filter(x => x.原 && 淨(x.名) !== x.原);
+    // 改成「另一個人原本的名字」(兩個人互換)會把兩邊的 #名字 混在一起,不做
+    if (人改.some(x => 原人.indexOf(淨(x.名)) >= 0)) { new Notice(T.dupName); return; }
+
+    // ⚠ 顏色要在寫檔**之前**算:寫完 setViewData 會重畫,分類順序就換成新的了
+    const 舊自動 = {};
+    活.forEach(x => { if (x.原) 舊自動[x.id] = 自動色名[this.插件.分類序序號(x.原) % 自動色名.length]; });
+    const 舊人色 = {};
+    活人.forEach(x => { if (x.原) 舊人色[x.id] = this.插件.人色(x.原); });
+
+    const 找活 = (項) => { let x = 項; for (let i = 0; x && x.刪 && i < 50; i++) x = 草.分類.find(y => y.id === x.搬到); return (x && !x.刪) ? x : null; };
+    const 計畫 = {
+      新增: 活.filter(x => !x.原).map(x => 淨(x.名)),
+      刪: 草.分類.filter(x => x.刪 && x.原).map(x => {
+        const 到 = 找活(x) || 活[0];
+        return [x.原, 到.原 ? { 名: 到.原, 新: false } : { 名: 淨(到.名), 新: true }];
+      }),
+      改名: 活.filter(x => x.原 && 淨(x.名) !== x.原).map(x => [x.原, 淨(x.名)])
+    };
+
+    this.__存設中 = true;
+    try {
+      if (計畫.新增.length || 計畫.刪.length || 計畫.改名.length) {
+        const ok = await this.插件.寫手.改分類們(this.file, 計畫);
+        if (!ok) return;             // 寫手已經說過為什麼了;草稿留著,可以再按一次
       }
-    });
+      for (const x of 人改) await this.插件.寫手.改指派人名(this.file, x.原, 淨(x.名));
 
-    const 關 = (ev) => {
-      if (盒.contains(ev.target) || (觸 && 觸.contains(ev.target))) return;
-      try { 盒.remove(); } catch (x) {}
-      document.removeEventListener("mousedown", 關, true);
-    };
-    setTimeout(() => document.addEventListener("mousedown", 關, true), 0);
-  }
+      /* ⚠ 分類顏色是**所有看板共用、照名字記**的(另一份筆記也可能有一區叫「研究」)。
+         所以只動這一次真的改到的鍵:選了顏色 → 寫;按了重設 → 刪;改名 → 搬到新名字。
+         刪掉的分類、新增但沒選顏色的分類,鍵一律不碰(開發中曾經把別份看板「研究」的紫色刪掉)。 */
+      const 色表 = Object.assign({}, 設.分類顏色 || {}), 名表 = Object.assign({}, 設.分類名稱 || {});
+      const 有 = (m, k) => Object.prototype.hasOwnProperty.call(m, k);
+      活.forEach((x, i) => {
+        const n = 淨(x.名), 改名 = !!x.原 && x.原 !== n;
+        if (改名) {
+          if (有(名表, x.原)) { 名表[n] = 名表[x.原]; delete 名表[x.原]; }
+          delete 色表[x.原];
+        }
+        if (x.色) 色表[n] = x.色;
+        else if (x.原 && x.原色) delete 色表[n];                  // 原本有自訂色、按了重設
+        else if (x.原 && 自動色名[i % 自動色名.length] !== 舊自動[x.id]) 色表[n] = 舊自動[x.id];   // 自動色因為位置變了會換 → 釘住
+        else if (x.原 && 改名) delete 色表[n];                     // 改名成一個別處用過的名字:照自動色,不要撿到別人的
+      });
+      設.分類顏色 = 色表;
+      設.分類名稱 = 名表;
 
-  /* 分類改名(1.5):寫手改筆記裡的標題,設定裡綁在舊名字上的顏色跟著搬過去。 */
-  async 改分類名(舊, 新) {
-    const T = this.T;
-    新 = String(新 || "").replace(/[\r\n]+/g, " ").trim();
-    if (!新 || 新 === 舊) return false;
-    if (this.分類清單.indexOf(新) >= 0) { new Notice(T.sectionExists); return false; }
-    const n = await this.插件.寫手.改分類名(this.file, 舊, 新);
-    if (!n) return false;
-    const 設 = this.插件.設定;
-    ["分類顏色", "分類名稱"].forEach(鍵 => {
-      const m = 設[鍵];
-      if (m && Object.prototype.hasOwnProperty.call(m, 舊)) { m[新] = m[舊]; delete m[舊]; }
-    });
-    if (this.狀態.新分類 === 舊) this.狀態.新分類 = 新;
-    await this.插件.存設定();
-    new Notice(T.sectionRenamed);
-    return true;
-  }
+      const 人色表 = Object.assign({}, 設.指派人顏色 || {});
+      草.人.forEach(x => { if (x.原) delete 人色表[x.原]; });
+      活人.forEach((x, i) => {
+        const n = 淨(x.名);
+        if (x.色) 人色表[n] = x.色;
+        else if (x.原 && 舊人色[x.id] !== 人色盤[i % 人色盤.length]) 人色表[n] = 舊人色[x.id];   // 同上:位置變了就釘住原本的顏色
+      });
+      設.指派人顏色 = 人色表;
+      設.指派人 = 人名;
+      設.個人模式 = !草.用人;
+      const 我項 = 活人.find(x => String(x.id) === 草.我);
+      存我是誰(我項 ? 淨(我項.名) : null);
 
-  /* ---- 管理指派人(從「⋯」打開) ---- */
-  畫管人(根) {
-    const T = this.T, 設 = this.插件.設定;
-    const 盒 = 根.createDiv();
-    盒.addClass("tk-欄框");
-    st(盒, "margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--background-secondary);" +
-      "border:1px solid var(--background-modifier-border);");
-    st(盒.createDiv({ text: T.managePeople }),
-      "font-size:0.7em;font-weight:700;color:var(--text-muted);margin-bottom:5px;");
-    設.指派人.forEach((n, i) => {
-      const 行 = 盒.createDiv();
-      st(行, "display:flex;align-items:center;gap:6px;margin-bottom:4px;");
-      const 色 = 行.createEl("input", { type: "color" });
-      色.value = this.插件.人色(n);
-      st(色, "width:26px;height:22px;padding:0;border:0;background:none;cursor:pointer;");
-      色.onchange = async () => {
-        設.指派人顏色 = 設.指派人顏色 || {};
-        設.指派人顏色[n] = 色.value;
-        await this.插件.存設定(); this.畫();
-      };
-      const 名 = 行.createEl("input", { type: "text" });
-      st(名, "flex:1 1 auto;min-width:0;height:24px;font-size:0.86em;");
-      名.value = n;
-      名.onblur = async () => {
-        const 新 = String(名.value || "").trim();
-        if (!新 || 新 === n) { 名.value = n; return; }
-        if (設.指派人.indexOf(新) >= 0) { new Notice(T.dupName); 名.value = n; return; }
-        // ⚠ 改名要連檔案裡的 `#舊名` 一起換,不然那些卡片就認不出指派給誰了
-        const 換 = await this.插件.寫手.改指派人名(this.file, n, 新);
-        設.指派人[i] = 新;
-        if (設.指派人顏色 && 設.指派人顏色[n]) { 設.指派人顏色[新] = 設.指派人顏色[n]; delete 設.指派人顏色[n]; }
-        if (讀我是誰() === n) 存我是誰(新);
-        await this.插件.存設定();
-        new Notice(T.renamed + (換 ? "（" + 換 + "）" : ""));
-        this.畫();
-      };
-      const 刪 = 行.createDiv();
-      st(刪, "cursor:pointer;color:var(--text-faint);padding:0 5px;display:inline-flex;line-height:0;");
-      圖(刪, "x", 13);
-      刪.title = T.removePerson;
-      刪.onclick = async () => {
-        設.指派人 = 設.指派人.filter(x => x !== n);
-        if (讀我是誰() === n) 存我是誰(null);
-        await this.插件.存設定(); this.畫();
-      };
-    });
-    const 加行 = 盒.createDiv();
-    st(加行, "display:flex;align-items:center;gap:6px;");
-    const 新名 = 加行.createEl("input", { type: "text" });
-    st(新名, "flex:1 1 auto;min-width:0;height:24px;font-size:0.86em;");
-    新名.placeholder = T.newPerson;
-    const 加 = 加行.createEl("button");
-    st(加, "height:24px;padding:0 12px;font-size:0.84em;border-radius:6px;cursor:pointer;");
-    圖鈕(加, "plus", "", 15);
-    加.onclick = async () => {
-      const v = String(新名.value || "").trim();
-      if (!v || 設.指派人.indexOf(v) >= 0) return;
-      設.指派人.push(v);
-      await this.插件.存設定(); this.畫();
-    };
-    st(盒.createDiv({ text: T.whoAmI + "：" + (this.我是誰() || "—") + "　" + T.whoAmIShort }),
-      "font-size:0.68em;color:var(--text-faint);margin-top:5px;");
+      // 新增卡片那一格選著的分類 / 指派人:改名跟著改,刪掉的清回預設
+      const 選分 = 草.分類.find(x => x.原 && x.原 === s.新分類);
+      if (選分) s.新分類 = 選分.刪 ? null : 淨(選分.名);
+      const 選人 = 草.人.find(x => x.原 && x.原 === s.新指派);
+      if (選人) s.新指派 = 選人.刪 ? null : 淨(選人.名);
+
+      await this.插件.存設定();
+      s.設定模式 = false;
+      this.設草 = null;
+      new Notice(T.saved);
+      this.插件.重畫所有看板();
+    } finally {
+      this.__存設中 = false;
+    }
   }
 
   /* ============================================================
@@ -3681,7 +4209,9 @@ class 看板視圖 extends TextFileView {
         收合鍵: 置頂收合鍵 });
       頂塊.style.marginBottom = "5px";            // 1.5.1:12 → 5,塊跟塊之間緊一點
     }
-    this.畫卡片塊(根, { 標題: this.篩選標題(), 色: this.篩選色(), 卡們: 其餘, 帶工具: !頂.length, 全: 全 });
+    // 1.6:清單表也能收合,標題前面一顆篩選圖示(跟時間篩選收起來時的標題列同一個語言)
+    this.畫卡片塊(根, { 標題: this.篩選標題(), 色: this.篩選色(), 卡們: 其餘, 帶工具: !頂.length, 全: 全,
+      收合鍵: 清單收合鍵, 前圖示: ["filter", "list-filter"] });
   }
 
   /* 一張卡片表:標題列 + 表格(桌機)或一疊卡片(窄螢幕)。置頂表和主清單共用。 */
@@ -3709,12 +4239,19 @@ class 看板視圖 extends TextFileView {
       if (收) 頭.style.borderBottom = "0";
       圖(頭, 收 ? "chevron-right" : "chevron-down", 15, "var(--text-muted)");
       頭.title = 收 ? T.unfold : T.fold;
+      塊.setAttribute("data-fold-key", 設.收合鍵);
       頭.onclick = (e) => {
         if (e.target && e.target.closest && e.target.closest("button, .tk-工具群")) return;
-        存收合(設.收合鍵, !收);
-        this.重畫清單();
+        const 鍵 = 設.收合鍵;
+        this.收合滑動(塊, !收, () => { 存收合(鍵, !收); this.重畫清單(); },
+          () => this.區.清單.querySelector('[data-fold-key="' + 鍵 + '"]'));
       };
     } else 表頭留位(頭);          // 沒有箭頭的表留一樣寬的空白,標題字才對齊
+    if (設.前圖示) {
+      const 前 = 頭.createDiv();
+      st(前, "display:inline-flex;align-items:center;line-height:0;color:" + (設.色 || "var(--text-muted)") + ";");
+      圖備(前, 設.前圖示, 13);
+    }
     if (設.圖示) {
       // 1.5.1:置頂表的標題列只放 📌 圖示,字留在 aria-label
       const 圖框 = 頭.createDiv();
@@ -3723,9 +4260,9 @@ class 看板視圖 extends TextFileView {
       圖框.setAttribute("aria-label", 設.標題);
       圖框.title = 設.標題;
     } else st(頭.createDiv({ text: 設.標題 }),
-      "font-size:0.82em;font-weight:700;white-space:nowrap;color:" + (設.色 || "var(--text-normal)") + ";");
+      "font-size:0.82em;font-weight:700;white-space:nowrap;" + 標頭補正 + "color:" + (設.色 || "var(--text-normal)") + ";");
     st(頭.createDiv({ text: 卡們.length + " " + T.cards }),
-      "font-size:0.72em;color:var(--text-faint);white-space:nowrap;");
+      "font-size:0.72em;color:var(--text-faint);white-space:nowrap;" + 標頭補正);
     if (設.帶工具) this.畫標題工具(頭);
     if (收) return 塊;
     if (設.帶工具 && this.狀態.融合中) this.畫融合列(塊, 設.全);
@@ -3806,8 +4343,8 @@ class 看板視圖 extends TextFileView {
       "border-bottom:1px solid var(--background-modifier-border);");
     表頭留位(頭);
     st(頭.createDiv({ text: T.undatedBlock }),
-      "font-size:0.82em;font-weight:700;white-space:nowrap;");
-    st(頭.createDiv({ text: 未.length + " " + T.cards }), "font-size:0.72em;color:var(--text-faint);");
+      "font-size:0.82em;font-weight:700;white-space:nowrap;" + 標頭補正);
+    st(頭.createDiv({ text: 未.length + " " + T.cards }), "font-size:0.72em;color:var(--text-faint);" + 標頭補正);
     const 身外 = 塊.createDiv();
     st(身外, "overflow:visible;min-width:0;");
     if (this.窄) {
@@ -3987,8 +4524,11 @@ class 看板視圖 extends TextFileView {
     const 尾 = [];
     排.forEach((k, i) => {
       const 行們 = (i === 0) ? k.內容行.slice(1) : k.內容行;   // 主卡第一行就是合併後的第一行,不重複
-      if (i > 0 && 行們.length) 尾.push("\t" + 符() + (k.起日 ? 日期短(k.起日) + "  " : "") + 行們[0]);
-      行們.slice(i > 0 ? 1 : 0).forEach(t => 尾.push("\t\t" + 符() + t));
+      /* 1.6:日期**自己一行**,那張卡片的內容排在它底下。
+         以前日期黏在第一行內容前面(「09-14(一)  打給廠商」),日期和內容擠成一句,掃過去分不出來。
+         ⚠ 內容跟日期同一層(一個 tab):以前寫的兩個 tab 會被 寫手.一行() 壓成一個空白,寫進筆記變成「 ．…」。 */
+      if (i > 0 && 行們.length && k.起日) 尾.push("\t" + 符() + 日期短(k.起日));
+      行們.forEach(t => 尾.push("\t" + 符() + t));
     });
     // 留言全部搬進來,新到舊
     const 留 = [];
@@ -4013,9 +4553,10 @@ class 看板視圖 extends TextFileView {
     /* 1.5.1:日期一律用 日期範圍字(今年不寫年份,跟新增卡片收起來時的「09-15(二)」同一種寫法)。
        以前這裡是「26-09-15(二)」和「9/14 – 9/20」兩種,兩個控制塊收起來並排時看起來不一樣。 */
     if (f.型 === "範圍") return 日期範圍字(s.起, s.迄 !== s.起 ? s.迄 : null);
-    if (f.型 === "今日") return T.dayLayer + "  " + 日期範圍字(this.今);
-    if (f.型 === "7天內") { const r = this.現在區間(); return T.weekLayer + "  " + 日期範圍字(r[0], r[1]); }
-    if (f.型 === "本月") { const r = this.現在區間(); return T.monthLayer + "  " + 日期範圍字(r[0], r[1]); }
+    // 1.6:寫實際的那一天 / 那一週 / 那個月 —— 游標不一定在今天,不能再寫「本日」「本周」
+    if (f.型 === "今日") return 日期範圍字(s.游標 || this.今);
+    if (f.型 === "7天內") { const r = this.現在區間(); return 日期範圍字(r[0], r[1]); }
+    if (f.型 === "本月") { const r = this.現在區間(); return 月年字(r[0], T) + "  " + 日期範圍字(r[0], r[1]); }
     if (f.型 === "年度") return s.統計年;
     return { 全部: T.all, 逾期: T.overdue, 週期: T.longTerm }[f.型] || T.all;
   }
@@ -4339,10 +4880,11 @@ class 看板視圖 extends TextFileView {
          但這一顆的父層是 <td>,不指定就直接撐滿整欄(量到 97px / 110px 欄)——
          那看起來就是一個大框,而不是一顆小標籤。 */
       st(今鈕, "display:inline-flex;align-items:center;justify-content:center;width:auto;" +
-        "font-size:0.66em;height:19px;min-height:0;padding:0 7px;" +
+        // 1.6:灰字、小一號(以前紅字紅框,一整欄逾期的卡片看起來全在喊)
+        "font-size:0.6em;height:17px;min-height:0;padding:0 6px;" +
         "border-radius:9px;cursor:pointer;box-shadow:none;white-space:nowrap;" +
-        "color:var(--color-red, #e05252);" +
-        "border:1px solid var(--color-red, #e05252);");
+        "color:var(--text-muted);" +
+        "border:1px solid var(--background-modifier-border);");
       今鈕.title = "已逾期,點一下把日期改成今天(" + this.今 + ")";
       今鈕.onclick = async (e) => {
         e.stopPropagation();
@@ -4351,10 +4893,7 @@ class 看板視圖 extends TextFileView {
         const ok = await this.設日期(k, this.今);
         if (ok === false) return;
         // 改成今天之後,現在的篩選常常就看不到它了 —— 自動切到「本日」讓它看得見
-        if (this.插件.設定.跳轉_設回今日) {
-          this.狀態.篩 = { 型: "今日" }; this.狀態.偏移 = {};
-          this.狀態.統計年 = String(new Date().getFullYear());
-        }
+        if (this.插件.設定.跳轉_設回今日) this.回到今天();
         this.記剛動過(k, this.T.movedToday, () => this.設日期(k, k.起日));
         this.浮到最上(k);
       };
@@ -4369,9 +4908,9 @@ class 看板視圖 extends TextFileView {
     const 鈕 = 膠囊(格, T.setToday);
     // 同上:膠囊是 div,不指定 inline-flex 就會撐滿整個 <td>
     st(鈕, "display:inline-flex;align-items:center;justify-content:center;width:auto;" +
-      "font-size:0.66em;height:19px;min-height:0;padding:0 7px;border-radius:9px;" +
+      "font-size:0.6em;height:17px;min-height:0;padding:0 6px;border-radius:9px;" +      // 1.6:跟逾期那顆一樣灰、小一號
       "cursor:pointer;box-shadow:none;white-space:nowrap;" +
-      "color:var(--text-accent);border:1px solid var(--text-accent);");
+      "color:var(--text-muted);border:1px solid var(--background-modifier-border);");
     鈕.title = "把這張排進今天(" + this.今 + ")";
     鈕.onclick = async (e) => {
       e.stopPropagation();
@@ -4379,10 +4918,7 @@ class 看板視圖 extends TextFileView {
       鈕.鎖住("…");
       const ok = await this.設日期(k, this.今);
       if (ok === false) return;
-      if (this.插件.設定.跳轉_設回今日) {
-        this.狀態.篩 = { 型: "今日" }; this.狀態.偏移 = {};
-        this.狀態.統計年 = String(new Date().getFullYear());
-      }
+      if (this.插件.設定.跳轉_設回今日) this.回到今天();
       this.記剛動過(k, this.T.movedToday, () => {});
       this.浮到最上(k);
     };
@@ -5636,6 +6172,7 @@ class 看板視圖 extends TextFileView {
     if (ok) {
       // 清空主題和內容(它們同時是搜尋框,不清就會把清單篩成只剩這一張)
       s.新主題 = ""; s.新內容 = ""; s.搜尋 = "";
+      this.__記題 = null; this.__記前 = null;
       if (人) 存我是誰(人);
       /* 新卡片一定要看得到:排序切回「最近編輯」(新的就在第一列),
          篩選切到看得到它的那一段,再捲過去。 */
@@ -5643,7 +6180,7 @@ class 看板視圖 extends TextFileView {
       if (d.週期) s.篩 = { 型: "週期" };
       else if (d.起) {
         const 區 = this.現在區間();
-        if (!區 || d.起 < 區[0] || d.起 > 區[1]) { s.篩 = { 型: "今日" }; s.偏移 = {}; }
+        if (!區 || d.起 < 區[0] || d.起 > 區[1]) this.回到今天();
       }
       await this.插件.存設定();
       const 新鍵 = 鍵由首行(首行, this.名單);
@@ -6333,6 +6870,22 @@ module.exports = class 卡片日誌看板 extends Plugin {
   }
 };
 
+/* 1.6:「確定嗎?」的小視窗(分類與指派人設定按 ↩ 放棄修改的時候問) */
+class 確認框 extends Modal {
+  constructor(app, 文, 是字, 做) { super(app); this.文 = 文; this.是字 = 是字; this.做 = 做; }
+  onOpen() {
+    const T = 語(), c = this.contentEl;
+    c.empty();
+    c.createEl("p", { text: this.文 });
+    const 列 = c.createDiv({ cls: "modal-button-container" });
+    const 是 = 列.createEl("button", { text: this.是字, cls: "mod-warning" });
+    是.onclick = () => { this.close(); this.做(); };
+    const 否 = 列.createEl("button", { text: T.cancel });
+    否.onclick = () => this.close();
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
 /* 左側欄圖示的詢問視窗(1.5):沒開過的筆記先問一次,不直接把它變成看板。
    沒有開著的筆記時只剩「開一份新檔案」。 */
 class 開啟詢問 extends Modal {
@@ -6387,9 +6940,9 @@ class 設定頁 extends PluginSettingTab {
 
     new Setting(c).setName(T.defaultRange).setDesc(T.defaultRangeDesc)
       .addDropdown(d => {
-        [["今日", T.today], ["本週", T.week], ["本月", T.month], ["全部", T.all]]
+        [["今日", T.today], ["7天內", T.week], ["本月", T.month], ["全部", T.all]]
           .forEach(([v, t]) => d.addOption(v, t));
-        d.setValue(this.插件.設定.預設範圍 || "今日");
+        d.setValue(this.插件.設定.預設範圍 === "本週" ? "7天內" : (this.插件.設定.預設範圍 || "今日"));
         d.onChange(async (v) => { this.插件.設定.預設範圍 = v; await this.插件.存設定(); });
       });
 
@@ -6481,26 +7034,29 @@ class 設定頁 extends PluginSettingTab {
         });
       });
 
-    new Setting(c).setName(T.weekStart).setDesc(T.weekStartDesc)
+    /* 1.6:「一週從哪天開始」和「本周怎麼算」合併成一個選項(兩個分開的時候,使用者分不出差在哪)。
+       資料還是存在原本兩個鍵:週起始 一 / 日、週模式 週曆 / 七天 / 月初 —— 舊的設定照讀。
+       「每月 1 號起」跟星期無關,週起始維持原值,行事曆的第一欄照舊看它。 */
+    new Setting(c).setName(T.weekRule).setDesc(T.weekRuleDesc)
       .addDropdown(d => {
-        d.addOption("一", T.weekMon);
-        d.addOption("日", T.weekSun);
-        d.setValue(this.插件.設定.週起始 === "日" ? "日" : "一");
+        const 設0 = this.插件.設定;
+        [["一|週曆", T.weekMon], ["日|週曆", T.weekSun], ["一|七天", T.weekMonRolling],
+         ["日|七天", T.weekSunRolling], ["月初", T.weekMonthStart]].forEach(([v, t]) => d.addOption(v, t));
+        d.setValue(設0.週模式 === "月初" ? "月初"
+          : (設0.週起始 === "日" ? "日" : "一") + "|" + (設0.週模式 === "七天" ? "七天" : "週曆"));
         d.onChange(async (v) => {
-          this.插件.設定.週起始 = v; 週起日 = v === "日" ? 0 : 1;
+          if (v === "月初") 設0.週模式 = "月初";
+          else {
+            const 段 = v.split("|");
+            設0.週起始 = 段[0]; 設0.週模式 = 段[1];
+            週起日 = 段[0] === "日" ? 0 : 1;
+          }
           await this.插件.存設定(); this.插件.重畫所有看板();
         });
       });
 
     // ---- 1.5 ----
     const 設 = this.插件.設定;
-    new Setting(c).setName(T.weekMode).setDesc(T.weekModeDesc)
-      .addDropdown(d => {
-        d.addOption("週曆", T.weekCalendar);
-        d.addOption("七天", T.weekRolling);
-        d.setValue(設.週模式 === "七天" ? "七天" : "週曆");
-        d.onChange(async (v) => { 設.週模式 = v; await this.插件.存設定(); this.插件.重畫所有看板(); });
-      });
     new Setting(c).setName(T.showAllTile).setDesc(T.showAllTileDesc)
       .addToggle(t => t.setValue(!!設.顯示全部篩選)
         .onChange(async (v) => { 設.顯示全部篩選 = v; await this.插件.存設定(); this.插件.重畫所有看板(); }));
