@@ -6,9 +6,9 @@
 
    第一版的原則(講在最前面,以後改東西都照這個走):
 
-   1. 資料格式「一個字都不改」。卡片還是寫在 md 裡,還是
-      `- [ ] [主題] ．內容 ＠{2026-09-09} #嘉峻 📌 ✎{...}`,
-      留言還是 `．💬{2026-09-09 18:30|嘉峻} 內容`。
+   1. 資料就是筆記裡的純文字。1.6.1 起寫成(舊寫法照讀,見「格式」那一段)
+      `- [ ] [pin:: on] [主題] [due:: 2026-09-16] #嘉峻`,
+      內容、留言、最後編輯在底下縮排的行:`內容`、`[cm:: 2026-09-16 18:30|嘉峻] 留言`、`[ed:: …]`。
       所以 plugin 沒裝、或哪天不用了,筆記照樣看得懂 —— 這是最高原則。
    2. 不依賴 Dataview。檔案自己讀、自己解析(下面「格式」那一段)。
    3. 設定走 saveData() → 存在 .obsidian/plugins/card-table/data.json,
@@ -27,8 +27,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260915v3";
-const 插件版本 = "1.6.0";
+const 看板版本 = "260916v1";
+const 插件版本 = "1.6.1";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -150,14 +150,30 @@ const 字典 = {
     sendKey: "送出鍵", sendKeyDesc: "新增卡片、編輯內容、寫留言、改留言都用同一套",
     sendKeyCombo: "Enter 換行；Shift / Ctrl / ⌘ + Enter 送出（預設）", sendKeyEnter: "Enter 送出；Shift + Enter 換行",
     useComments: "使用留言功能", useCommentsDesc: "關掉之後卡片上不再有留言鈕,也不顯示留言。筆記裡已經寫好的留言不會被刪掉,再打開就回來。",
-    showEditTime: "顯示最後編輯時間", showEditTimeDesc: "卡片右上角的 🕐 時間。關掉只是不顯示,筆記裡的 ✎ 時戳照樣會寫(分辨同名卡片要用)。",
+    showEditTime: "顯示最後編輯時間", showEditTimeDesc: "卡片右上角的 🕐 時間。關掉只是不顯示,筆記裡的 [ed:: …] 時戳照樣會寫(分辨同名卡片要用)。",
     jumpPin: "置頂 → 跳到那張卡片",
     pinTopic: "釘選這個主題", unpinTopic: "取消釘選", topicsPinHint: "所有主題(可以打字查,📌 釘選的會一直排在最前面)",
     layoutWidth: "版面寬度", layoutWidthDesc: "跟 Obsidian 的「可讀行寬」一樣:窄版把看板收在中間,寬版用滿整個分頁。只影響電腦版。",
     layoutNarrow: "窄版（預設）", layoutWide: "寬版", layoutToggleWide: "改成寬版", layoutToggleNarrow: "改成窄版",
     commentPos: "留言放在哪裡", commentPosDesc: "卡片的留言顯示在內容的上面或下面",
     commentAbove: "內容上面（預設）", commentBelow: "內容下面",
-    bullet: "自動加項目符號「．」", bulletDesc: "開著的話,新增和編輯的每一行內容前面會自動加上「．」。關掉就不加,畫面上也不顯示。原本有沒有符號的內容都照樣讀得懂。",
+    bullet: "新增卡片時自動加項目符號「-」", bulletDesc: "開著的話,新增卡片時沒有自己打符號的內容行會寫成「- 內容」(畫面上顯示成「．」)。已經寫好的內容不會被加上或拿掉,編輯時照你打的寫 —— 自己打「- 」「* 」「1. 」都會留著。內容裡的待辦一律寫成「- [ ]」(打「-[ ]」「[]」也可以)。預設關。",
+    doneRec: "本次完成",
+    whatsNew: "看這一版更新了什麼", noWhatsNew: "這一版沒有更新介紹",
+    updates: "更新內容", updatesDesc: "現在是 N。每一版加了什麼(精簡版)", updatesBtn: "看所有版本",
+    setGeneral: "一般", setLook: "卡片外觀", setEdit: "新增與編輯", setFormat: "筆記格式", setSupport: "支持",
+    convertAll: "把舊寫法全部轉成新格式(測試中)",
+    convertAllDesc: "記住用卡片看板開的筆記有 N 份,把裡面 1.6.1 以前寫法的卡片一次換成新格式([due:: …]、[pin:: on]、[repeat:: …]、[cm:: …]、最後一行的 [ed:: …])。平常不需要按:舊寫法照讀,卡片被改到的時候會自己換。",
+    convertBtn: "全部轉換",
+    convertAsk: "⚠ 這會一次改寫下面這些筆記裡的每一張舊寫法卡片:\n\nLIST\n\n" +
+      "・轉換前會在每份筆記旁邊存一份原文備份(「名字 backup-日期-時間」),但還是請先自己再備份一次。\n" +
+      "・有用 Obsidian Sync 或好幾台裝置的話,先確認其他裝置都同步完了、沒有人正在編輯這幾份筆記。\n" +
+      "・1.6.0 以前的卡片看板讀不懂新寫法(置頂、循環、留言、區間會失效),其他裝置要先更新到 1.6.1。\n" +
+      "・這個動作沒有復原鍵,要還原只能用備份。",
+    convertYes: "我了解,全部轉換",
+    convertNone: "沒有需要轉換的卡片",
+    convertDone: "✓ 已轉換 N 張卡片(F 份筆記),原文備份在每份筆記旁邊",
+    convertFail: "有 N 份筆記沒有轉換(備份失敗或檔案剛被改過),原檔沒動",
     doneLook: "已完成的卡片長相", doneLookDesc: "做完的跟還沒做的要一眼分得出來",
     doneBoth: "淡化 + 劃掉", doneFade: "只淡化", doneStrike: "只劃掉", doneNone: "不變",
     saving: "儲存中…", saveFailed: "沒存進去,字還在框裡,再按一次儲存",
@@ -288,14 +304,30 @@ const 字典 = {
     sendKey: "Submit key", sendKeyDesc: "The same for adding cards, editing content, writing and editing comments",
     sendKeyCombo: "Enter for a new line; Shift / Ctrl / ⌘ + Enter to submit (default)", sendKeyEnter: "Enter to submit; Shift + Enter for a new line",
     useComments: "Use comments", useCommentsDesc: "When off, cards have no comment button and comments are hidden. Comments already in the note are kept and come back when you turn this on.",
-    showEditTime: "Show last edited time", showEditTimeDesc: "The 🕐 time on each card. Turning it off only hides it; the ✎ stamp is still written to the note (it tells identical cards apart).",
+    showEditTime: "Show last edited time", showEditTimeDesc: "The 🕐 time on each card. Turning it off only hides it; the [ed:: …] stamp is still written to the note (it tells identical cards apart).",
     jumpPin: "Pinned → jump to the card",
     pinTopic: "Pin this title", unpinTopic: "Unpin this title", topicsPinHint: "All titles (type to search; pinned ones always come first)",
     layoutWidth: "Board width", layoutWidthDesc: "Like Obsidian's readable line length: narrow keeps the board centred, wide fills the tab. Desktop only.",
     layoutNarrow: "Narrow (default)", layoutWide: "Wide", layoutToggleWide: "Use wide layout", layoutToggleNarrow: "Use narrow layout",
     commentPos: "Where comments go", commentPosDesc: "Show a card's comments above or below its content",
     commentAbove: "Above the content (default)", commentBelow: "Below the content",
-    bullet: "Add the ． bullet automatically", bulletDesc: "When on, every content line you add or edit starts with ．. When off, nothing is added and the bullet is not shown. Lines with or without it are read the same either way.",
+    bullet: "Add a - bullet to new cards", bulletDesc: "When on, content lines of a new card that have no marker of their own are written as “- text” (shown as ． on the board). Content that already exists never gains or loses bullets, and edits are saved as you type them — your own “- ”, “* ” and “1. ” stay. To-dos are always written as “- [ ]” (typing “-[ ]” or “[]” works too). Off by default.",
+    doneRec: "Done",
+    whatsNew: "What’s new in this version", noWhatsNew: "No release notes for this version",
+    updates: "What’s new", updatesDesc: "You are on N. What each version added, in short", updatesBtn: "See all versions",
+    setGeneral: "General", setLook: "Cards", setEdit: "Adding and editing", setFormat: "Note format", setSupport: "Support",
+    convertAll: "Convert everything to the new format (testing)",
+    convertAllDesc: "N notes are remembered as Card Tables. Rewrite every card in them that still uses the pre-1.6.1 syntax to the new format ([due:: …], [pin:: on], [repeat:: …], [cm:: …], [ed:: …] as the last line). You normally don't need this: the old syntax is still read, and a card switches when it is changed.",
+    convertBtn: "Convert all",
+    convertAsk: "⚠ This rewrites every old-format card in these notes at once:\n\nLIST\n\n" +
+      "• A copy of each note's original text is saved next to it first (“name backup-date-time”), but please make your own backup too.\n" +
+      "• If you use Obsidian Sync or several devices, make sure they have finished syncing and nobody is editing these notes.\n" +
+      "• Card Table 1.6.0 and older cannot read the new format (pins, repeats, comments and ranges stop working); update your other devices to 1.6.1 first.\n" +
+      "• There is no undo; the backup is the only way back.",
+    convertYes: "I understand, convert all",
+    convertNone: "No cards need converting",
+    convertDone: "✓ Converted N cards in F notes; the originals are backed up next to each note",
+    convertFail: "N notes were not converted (backup failed or the file just changed); they were left untouched",
     doneLook: "How done cards look", doneLookDesc: "Done and not-done should read apart at a glance",
     doneBoth: "Fade + strike through", doneFade: "Fade only", doneStrike: "Strike through only", doneNone: "No change",
     saving: "Saving…", saveFailed: "Not saved. Your text is still here, press save again",
@@ -429,8 +461,9 @@ const 預設設定 = {
      項目符號 true = 寫入和顯示「．」(預設)/ false = 都不要 */
   版面寬度: "窄",
   留言位置: "上",
-  項目符號: true,
+  項目符號: false,              // 1.6.1:設定拿掉了,留著這個鍵只是為了讀舊的 data.json 不出錯
   排序: "編修",          // 編修 = 最近新增/編修的排最上面(預設);顏色 = 日期 → 分類順序
+  看過版本: "",          // 1.6.1:更新介紹看過哪一版(見 秀更新介紹)
   版本: 插件版本
 };
 /* 「這台電腦是誰在用」。故意不進 data.json —— 那個會被 Obsidian Sync 同步,
@@ -471,69 +504,174 @@ function 存新增收合(收) { 存收合(新增收合鍵, 收); }
    ⚠ 這一整段是「合約」。要動格式,先看 `搬遷清單.md` 裡的規則:
      舊格式永遠讀得懂,新格式才是寫出去的樣子。
    ============================================================ */
-const 項目符 = "．";
-/* 內容每一行前面要不要自動加「．」(設定 → 項目符號,預設要)。
-   ⚠ 只管**寫出去**和**顯示**。讀的時候有沒有符號都吃得下(去符() 一律先剝掉),
-     所以切換這個設定不會讓任何一張舊卡片讀不懂。所有寫入的地方都要用 符(),不要直接寫 項目符。 */
-let 自動項目符 = true;
-function 符() { return 自動項目符 ? 項目符 : ""; }
+/* ⚠⚠ 1.6.1 的寫法(2026-09-17 跟使用者定案,見 CLAUDE.md「1.6.1 的格式」)——
+   用 Dataview / Tasks 的行內欄位 `[key:: value]`:
+     - [ ] [pin:: on] [主題] [start:: 2026-09-01] [due:: 2026-09-30] [repeat:: every 2 weeks] #指派人
+     	內容(照使用者打的,符號可有可無)
+     	[done:: 2026-09-02]                ← 只有循環卡片的「本次完成」會寫
+     	[cm:: 2026-09-17 09:00|欣明] 留言
+     	[ed:: 2026-09-17 02:37]            ← 永遠是卡片的最後一行
+   ・start / due / repeat 是 Tasks 外掛認得的欄位名,Tasks、Dataview、Task Genius 都讀得到日期;
+     只有一天的卡片只寫 due。筆記裡的時間一律四碼年份(畫面上怎麼顯示是另一回事)。
+   ・內容不放第一行(沒有主題的卡片例外,第一行內容留在第一行)。
+   ・不認得的欄位(Tasks 寫的 [completion:: …]、[priority:: …]…)原樣留在第一行尾巴。
+   ・**舊寫法永遠照讀,改到才轉**:1.6.0 以前的 ＠{} ✎{} 📌 🔁 💬 ．,以及 1.6.1 開發中寫過的
+     Ed{} Pin{} Re{} Cm{} Done{} @{a} ~ @{b}。每一次寫入都經過 蓋卡(),那一張就換成新寫法;沒被寫到的卡片一個字都不動。 */
+const 顯示符 = "•";           // 畫面上的項目符號(只管顯示,不寫進檔案)。1.6.1 起跟 Obsidian 的清單一樣是「•」
+/* 項目符號:**既往不咎**(使用者明講)。1.6.1 起「自動加項目符號」的設定拿掉了,自動項目符 固定 false ——
+   內容一律照使用者打的寫(自己打的 `- `、`* `、`1. ` 都留著),畫面只在有符號的行畫 bullet。
+   外掛自己寫的行(留言、本次完成、ed)**不帶**符號(使用者明講);舊的「- [cm:: …]」照讀。程式路徑(新增行)留著,將來要加回來再討論。 */
+let 自動項目符 = false;
+function 符() { return 自動項目符 ? "- " : ""; }
+// 內容裡的待辦(`[ ] …`)一定要有 `- `,不然就不是 checkbox 了
+const 內勾Re = /^\[( |x|X)\][\t ]+/;
+function 帶符(x) { x = String(x || ""); return 內勾Re.test(x) ? "- " + x : 符() + x; }
+/* 待辦的各種打法(`-[ ]`、`[]`、`* - [ ]`、`．[x]`)一律整理成 `- [ ] ` / `- [x] `。x = 不含前面縮排的一行 */
+function 正規勾(x) {
+  return String(x || "").replace(/^(?:[-*+．·・•][\t ]*)*\[( ?|x|X)\][\t ]*/,
+    (a, c) => "- [" + (c === "x" || c === "X" ? "x" : " ") + "] ");
+}
+// 一行內容剝掉縮排和符號之後的字(內容行 存的就是這個)
+function 內文之(t) { return 去符(正規勾(String(t || "").replace(/^[ \t]+/, ""))); }
+// 一行內容原本的符號:`- `、`* `、`1. `…;舊的「．」算 `- `;待辦算 `- `;沒有就是 ""
+function 取符(t) {
+  const x = 正規勾(String(t || "").replace(/^[ \t]+/, ""));
+  const m = 符號Re.exec(x);
+  if (!m) return "";
+  return /[．·・•]/.test(m[0]) ? "- " : m[0].replace(/[\t ]+/g, " ");
+}
+// 使用者打的一行 → 要寫進筆記的樣子(不含縮排):照打的,只整理待辦、把「．」換成「- 」
+function 照打行(t) {
+  return 正規勾(String(t || "").trim()).replace(/^[．·・•][\t ]*/, "- ").trim();
+}
+// 新增卡片的一行:開著自動項目符號,而且這一行沒有自己的符號,才加「- 」(目前固定不加)
+function 新增行(t) {
+  const x = 照打行(t);
+  return (x && 自動項目符 && !符號Re.test(x)) ? "- " + x : x;
+}
+/* 沒有主題的卡片,第一行內容放在第一行 —— 但那一行有符號(待辦、清單)、長得像 [主題] 或 [欄位:: 值] 的話不行,
+   讀回來會變成別的東西,那就從第二行開始。x = 照打行() 的結果 */
+function 可放首行(x) { return !!x && !符號Re.test(x) && !主題Re.test(x) && !欄首Re.test(x); }
+// 畫面上顯示的內文:本次完成的記錄 [done:: 2026-09-16] 照語言寫成「✔ 本次完成 26-09-16(三)」
+function 顯示內文(t, T) {
+  const m = 完成記Re.exec(String(t || ""));
+  return m ? "✔ " + T.doneRec + " " + 日期短(m[1] || m[2]) : t;
+}
 const 符號Re = /^(?:[-*+]\s+|\d+[.)]\s+|[．·・•]\s*)+/;
 const 卡首Re = /^(\s*)-\s+\[( |x|X)\]\s*(.*)$/;      // - [ ] 或 - [x]
-const 主題Re = /^\[([^\]\n]{1,40})\]\s*/;            // [主題]
+/* [主題]。⚠ 開頭是 [[連結]]、[文字](網址)、`[ ]` 待辦、`[key:: 值]` 欄位的都不是主題 */
+const 主題Re = /^\[(?!\[)(?![ xX]\])((?:(?!::)[^\]\n]){1,40})\](?!\()\s*/;
+
+/* ---- 行內欄位 [key:: value] / (key:: value) ---- */
+const 欄Re = /[ \t]*[\[(]([A-Za-z][\w-]*)::[ \t]*([^\]\)\n]*?)[ \t]*[\])]/g;
+const 欄首Re = /^[\[(][A-Za-z][\w-]*::/;
+// 把一段字裡所有的欄位拿出來:{ 剩: 拿掉欄位之後的字, 欄: [{ 鍵(小寫), 值, 原 }] }
+function 拿欄(s) {
+  const 欄 = [];
+  const 剩 = String(s || "").replace(欄Re, (全, k, v) => { 欄.push({ 鍵: k.toLowerCase(), 值: v, 原: 全.trim() }); return ""; });
+  return { 剩: 剩, 欄: 欄 };
+}
+const 我的欄 = { pin: 1, start: 1, due: 1, repeat: 1, ed: 1 };
+const 日式Re = /^(\d{4}-\d{2}-\d{2})/;
+
+/* ---- 舊寫法(照讀) ---- */
 const 日期Re = /[＠@]\{(\d{4}-\d{2}-\d{2})(?:[^}]*)\}/;
-const 區間Re = /[＠@]\{(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})\}/;
-const 標記Re = /[＠@]\{[^}]*\}/g;
-const 置頂Re = /\s*📌/;
-const 置頂清除Re = /\s*📌/g;
-/* ✎ 時戳。1.5 起**只寫到分鐘**(✎{2026-09-13 14:20});1.4.6–1.4.9 寫過的秒數照讀。
+// 區間:舊的 ＠{a ~ b},1.6.1 開發中的 @{a} ~ @{b}
+const 區間Re = /[＠@]\{(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})\}|[＠@]\{(\d{4}-\d{2}-\d{2})\}\s*~\s*[＠@]\{(\d{4}-\d{2}-\d{2})\}/;
+function 讀區間(s) {
+  const m = 區間Re.exec(String(s || ""));
+  if (!m) return null;
+  return m[1] ? [m[1], m[2]] : [m[3], m[4]];
+}
+// 整段日期標記(含區間中間的 ~)。⚠ 只吃日期;Kanban 的 @@{10:00} 時間不是我們的,留著
+const 標記Re = /\s*[＠@]\{\d{4}-\d{2}-\d{2}[^}]*\}(?:\s*~\s*[＠@]\{\d{4}-\d{2}-\d{2}[^}]*\})?/g;
+const 置頂Re = /\s*(?:📌|\bPin\{\})/;
+const 置頂清除Re = /\s*(?:📌|\bPin\{\})/g;
+/* 最後編輯時戳。1.6.1 起是卡片最後一行的 [ed:: 2026-09-17 02:37];
+   第一行的 ✎{2026-09-13 14:20}(1.5–1.6.0)和 Ed{26-09-16 01:31}(1.6.1 開發中)照讀,被寫到時搬到最後一行。
+   1.5 起**只寫到分鐘**;1.4.6–1.4.9 寫過的秒數照讀。
    ⚠ 1.4.6 寫到秒,是拿秒數當「第一行一模一樣的兩張卡片」的身分證。秒數讓筆記太繁複,
      1.5 改成先靠**位置**(`## 分類` 底下第幾張,見 定位文)分開雙胞胎,時戳退成最後一層保險。 */
-const 編時Re = /✎\{(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::(\d{2}))?\}/;
-const 時戳清除Re = /\s*✎\{[^}]*\}/g;
-const 留言Re = /^💬[\t ]*\{(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})\|([^}|\n]{1,16})\}[\t ]*([\s\S]*)$/;
+const 編時Re = /(?:✎|\bEd)\{((?:\d{2})?\d{2}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::(\d{2}))?\}/;
+const 時戳清除Re = /\s*(?:✎|\bEd)\{[^}]*\}/g;
+const 編行Re = /^[\[(]ed::[ \t]*((?:\d{2})?\d{2}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::(\d{2}))?[ \t]*[\])][ \t]*$/i;
+// 兩碼年份讀成 20xx
+function 全日(d) { d = String(d || ""); return /^\d{2}-/.test(d) ? "20" + d : d; }
+function 讀編時(首) {
+  const e = 編時Re.exec(String(首 || ""));
+  return e ? { 日: 全日(e[1]), 分: e[2], 秒: e[3] || "00" } : null;
+}
+// 一行內容是不是 [ed:: …];是的話回傳時間
+function 讀編行(t) {
+  const e = 編行Re.exec(內文之(t));
+  return e ? { 日: 全日(e[1]), 分: e[2], 秒: e[3] || "00" } : null;
+}
+function 組編行(戳) { return "\t[ed:: " + 戳 + "]"; }
+
+/* ---- 留言 ----
+   1.6.1:[cm:: 2026-09-17 09:00|誰] 內容;舊的 💬{2026-09-16 09:00|誰}、開發中的 Cm{26-09-16 09:00|誰} 照讀 */
+const 留言Re = /^(?:💬[\t ]*|Cm)\{((?:\d{2})?\d{2}-\d{2}-\d{2})[ T](\d{2}:\d{2})\|([^}|\n]{1,16})\}[\t ]*([\s\S]*)$/;
+const 新留言Re = /^[\[(]cm::[ \t]*((?:\d{2})?\d{2}-\d{2}-\d{2})[ T](\d{2}:\d{2})[ \t]*\|[ \t]*([^\]\)|\n]{1,16}?)[ \t]*[\])][\t ]*([\s\S]*)$/i;
+function 讀留言(x) {
+  const m = 新留言Re.exec(String(x || "")) || 留言Re.exec(String(x || ""));
+  if (!m) return null;
+  const 日 = 全日(m[1]), 人 = m[3].trim();
+  return { 日: 日, 分: m[2], 人: 人, 文: String(m[4] || "").trim(), id: 日 + " " + m[2] + "|" + 人 };
+}
+function 組留言行文(日, 分, 人, 文) {
+  return "\t[cm:: " + 全日(日) + " " + 分 + "|" + 人 + "] " + String(文 || "").replace(/\s*\n\s*/g, " ").trim();
+}
 const 標題Re = /^#{1,6}\s+(.+?)\s*$/;
 /* ⚠⚠ 1.5 拿掉「長期」:#long-term / #長期 不再有特別的意思,就是一般的標籤文字(筆記裡原樣留著)。
-   「週期」那一格只看 🔁(k.循環)。沒有日期的長期卡片從此出現在「未寫日期」那張表。 */
+   「週期」那一格只看 k.循環。沒有日期的長期卡片從此出現在「未寫日期」那張表。 */
 /* ⚠ 1.5 的「狀態」**就是分類的標題**:紅色那一區取名「等回復」,那一區的卡片就是等回復,
    換狀態 = 換分類。開發中做過一個獨立寫在第一行的 `〔…〕` 狀態標籤,拿掉了 —— 不要再加回去。
    顯示見 畫分類名()(設定「顯示分類名稱」)。 */
-/* ---- 🔁 循環卡片 ----
-   第一行寫 `🔁 每2週` 就是每兩週一次。只寫 🔁 當成每週。
+/* ---- 循環卡片 ----
+   1.6.1 寫 `[repeat:: every 2 weeks]`(跟 Tasks 外掛同一種寫法)。舊的 `🔁 每2週`、`🔁 every 2 weeks`、只有 🔁、
+   開發中的 `Re{every 2 weeks}` 都照讀。
    完成欄不是勾選框,而是「本次完成」——按下去:
      ① 日期推到下一次
-     ② 在卡片裡插一條 `．✔ 本次完成 2026-09-10(四)` 的記錄(新的排最上面)
-   那條記錄是內容的一部分(有縮排),不會被當成另一張卡片。 */
-const 週期Re = /🔁/;
-/* 整個 🔁 標記(含後面的「每N單位」)。改循環就是把這一整段換掉。
-   ⚠ 中文和英文兩種寫法都要吃得下,不然使用者原本寫 `🔁 every 2 weeks`
-     改一次就會變成兩個標記並排。 */
-const 循環標記Re = /🔁[ \t]*(?:每[ \t]*\d*[ \t]*(?:天|日|週|周|星期|月)|every[ \t]*\d*[ \t]*(?:day|week|month)s?)?/i;
-/* ⚠ 1.4.5:寫出去的是英文寫法(`🔁 every 2 weeks`、`🔁 every week`)。
-   中文寫法 `🔁 每2週` 照舊讀得懂(見 讀循環),但不再寫 ——
+     ② 在內容底下(留言前面)插一條 `[done:: 2026-09-10]` 記錄(只有循環卡片會寫) */
+const 週期Re = /🔁|\bRe\{/;
+const 循環標記Re = /\s*(?:\bRe\{[^}]*\}|🔁[ \t]*(?:每[ \t]*\d*[ \t]*(?:天|日|週|周|星期|月)|every[ \t]*\d*[ \t]*(?:day|week|month)s?)?)/gi;
+/* ⚠ 1.4.5:寫出去的是英文寫法(`every 2 weeks`、`every week`)。
+   中文寫法 `每2週` 照舊讀得懂(見 解循環字),但不再寫 ——
    筆記是存檔格式,要的是一種不分介面語言、誰打開都看得懂的寫法。 */
 function 循環字(循) {
   if (!循) return "";
   const 單 = 循.型 === "月" ? "month" : (循.型 === "日" ? "day" : "week");
-  return "🔁 every " + (循.隔 > 1 ? 循.隔 + " " + 單 + "s" : 單);
+  return "[repeat:: every " + (循.隔 > 1 ? 循.隔 + " " + 單 + "s" : 單) + "]";
 }
-const 本次完成Re = /^(?:✅|✔|☑)\s*本次完成/;
+/* 本次完成的記錄行。1.6.1 寫 `[done:: 2026-09-16]`,畫面上照語言顯示;
+   舊的「✔ 本次完成 26-09-16(三)」、開發中的 `Done{2026-09-16}` 照讀。 */
+const 本次完成Re = /^(?:(?:✅|✔|☑)\s*本次完成|Done\{|[\[(]done::)/i;
+const 完成記Re = /^(?:Done\{(\d{4}-\d{2}-\d{2})\}|[\[(]done::[ \t]*(\d{4}-\d{2}-\d{2})[ \t]*[\])])\s*$/i;
+function 組完成記(日) { return "\t[done:: " + 日 + "]"; }
 const 週期單位 = { 月: "月", 日: "天", 週: "週" };
-function 讀循環(首行) {
-  const 首 = String(首行 || "").split("\n")[0];
-  if (!週期Re.test(首)) return null;
-  let m = /🔁\s*每\s*(\d*)\s*(天|日|週|周|星期|月)/.exec(首);
+// 「every 2 weeks」「每2週」「(空)」→ { 型, 隔 }
+function 解循環字(s) {
+  s = String(s || "");
+  let m = /每\s*(\d*)\s*(天|日|週|周|星期|月)/.exec(s);
   if (m) {
     const n = parseInt(m[1] || "1", 10) || 1;
     const u = m[2];
     return { 型: (u === "月") ? "月" : ((u === "天" || u === "日") ? "日" : "週"), 隔: n };
   }
-  m = /🔁\s*every\s*(\d*)\s*(day|week|month)/i.exec(首);
+  m = /every\s*(\d*)\s*(day|week|month)/i.exec(s);
   if (m) {
     const n = parseInt(m[1] || "1", 10) || 1;
     const u = m[2].toLowerCase();
     return { 型: (u === "month") ? "月" : ((u === "day") ? "日" : "週"), 隔: n };
   }
-  return { 型: "週", 隔: 1 };            // 只寫了 🔁,當成每週
+  return { 型: "週", 隔: 1 };            // 只寫了 🔁 / 值看不懂,當成每週
+}
+// 舊寫法的循環(第一行裡的 🔁 / Re{})
+function 讀循環(首行) {
+  const 首 = String(首行 || "").split("\n")[0];
+  if (!週期Re.test(首)) return null;
+  const m = /(?:🔁|\bRe\{)([^}\n]*)/.exec(首);
+  return 解循環字(m ? m[1] : "");
 }
 /* ⚠ 這兩個是**畫面上的說明文字**,要跟著語言走 —— 以前寫死中文,
    英文介面的循環卡片上會冒出一顆寫著「每1週」的膠囊。
@@ -574,7 +712,7 @@ function 去符(行) {
 function 上符(文) {
   return String(文 || "").replace(/\r/g, "").split("\n").map(t => {
     const 空 = 前空白(t), x = 去符(t);
-    return x ? (空 + 符() + x) : "";
+    return x ? (空 + 帶符(x)) : "";
   }).join("\n");
 }
 function 去符多行(文) {
@@ -622,22 +760,157 @@ function 日期無週字(起, 迄) {
   return (!迄 || 迄 === 起) ? 字(起) : 字(起) + " – " + 字(迄);
 }
 function 現在戳() { const d = new Date(); return 日字(d) + " " + 時字(d); }     // 1.5 起到分鐘
-function 蓋時戳(行) {
-  return String(行 || "").replace(時戳清除Re, "").replace(/\s+$/, "") + " ✎{" + 現在戳() + "}";
+
+/* 把第一行(新舊寫法都吃)拆成零件。不是卡片第一行就回傳 null。
+   名單 有給才認得哪一個 #名字 是指派人;沒給的話指派人就當一般的標籤,順序照原樣留著。
+   ⚠ 只有**結尾**的 #標籤 會被拿出來;夾在句子中間的(「打給 #bob 問報價」)是內文,不動。 */
+function 拆首行(首, 名單) {
+  const m = 卡首Re.exec(String(首 || "").split("\n")[0]);
+  if (!m) return null;
+  const 拿 = 拿欄(m[3]);
+  let 本 = 拿.剩.replace(/^[ \t]+/, "");
+  const 值 = (k) => { const f = 拿.欄.find(x => x.鍵 === k); return f ? f.值 : null; };
+  const 主 = 主題Re.exec(本);
+  if (主) 本 = 本.slice(主[0].length);
+  // 日期:start / due;沒有的話看舊的 ＠{} / @{} 標記
+  const 始 = (日式Re.exec(值("start") || "") || [])[1] || null;
+  const 到 = (日式Re.exec(值("due") || "") || [])[1] || null;
+  const 區 = 讀區間(本), 日 = 日期Re.exec(本);
+  let 起 = null, 迄 = null;
+  if (始 || 到) { 起 = 始 || 到; 迄 = (始 && 到 && 到 !== 始) ? 到 : null; }
+  else if (區) { 起 = 區[0]; 迄 = 區[1]; }
+  else if (日) 起 = 日[1];
+  const 頂值 = 值("pin");
+  const 頂 = 頂值 !== null ? !/^(off|false|no|0)?$/i.test(頂值.trim()) : 置頂Re.test(本);
+  const 循值 = 值("repeat");
+  const 循 = 循值 !== null ? 解循環字(循值) : 讀循環(本);
+  const 編值 = 值("ed");
+  const 編新 = 編值 ? /^((?:\d{2})?\d{2}-\d{2}-\d{2})[ T](\d{2}:\d{2})/.exec(編值) : null;
+  const 編 = 編新 ? { 日: 全日(編新[1]), 分: 編新[2] } : 讀編時(本);
+  let 人 = null;
+  if (名單) {
+    const r = 人規則(名單);
+    const p = r.找.exec(本);
+    if (p) { 人 = p[1]; 本 = 本.replace(r.清, ""); }
+  }
+  let 文 = 本.replace(標記Re, "").replace(置頂清除Re, "").replace(時戳清除Re, "").replace(循環標記Re, "")
+    .replace(/[\t ]{2,}/g, " ").trim();
+  const 標籤 = [];
+  let t;
+  while ((t = /(?:^|\s)(#[^\s#]+)$/.exec(文))) { 標籤.unshift(t[1]); 文 = 文.slice(0, t.index).trim(); }
+  return {
+    縮: m[1], 勾: m[2], 題: 主 ? 主[1] : null, 文: 去符(文),
+    文符: 取符(文),     // 舊寫法第一行內容前面的「．」→「- 」;搬到第二行時帶著(既往不咎:原本沒有就不加)
+    起: 起, 迄: 迄, 人: 人, 標籤: 標籤, 頂: 頂, 循: 循,
+    欄: 拿.欄.filter(x => !我的欄[x.鍵]).map(x => x.原),     // 不認得的欄位,原樣留著
+    戳: 編 ? 編.日 + " " + 編.分 : null                       // 第一行上的舊時戳(整份轉換時搬到最後一行)
+  };
+}
+/* 照新寫法組回第一行。有主題的卡片,第一行不放內容(p.文 由 蓋卡 放到第二行);沒有主題的,第一行內容留在第一行。
+   留文:中間步驟用(接著會進 蓋卡),舊寫法的第一行內容先留在原位,由 蓋卡 搬 —— 不然內容會不見;
+   舊的「．」也要留著,搬到第二行時才知道原本有符號(既往不咎)。 */
+function 組首行(p, 留文) {
+  const 件 = [];
+  if (p.頂) 件.push("[pin:: on]");
+  if (p.題) 件.push("[" + p.題 + "]");
+  if (p.文 && p.題 && 留文) 件.push((p.文符 ? "．" : "") + p.文);
+  else if (p.文 && !p.題) 件.push(p.文);
+  if (p.起 && p.迄 && p.迄 !== p.起) 件.push("[start:: " + p.起 + "]", "[due:: " + p.迄 + "]");
+  else if (p.起) 件.push("[due:: " + p.起 + "]");
+  if (p.循) 件.push(循環字(p.循));
+  if (p.人) 件.push("#" + p.人);
+  (p.標籤 || []).forEach(x => 件.push(x));
+  (p.欄 || []).forEach(x => 件.push(x));
+  return (p.縮 || "") + "- [" + (p.勾 || " ") + "] " + 件.join(" ");
+}
+/* 改第一行的某個零件(打勾、置頂、日期、指派人、循環)。改(p) 回傳 false = 不必改。
+   回傳的那一行還沒蓋時戳 —— 寫手.改首行 會蓋卡,順便換成新寫法。 */
+function 改零件(首, 名單, 改) {
+  const p = 拆首行(首, 名單);
+  if (!p || 改(p) === false) return null;
+  return 組首行(p, true);
+}
+function 換日期(首, 起, 迄) {
+  return 改零件(首, null, p => { p.起 = 起; p.迄 = 迄 || null; }) || 首;
+}
+// [起, 迄] 裡最後一個不是空白的行(至少是 起)
+function 卡尾(行, 起, 迄) {
+  let i = Math.min(迄, 行.length - 1);
+  while (i > 起 && !String(行[i] || "").trim()) i--;
+  return i;
+}
+/* ⚠⚠ 1.6.1:每一次寫卡片都經過這裡 —— 蓋上新的 [ed:: …],同時把這張卡片換成新寫法(改到才轉)。
+   ・第一行照新寫法重組(舊寫法有主題又有第一行內容的,內容搬到第二行)
+   ・卡片裡原本的 [ed:: …] 全部拿掉,在最後一個不是空白的行後面補一行新的(ed 永遠是最後一行)
+   ⚠ 會 splice 行陣列(卡片後面的行號會動),所以**一定是呼叫的人做的最後一件事**;卡片的 起 不會變。
+   戳 不給就是現在。回傳新的 迄。 */
+function 蓋卡(行, 起, 迄, 戳) {
+  const p = 拆首行(行[起]);
+  if (p) {
+    行[起] = 組首行(p);
+    if (p.題 && p.文) { 行.splice(起 + 1, 0, "\t" + 正規勾(p.文符 + p.文)); 迄++; }
+  }
+  for (let i = 迄; i > 起; i--) {
+    if (讀編行(行[i])) { 行.splice(i, 1); 迄--; }
+  }
+  const 尾 = 卡尾(行, 起, 迄);
+  行.splice(尾 + 1, 0, 組編行(戳 || 現在戳()));
+  return 迄 + 1;
 }
 
-/* 卡片的身分:檔案 + 第一行內文(拿掉日期／指派人／置頂／編修時間)。
-   行號會變,內文比較穩 —— 換一台電腦、被別人插入一張卡都還認得出來。 */
-function 淨首行(文, 人Re) {
-  let s = String(文 || "").split("\n")[0]
-    .replace(卡首Re, "$3")          // ⚠ `- [ ]` / `- [x]` 一定要拿掉:
-                                    //    不然打勾一次,卡片的身分就變了,下一個動作就找不到它
-    .replace(標記Re, "").replace(置頂清除Re, "").replace(時戳清除Re, "");
-  if (人Re) s = s.replace(人Re, "");
-  return s.replace(/[\t ]{2,}/g, " ").trim();
+/* 1.6.1 設定裡的「全部轉成新格式」:整份筆記的卡片一次換成新寫法(純函式,給 寫手.轉新格式 用)。
+   ・第一行照新寫法重組;**編輯時間沿用原本的**(不蓋新的,「最近編輯」的排序才不會全亂),放到最後一行
+   ・內容:原本有符號的留著(「．」換成「- 」),原本沒有的不加(既往不咎);縮排照留
+   ・舊的本次完成記錄 → [done:: 日期](原位);留言 → [cm:: …](排在內容後面);ed 最後
+   ・卡片以外的行(標題、一般段落)一個字都不動
+   回傳 { 文, 張 }(張 = 有改到的卡片數) */
+function 轉整份(文, 名單) {
+  const 行 = String(文 || "").split("\n");
+  const 卡們 = 解析卡片(文, 名單);
+  let 張 = 0;
+  // 由下往上換,前面的行號才不會跑掉
+  卡們.slice().sort((a, b) => b.起 - a.起).forEach(k => {
+    const 舊 = 行.slice(k.起, k.迄 + 1);
+    const p = 拆首行(舊[0], 名單);
+    if (!p) return;
+    const 新 = [組首行(p)], 留 = [];
+    if (p.題 && p.文) 新.push("\t" + 正規勾(p.文符 + p.文));
+    let 空尾 = 舊.length;
+    while (空尾 > 1 && !舊[空尾 - 1].trim()) 空尾--;
+    舊.slice(1, 空尾).forEach(t => {
+      const 空 = 前空白(t), 身 = t.slice(空.length);
+      if (!身.trim()) { 新.push(t); return; }
+      if (讀編行(t)) return;                                   // ed 最後再補
+      const x = 內文之(t);
+      const c = 讀留言(x);
+      if (c) { 留.push(組留言行文(c.日, c.分, c.人, c.文)); return; }
+      const r = /^(?:✅|✔|☑)\s*本次完成\s*(\d{2})-(\d{2})-(\d{2})/.exec(x) || /^Done\{(\d{4})-(\d{2})-(\d{2})\}/.exec(x);
+      if (r) { 新.push(空 + "[done:: " + 全日(r[1]) + "-" + r[2] + "-" + r[3] + "]"); return; }
+      新.push(空 + 照打行(身));
+    });
+    新.push(...留);
+    if (k.編修戳) 新.push(組編行(k.編修戳.slice(0, 16)));
+    新.push(...舊.slice(空尾));
+    if (新.join("\n") !== 舊.join("\n")) {
+      行.splice(k.起, 舊.length, ...新);
+      張++;
+    }
+  });
+  return { 文: 行.join("\n"), 張: 張 };
+}
+
+/* 卡片的身分:檔案 + 「[主題] 第一行內容」。
+   行號會變,內文比較穩 —— 換一台電腦、被別人插入一張卡都還認得出來。
+   ⚠⚠ 1.6.1 以前是「第一行拿掉日期／指派人／置頂／編修時間」。新寫法的第一行沒有內容,
+     只剩主題的話同主題的卡片全部變成雙胞胎,所以改成**主題 + 第一行內容**(跳過本次完成的記錄)。
+     打勾、置頂、改日期、改指派人、改循環都不會改到它;新舊寫法轉換前後也一樣(內容行的「．」會先剝掉)。
+     寫手.改卡片 寫完會重新解析,把新的基鍵記回卡片物件(記新首),所以改內容、改主題之後也接得上。 */
+function 算基鍵(k) {
+  const 首內 = (k.內容行 || []).find(x => !本次完成Re.test(x)) || "";
+  return ((k.主題 ? "[" + k.主題 + "] " : "") + 首內).replace(/[\t ]{2,}/g, " ").trim();
 }
 /* 第一行一模一樣的卡片,在畫面上靠「第幾張」分開(1.4.6)。
-   k.基鍵 = 淨首行(大家一樣);k.鍵 = 基鍵 + 重鍵分隔 + 序號(只有重複的才加)。
+   k.基鍵 = 算基鍵(大家一樣);k.鍵 = 基鍵 + 重鍵分隔 + 序號(只有重複的才加)。
    ⚠ 序號**只給畫面用**(哪一張在編修、哪一張展開、閃哪一列)。寫檔時一律用 基鍵 找候選,
      再用整行原文、到秒的時戳、內容指紋挑 —— 見 定位文。 */
 const 重鍵分隔 = "⁣#";
@@ -691,7 +964,7 @@ function 解析卡片(內文, 名單) {
     }
     目前 = null;
   }
-  卡.forEach(k => 收尾(k, 人Re));
+  卡.forEach(k => 收尾(k, 人Re, 名單));
   /* ⚠⚠ 1.4.6:第一行一模一樣的卡片,畫面上要分得開。
      以前兩張的 鍵 一樣,狀態都是用 鍵 記的 —— 按其中一張的「編輯」,兩張一起進編修模式;
      展開一張兩張一起展開;閃光、捲動、刪除確認都只找得到第一張。
@@ -704,52 +977,62 @@ function 解析卡片(內文, 名單) {
   return 卡;
 }
 function 新卡(原行, m, 分類, 行號, 人Re) {
-  const 本體 = m[3];
-  const 主 = 主題Re.exec(本體);
   return {
     分類: 分類, 起: 行號, 迄: 行號,
     完成: m[2].toLowerCase() === "x",
-    主題: 主 ? 主[1] : "",
+    主題: "",                // 收尾 用 拆首行 填(1.6.1:主題前面可能有 [pin:: on])
     首行原文: 原行,
     行: [],
     留言: [], 內容行: []
   };
 }
-function 收尾(k, 人Re) {
+function 收尾(k, 人Re, 名單) {
   const 首 = k.首行原文;
-  const 區 = 區間Re.exec(首), 日 = 日期Re.exec(首);
-  k.起日 = 區 ? 區[1] : (日 ? 日[1] : null);
-  k.迄日 = 區 ? 區[2] : k.起日;
-  k.置頂 = 置頂Re.test(首);
-  const e = 編時Re.exec(首);
-  k.編修時 = e ? (e[1] + " " + e[2]) : null;                       // 顯示用,到分鐘
-  k.編修戳 = e ? (e[1] + " " + e[2] + ":" + (e[3] || "00")) : null;  // 排序和辨識用,到秒
-  const p = 人Re.找.exec(首);
+  // 首行的零件(新舊寫法都吃,見 拆首行);內容 = 去掉 `- [ ] [主題]`、所有欄位標記和指派人,結尾的其他 #標籤 照樣顯示
+  const 拆 = 拆首行(首, 名單);
+  k.主題 = (拆 && 拆.題) || "";
+  k.起日 = 拆 ? 拆.起 : null;
+  k.迄日 = (拆 && 拆.迄) || k.起日;
+  k.置頂 = !!(拆 && 拆.頂);
+  k.循環 = 拆 ? 拆.循 : null;
+  const p = 人Re.找.exec(拿欄(首).剩);
   k.指派 = p ? p[1] : null;
-  k.基鍵 = 淨首行(首, 人Re.清);
-  k.鍵 = k.基鍵;             // 重複的會在 解析卡片 最後加上序號
-  k.循環 = 讀循環(首);
+  // 最後編輯:卡片裡最後一個 [ed:: …];沒有的話看第一行的舊時戳
+  let e = null;
+  k.行.forEach(t => { const x = 讀編行(t); if (x) e = x; });
+  if (!e && 拆 && 拆.戳) { const q = 讀編時(首); e = q || { 日: 拆.戳.slice(0, 10), 分: 拆.戳.slice(11, 16), 秒: "00" }; }
+  k.編修時 = e ? (e.日 + " " + e.分) : null;                     // 顯示用,到分鐘
+  k.編修戳 = e ? (e.日 + " " + e.分 + ":" + e.秒) : null;        // 排序和辨識用,到秒
 
-  // 首行本身的內容(去掉 `- [ ] [主題]` 和所有標記)
-  const 純 = String(首).replace(卡首Re, "$3").replace(主題Re, "")
-    .replace(標記Re, "").replace(置頂清除Re, "").replace(時戳清除Re, "")
-    .replace(人Re.清, "").trim();
-  k.內容行 = [去符(純)].filter(Boolean);
+  const 純 = 拆 ? [拆.文].concat(拆.標籤).filter(Boolean).join(" ") : "";
+  k.內容行 = [純].filter(Boolean);
+  /* 1.6.1:每一行原本寫的 Markdown 符號(`- `、`* `、`1. `,沒有就是 "")。跟 內容行 一格一格對齊。
+     內容行 永遠是剝掉符號的(身分、指紋、待辦判斷都靠它);關掉「自動項目符號」時,
+     畫面和編修框用 內容符 把使用者自己打的符號還原回去。 */
+  k.內容符 = k.內容行.map(() => (拆 && 拆.文) ? 拆.文符 : "");      // 舊寫法第一行的「．」也算
 
   k.行.forEach(t => {
-    const x = 去符(t);
-    if (!x) return;
-    const c = 留言Re.exec(x);
+    const x = 內文之(t);
+    if (!x || 讀編行(t)) return;             // [ed:: …] 不是內容
+    const c = 讀留言(x);
     if (c) {
-      const 人 = c[3].trim();
-      k.留言.push({ 日: c[1], 分: c[2], 人: 人, 文: (c[4] || "").trim(), id: c[1] + " " + c[2] + "|" + 人 });
-    } else if (本次完成Re.test(x)) {
-      k.內容行.push(x);          // 記錄行原封不動顯示,日期就是重點
-      k.完成過 = (k.完成過 || 0) + 1;
-    } else {
-      k.內容行.push(x);
+      k.留言.push(c);
+      return;
     }
+    if (本次完成Re.test(x)) k.完成過 = (k.完成過 || 0) + 1;   // 記錄行原封不動顯示,日期就是重點
+    k.內容行.push(x);
+    k.內容符.push(取符(t));
   });
+  /* 新寫法有主題的卡片,第一行結尾的 #標籤 接在第一行內容後面顯示 ——
+     舊寫法它們本來就跟第一行內容在一起,轉換前後畫面和指紋才一樣。 */
+  if (拆 && 拆.題 && !拆.文 && 拆.標籤.length) {
+    k.內容行.shift(); k.內容符.shift();
+    const i = k.內容行.findIndex(x => !本次完成Re.test(x));
+    if (i >= 0) k.內容行[i] += " " + 拆.標籤.join(" ");
+    else { k.內容行.unshift(拆.標籤.join(" ")); k.內容符.unshift(""); }
+  }
+  k.基鍵 = 算基鍵(k);
+  k.鍵 = k.基鍵;             // 重複的會在 解析卡片 最後加上序號
   k.留言.sort((a, b) => (b.日 + b.分).localeCompare(a.日 + a.分));   // 新的在上面
   return k;
 }
@@ -765,14 +1048,14 @@ function 相似(a, b) {
   let 中 = 0; a.forEach(x => { if (集[x]) 中++; });
   return 中 / Math.max(1, Math.max(a.length, b.length));
 }
-// 從剛寫出去的那一行算出它的「卡片鍵」,新增完才找得到它在哪一列
-function 鍵由首行(首行, 名單) {
-  return 淨首行(首行, 人規則(名單 || []).清);
+// 從剛寫出去的那幾行算出它的「卡片鍵」,新增完才找得到它在哪一列
+function 鍵由行們(首行, 尾行, 名單) {
+  const k = 解析卡片([首行].concat(尾行 || []).join("\n"), 名單)[0];
+  return k ? k.基鍵 : "";
 }
 function 組留言行(人, 文, 毫秒) {
   const d = new Date(毫秒 || Date.now());
-  return "\t" + 符() + "💬{" + 日字(d) + " " + 時字(d) + "|" + 人 + "} " +
-    String(文 || "").replace(/\s*\n\s*/g, " ").trim();
+  return 組留言行文(日字(d), 時字(d), 人, 文);
 }
 function 留言時值(c) { return new Date(c.日 + "T" + c.分 + ":00").getTime(); }
 function 多久前(毫秒, T) {
@@ -796,7 +1079,7 @@ function 多久前(毫秒, T) {
 
    ① 一次只寫一行。不整段覆蓋,不重排,不順手美化別人的字。
    ② 寫之前重讀、重新定位。行號一律當作過期的,拿卡片的「鍵」
-      (檔案 + 淨首行)重新找到它現在在第幾行。
+      (檔案 + 主題 + 第一行內容,見 算基鍵)重新找到它現在在第幾行。
    ③ 每一則留言有自己的 id(時間|誰)。寫進去以前先確認同一個 id
       還沒在檔案裡,才不會按兩下變兩則。
    ④ 寫完再讀一次,真的看到那一行才算成功;沒看到就自動再送一次。
@@ -866,11 +1149,14 @@ function 定位文(文, 卡, 名單) {
 /* 寫成功之後,把新的第一行記回卡片物件(1.4.6)。
    畫面要等 Obsidian 回頭呼叫 setViewData 才會重畫,在那之前使用者手上的卡片物件還是舊的;
    緊接著再做下一個動作(改完內容馬上改主題、打勾馬上置頂),定位文 拿到的就是過期的整行和時戳。 */
-function 記新首(卡, 首) {
-  if (!卡 || typeof 首 !== "string" || !首) return;
-  卡.首行原文 = 首;
-  const e = 編時Re.exec(首);
-  if (e) 卡.編修戳 = e[1] + " " + e[2] + ":" + (e[3] || "00");
+/* 1.6.1:新 = 寫完之後重新解析出來的那張卡片。基鍵也要記回去 ——
+   舊寫法的卡片第一次被寫到就換成新寫法,改內容、改主題也會換基鍵;不記的話,
+   緊接著的「反悔」拿舊基鍵去找,就是「找不到這張卡片」。 */
+function 記新首(卡, 新) {
+  if (!卡 || !新) return;
+  卡.首行原文 = 新.首行原文;
+  卡.基鍵 = 新.基鍵;
+  if (新.編修戳) 卡.編修戳 = 新.編修戳;
 }
 
 class 寫手 {
@@ -950,10 +1236,11 @@ class 寫手 {
      字串 = 這張卡片寫完之後的第一行(搬走的卡片用這個,空字串 = 卡片已經不在了);
      其他 = 原地改,第一行就是 行[卡x.起]。
      ⚠ 寫成功之後把新的第一行記回卡片物件(記新首),下一個動作才不會拿過期的整行去找。 */
-  改卡片(檔, 卡, 名單, 做) {
-    let 新首 = null;
+  // 收:呼叫的人想拿到寫完之後的新卡片,就傳一個物件進來(收.新)。不要用 this 上的欄位 —— 佇列的下一棒可能先把它蓋掉
+  改卡片(檔, 卡, 名單, 做, 收) {
+    let 新 = null;
     return this.安全改(檔, (文) => {
-      新首 = null;
+      新 = null;
       const 位 = 定位文(文, 卡, 名單);
       if (!位) return { 誤: this.T.lost };
       if (位.含糊) return { 誤: this.T.ambiguous };
@@ -961,9 +1248,16 @@ class 寫手 {
       const r = 做(行, 位.卡);
       if (r === false) return { 誤: this.T.lost };
       if (r === null) return { 文: 文 };
-      新首 = (typeof r === "string") ? r : 行[位.卡.起];
-      return { 文: 行.join("\n") };
-    }).then(ok => { if (ok) 記新首(卡, 新首); return ok; });
+      // 搬走的卡片回傳它的第一行(字串);原地改的卡片,第一行還在 起
+      const 新首 = String((typeof r === "string") ? r : 行[位.卡.起]).split("\n")[0];
+      const 新文 = 行.join("\n");
+      if (新首) {
+        const 新行 = 新文.split("\n");
+        const 在 = (typeof r === "string") ? 新行.indexOf(新首) : 位.卡.起;
+        新 = 解析卡片(新文, 名單).find(k => k.起 === 在) || null;
+      }
+      return { 文: 新文 };
+    }).then(ok => { if (ok) { 記新首(卡, 新); if (收) 收.新 = 新; } return ok; });
   }
 
   /* ⚠⚠ 一行就是一行 —— 寫進去的字裡面**絕對不可以有換行**。
@@ -975,60 +1269,68 @@ class 寫手 {
     return String(文 || "").replace(/[\r\n]+/g, " ").replace(/[\t ]{2,}/g, " ");
   }
 
-  /* 只插一行:把一行加在卡片首行的正後面(留言就是這樣進去的)。
+  /* 只插一行:加在內容後面、[ed::] 前面(留言就是這樣進去的)。
      ⚠ 舊版寫完會重讀三次確認、沒看到就「補送一次」—— 那個補送本身就是重複留言的來源。
        現在是原子寫入,重複檢查跟寫入在同一個交易裡,不需要補送也不會重複。 */
   async 插一行(檔, 卡, 行文, 名單, 檢查重複) {
     行文 = this.一行(行文);
     return await this.排隊做(() => this.改卡片(檔, 卡, 名單, (行, 卡x) => {
       if (檢查重複 && 檢查重複(卡x)) return null;      // 已經在裡面了
-      行[卡x.起] = 蓋時戳(行[卡x.起]);
-      行.splice(卡x.起 + 1, 0, 行文);
+      行.splice(卡尾(行, 卡x.起, 卡x.迄) + 1, 0, 行文);
+      蓋卡(行, 卡x.起, 卡x.迄 + 1);          // ed 會被搬到新留言後面
     }));
   }
 
   /* 只改／刪一行:找到那一行(用留言 id 或整行比對)換掉它 */
+  // 新文 也可以是函式:拿到找到的那一行,回傳新的那一行(1.6.1 勾內容裡的待辦)
   async 改一行(檔, 卡, 認行, 新文, 名單) {
-    if (新文 !== null) 新文 = this.一行(新文);
+    if (新文 !== null && typeof 新文 !== "function") 新文 = this.一行(新文);
     return await this.排隊做(() => this.改卡片(檔, 卡, 名單, (行, 卡x) => {
       let 目標 = -1;
       for (let i = 卡x.起; i <= 卡x.迄; i++) { if (認行(行[i])) { 目標 = i; break; } }
       if (目標 < 0) return false;
-      行[卡x.起] = 蓋時戳(行[卡x.起]);
-      if (新文 === null) 行.splice(目標, 1); else 行[目標] = 新文;
+      let 值 = 新文;
+      if (typeof 新文 === "function") {
+        const 原 = String(新文(行[目標]) || ""), 空 = 前空白(原);    // 原本的縮排(可能是兩個 tab)照留
+        值 = 空 + this.一行(原.slice(空.length));
+      }
+      // ⚠ 先換那一行、再蓋卡(蓋卡會 splice,一定是最後一步)
+      if (值 === null) 行.splice(目標, 1); else 行[目標] = 值;
+      蓋卡(行, 卡x.起, 值 === null ? 卡x.迄 - 1 : 卡x.迄);
     }));
   }
 
   /* 整段內容改寫(編修框按儲存)。留言不動,原樣留著。 */
   async 換內容(檔, 卡, 新內容, 名單, 新主題) {
-    this.__新鍵 = null;          // ⚠ 上一次留下來的值不可以外漏到這一次
+    const 收 = {};
     return await this.排隊做(() => this.改卡片(檔, 卡, 名單, (行, 卡x) => {
+      // 留言照原本的順序留著,順便換成新寫法(這一張整張都在重寫)
       const 留 = [];
       for (let i = 卡x.起 + 1; i <= 卡x.迄; i++) {
-        if (留言Re.test(去符(行[i]))) 留.push(行[i]);
+        const c = 讀留言(去符(行[i]));
+        if (c) 留.push(組留言行文(c.日, c.分, c.人, c.文));
       }
-      const 段 = String(新內容 || "").replace(/\r/g, "").split("\n");
-      const 首 = this.一行(段.shift() || "");
-      const 尾 = 段.map(t => t.trim() ? ("\t" + 符() + this.一行(去符(t))) : "").filter(x => x !== "");
-      let 新首 = 行[卡x.起];
-      const m = 卡首Re.exec(新首);
-      if (m) {
-        const 舊本體 = m[3];
-        const 主 = 主題Re.exec(舊本體);
-        const 題 = (新主題 === undefined || 新主題 === null) ? (主 ? 主[1] : "") : String(新主題).trim();
-        const 尾標 = (舊本體.match(標記Re) || []).join(" ");
-        const 人 = (舊本體.match(/#\S+/g) || []).join(" ");
-        const 頂 = 置頂Re.test(舊本體) ? " 📌" : "";
-        新首 = "- [" + (卡x.完成 ? "x" : " ") + "] " +
-          (題 ? "[" + 題 + "] " : "") + 符() + 去符(首) +
-          (尾標 ? " " + 尾標 : "") + (人 ? " " + 人 : "") + 頂;
-      }
-      行.splice(卡x.起, 卡x.迄 - 卡x.起 + 1, 蓋時戳(新首), ...尾, ...留);
-      /* ⚠ 改完內容,這張卡片的**身分就換了** —— 鍵是「第一行的文字」算出來的。
+      const p = 拆首行(行[卡x.起], 名單);
+      if (!p) return false;
+      if (新主題 !== undefined && 新主題 !== null) p.題 = String(新主題).trim() || null;
+      /* 第一行結尾的 #標籤 在畫面上是接在第一行內容後面的(見 收尾),編修框裡也是 ——
+         所以它們跟著內容一起寫回去,第一行不再留一份。 */
+      p.標籤 = [];
+      // 1.6.1 既往不咎:照使用者打的寫(自己打的符號留著,沒打的不加)
+      const 段 = String(新內容 || "").replace(/\r/g, "").split("\n").map(t => this.一行(照打行(t))).filter(Boolean);
+      // 沒有主題的卡片,第一行內容留在第一行;有主題的全部放到第二行以下
+      p.文 = (!p.題 && 可放首行(段[0])) ? 段.shift() : "";
+      const 尾 = 段.map(t => "\t" + t);
+      // 內容 → 留言 → [ed::](最後一行);卡片後面原本的空白行留著
+      const 空行 = [];
+      for (let i = 卡x.迄; i > 卡x.起 && !String(行[i]).trim(); i--) 空行.unshift(行[i]);
+      行.splice(卡x.起, 卡x.迄 - 卡x.起 + 1, 組首行(p), ...尾, ...留, 組編行(現在戳()), ...空行);
+    }, 收)).then(r => {
+      /* ⚠ 改完內容,這張卡片的**身分就換了** —— 鍵是「主題 + 第一行內容」算出來的。
          隨打隨存的時候如果不把新的鍵交回去,下一次自動存就會拿舊鍵去找,
          找不到 → 每打幾個字跳一次「找不到這張卡片」。 */
-      this.__新鍵 = 鍵由首行(蓋時戳(新首), 名單);
-    })).then(r => (r === true && this.__新鍵) ? this.__新鍵 : r);
+      return (r === true && 收.新 && 收.新.基鍵) ? 收.新.基鍵 : r;
+    });
   }
 
   /* 新增一張卡片:插在指定分類(`## 標題`)的正下面。
@@ -1057,18 +1359,14 @@ class 寫手 {
     return await this.排隊做(() => this.改卡片(檔, 卡, 名單, (行, 卡x) => {
       const 新 = 換(行[卡x.起], 卡x);
       if (新 === null || 新 === 行[卡x.起]) return null;
-      行[卡x.起] = 蓋時戳(新);
+      行[卡x.起] = 新;
+      蓋卡(行, 卡x.起, 卡x.迄);
     }));
   }
 
   /* 只改主題(第一行開頭那個 `[主題]`),內容和留言完全不碰 */
   async 改主題(檔, 卡, 新主題, 名單) {
-    return await this.改首行(檔, 卡, (首) => {
-      const m = 卡首Re.exec(首);
-      if (!m) return null;
-      let 本體 = m[3].replace(主題Re, "");
-      return m[1] + "- [" + m[2] + "] " + (新主題 ? "[" + 新主題 + "] " : "") + 本體;
-    }, 名單);
+    return await this.改首行(檔, 卡, (首) => 改零件(首, 名單, p => { p.題 = String(新主題 || "").trim() || null; }), 名單);
   }
 
   /* 把整張卡片(首行 + 底下所有行)搬到另一個分類底下。封存就是搬到 `## Archive`。 */
@@ -1076,7 +1374,7 @@ class 寫手 {
     return await this.排隊做(() => this.改卡片(檔, 卡, 名單, (行, 卡x) => {
       if (卡x.分類 === 到) return null;
       const 整張 = 行.slice(卡x.起, 卡x.迄 + 1);
-      整張[0] = 蓋時戳(整張[0]);
+      蓋卡(整張, 0, 整張.length - 1);
       行.splice(卡x.起, 卡x.迄 - 卡x.起 + 1);
       let 標 = -1;
       for (let i = 0; i < 行.length; i++) {
@@ -1146,19 +1444,24 @@ class 寫手 {
   async 本次完成(檔, 卡, 記錄行, 原日, 新日, 名單) {
     記錄行 = this.一行(記錄行);
     return await this.排隊做(() => this.改卡片(檔, 卡, 名單, (行, 卡x) => {
-      標記Re.lastIndex = 0;
-      行[卡x.起] = 蓋時戳(行[卡x.起].replace(標記Re, "＠{" + 新日 + "}"));
-      行.splice(卡x.起 + 1, 0, 記錄行);
+      行[卡x.起] = 換日期(行[卡x.起], 新日, null);
+      // 記錄放在內容後面、留言和 [ed::] 前面
+      let 插 = 卡x.起 + 1;
+      while (插 <= 卡x.迄 && !讀留言(內文之(行[插])) && !讀編行(行[插])) 插++;
+      插 = Math.min(插, 卡尾(行, 卡x.起, 卡x.迄) + 1);
+      行.splice(插, 0, 記錄行);
+      蓋卡(行, 卡x.起, 卡x.迄 + 1);
     }));
   }
   async 復原本次(檔, 卡, 記錄行, 從, 回, 名單) {
     const 找 = 去符(this.一行(記錄行));
     return await this.排隊做(() => this.改卡片(檔, 卡, 名單, (行, 卡x) => {
-      標記Re.lastIndex = 0;
-      行[卡x.起] = 蓋時戳(行[卡x.起].replace(標記Re, "＠{" + 回 + "}"));
-      for (let i = 卡x.起 + 1; i <= 卡x.迄; i++) {
-        if (去符(行[i]) === 找) { 行.splice(i, 1); break; }
+      行[卡x.起] = 換日期(行[卡x.起], 回, null);
+      let 迄 = 卡x.迄;
+      for (let i = 卡x.起 + 1; i <= 迄; i++) {
+        if (去符(行[i]) === 找) { 行.splice(i, 1); 迄--; break; }
       }
+      蓋卡(行, 卡x.起, 迄);
     }));
   }
 
@@ -1237,6 +1540,34 @@ class 寫手 {
       留.forEach(b => { if (b.頭 !== null) 出.push(b.頭); 出.push(...b.身); });
       return { 文: 出.join("\n"), 值: true };
     }));
+  }
+
+  /* 1.6.1 設定 →「全部轉成新格式」:整份筆記一次原子寫入(見 轉整份)。
+     ⚠ 寫之前先把原文備份成**同一個資料夾**裡的一份筆記(使用者要的:「<名字> backup-20260916-1420.md」)。
+       備份寫不進去就整份不動。回傳 { 張, 備份 };沒東西要轉回傳 { 張: 0 };失敗回傳 false。 */
+  async 轉新格式(檔, 名單) {
+    return await this.排隊做(async () => {
+      const v = this.app.vault;
+      let 備份 = null;
+      try {
+        const 原 = await v.read(檔);
+        if (!轉整份(原, 名單).張) return { 張: 0 };
+        const 夾 = (檔.parent && 檔.parent.path && 檔.parent.path !== "/") ? 檔.parent.path + "/" : "";
+        const 底 = 夾 + 檔.basename + " backup-" + 現在戳().replace(/[-:]/g, "").replace(" ", "-");
+        let 路 = 底 + ".md", i = 1;
+        while (v.getAbstractFileByPath(路)) { i++; 路 = 底 + " " + i + ".md"; }
+        await v.create(路, 原);
+        備份 = 路;
+      } catch (e) {
+        console.error("[card-table] 備份失敗", e);
+        return false;
+      }
+      const 張 = await this.安全改(檔, (文) => {
+        const r = 轉整份(文, 名單);
+        return { 文: r.張 ? r.文 : 文, 值: r.張 };
+      });
+      return (張 === false) ? false : { 張: 張, 備份: 備份 };
+    });
   }
 
   /* 新看板:一次把分區開好(`## 1` ~ `## 5`)。已經有任何 `##` 標題的檔案完全不碰。 */
@@ -1412,23 +1743,35 @@ function 膠囊(容器, 文) {
    跟 Obsidian 一樣是 toggle:選起來按第二次會把記號拆掉。
    ⚠ 一定要 preventDefault + stopImmediatePropagation —— 不然 Obsidian 自己的
      Ctrl+B / Ctrl+K 也會收到同一個按鍵,結果變成「粗體記號插了兩次」或跳出它的連結視窗。 */
+/* 1.6.1:把 [起, 迄) 換成 字,而且**留在瀏覽器的復原紀錄裡**(Ctrl+Z 退得回來)。
+   ⚠ 不要再直接 `ta.value = …`:那會把整個 textarea 的復原紀錄清掉(使用者回報「不能 undo」)。
+     execCommand 雖然被標成過時,Chromium / Electron / iOS WebKit 都還支援,而且是唯一會進復原紀錄的做法;
+     不支援時才退回 setRangeText(至少字是對的)。 */
+function 可復原換(ta, 起, 迄, 字) {
+  try { ta.focus({ preventScroll: true }); } catch (e) {}
+  ta.setSelectionRange(起, 迄);
+  let ok = false;
+  try { ok = 字 ? document.execCommand("insertText", false, 字) : document.execCommand("delete"); } catch (e) {}
+  if (!ok) ta.setRangeText(字, 起, 迄, "end");
+  return ok;        // true = 瀏覽器已經自己發了 input 事件
+}
 function 包起來(ta, 左, 右, 游標尾) {
   const a = ta.selectionStart, b = ta.selectionEnd;
   const 選 = ta.value.slice(a, b);
   const 前 = ta.value.slice(0, a), 後 = ta.value.slice(b);
   if (前.slice(-左.length) === 左 && 後.slice(0, 右.length) === 右) {      // 記號在選取範圍外面
-    ta.value = 前.slice(0, 前.length - 左.length) + 選 + 後.slice(右.length);
+    可復原換(ta, a - 左.length, b + 右.length, 選);
     ta.selectionStart = a - 左.length; ta.selectionEnd = b - 左.length;
     return;
   }
   if (選.length >= 左.length + 右.length &&
       選.slice(0, 左.length) === 左 && 選.slice(-右.length) === 右) {      // 記號被一起選起來了
     const 內 = 選.slice(左.length, 選.length - 右.length);
-    ta.value = 前 + 內 + 後;
+    可復原換(ta, a, b, 內);
     ta.selectionStart = a; ta.selectionEnd = a + 內.length;
     return;
   }
-  ta.value = 前 + 左 + 選 + 右 + 後;
+  可復原換(ta, a, b, 左 + 選 + 右);
   if (a === b) { ta.selectionStart = ta.selectionEnd = a + 左.length; }     // 沒選字就把游標放中間
   else if (游標尾) {
     // 連結那一種:包完游標要跳進括號裡(`[選起來的字](|)`),不是把字再選一次
@@ -2036,7 +2379,8 @@ class 看板視圖 extends TextFileView {
       /* ⚠ 1.4.6 修:主題輸入框(.tk-題編)也是「還在編輯的一部分」。
          漏掉它的時候,一點主題框就被當成「點外面」,編修當場結束 —— 主題永遠改不了。 */
       if (t.closest(".tk-編框") || t.closest(".tk-動作") || t.closest(".tk-題編")) return;
-      if (t.closest(".tk-分類挑,.tk-分類設定,.menu,.suggestion-container")) return;
+      // 1.6.1:即時預覽編輯器會用到 Obsidian 自己的建議清單、手機工具列、連結預覽、對話框
+      if (t.closest(".tk-分類挑,.tk-分類設定,.menu,.suggestion-container,.mobile-toolbar,.modal-container,.popover,.hover-popover")) return;
       if (t.closest("body > div[style*=\"position:fixed\"]")) return;
       const k = this.編修卡;
       this.完成編輯(k);
@@ -2056,7 +2400,12 @@ class 看板視圖 extends TextFileView {
       if (ok) new Notice(this.T.boardReady);
     });
   }
-  async onClose() { this.contentEl.empty(); }
+  async onClose() {
+    // 1.6.1:關掉分頁前把編輯中的字寫掉,並卸掉即時預覽編輯器
+    try { await this.收掉編修(); } catch (e) {}
+    this.清即時(true);
+    this.contentEl.empty();
+  }
 
   get 名單() { return this.插件.設定.指派人 || []; }
   get 個人() { return !!this.插件.設定.個人模式; }
@@ -2211,7 +2560,7 @@ class 看板視圖 extends TextFileView {
     }).sort((a, b) => this.比大小(a, b));
   }
   /* 排序:置頂永遠在最上面,做完的沉到最下面,剩下的照選的模式。
-       編修(預設)= 最近新增或編修的排最上面。時間取自卡片自己的 `✎{}` 標記,
+       編修(預設)= 最近新增或編修的排最上面。時間取自卡片最後一行的 `[ed:: …]`(舊的 `✎{}` / `Ed{}`),
                    所以換一台電腦、換一支手機看到的順序都一樣。
        顏色       = 日期 → 分類順序(照卡片日誌裡標題的先後)→ 最近編修 */
   比大小(a, b) {
@@ -2292,6 +2641,7 @@ class 看板視圖 extends TextFileView {
     this.畫未定區(this.區.未定, 全);
     this.畫版本列(this.區.版本);
     this.contentEl.scrollTop = 捲;
+    this.清即時();
   }
 
   /* 打字搜尋專用:只重畫清單,新增區那兩個輸入框完全不碰 */
@@ -2328,8 +2678,22 @@ class 看板視圖 extends TextFileView {
     this.畫未定區(this.區.未定, 全);
     this.畫導覽列(this.區.導覽, 全);      // 數字要跟著搜尋走,不然對不上
     this.contentEl.scrollTop = 捲;
+    this.清即時();
   }
   重畫() { this.畫(); }
+
+  /* 1.6.1 即時預覽編輯器的生命週期:每一個都記在這裡;重畫完把已經不在畫面上的卸掉,關分頁時全部卸掉。 */
+  即時編(容器, 值, 選) {
+    const 編 = this.插件.建即時編輯(this, 容器, 值, 選);
+    if (編) (this.__即時們 = this.__即時們 || new Set()).add(編);
+    return 編;
+  }
+  清即時(全部) {
+    if (!this.__即時們) return;
+    for (const 編 of Array.from(this.__即時們)) {
+      if (全部 || !編.isConnected) { try { 編.卸(); } catch (e) {} this.__即時們.delete(編); }
+    }
+  }
 
   畫衝突提示(根) {
     根.empty();
@@ -2857,10 +3221,8 @@ class 看板視圖 extends TextFileView {
         const 標 = 行.createDiv();
         st(標, 標樣 + "text-align:center;" + 標字);
         (this.__待縮 = this.__待縮 || []).push(標);
-        const 標字元 = 標.createSpan({ text: 字 });
-        // 1.6:這一段包含今天 → 字底下一條細線。標籤不再寫「本日」,要靠它認出今天在哪一格
-        // 本日那一格不畫(使用者:日期本身就是今天,標題列也寫了今日,底線是多的);月、週照畫
-        if (含今 && 定.層 !== "日") st(標字元, "box-shadow:inset 0 -1.5px 0 currentColor;padding-bottom:1px;");
+        標.createSpan({ text: 字 });
+        // 1.6.1:「包含今天」的底線拿掉了(使用者明講:月、週、日都不畫)。不要再加回來
         if (!直箭) this.畫箭(行, true, "往後一格", () => 走(1));
       } else if (定.圖示) {
         // 1.5.1:已逾期 / 週期 只放圖示,名字留在 title
@@ -3361,9 +3723,22 @@ class 看板視圖 extends TextFileView {
     const 內框 = this.建框(主行, null, 窄 ? "flex:1 1 0;min-width:0;" : "flex:1 1 250px;min-width:0;max-width:100%;");
     內框.parentElement.addClass("tk-內容框");
     st(內框, "position:relative;display:flex;align-items:stretch;width:100%;");
-    const 內輸 = 內框.createEl("textarea");
     // 最小高度 = 送出鈕的高度,空的時候兩個上下都對齊
     const 送高 = 窄 ? 40 : 38;
+    /* 1.6.1:內容框也是 Obsidian 的即時預覽編輯器(使用者要的)。它同時是搜尋框:打字 → 搜尋變動(只重畫清單,不會重建這一格)。
+       送出鍵 → 新增卡片;Esc → 清空搜尋。拿不到編輯器就走下面原本的 textarea。 */
+    const 內即 = this.即時編(內框, s.新內容, {
+      改了: (v) => { s.新內容 = v; this.搜尋變動(); },
+      送出: () => this.送出新增(),
+      取消: () => this.清除搜尋(),
+      提示圖: ["pen-line", "pencil-line", "pencil"]
+    });
+    if (內即) {
+      內框.addClass("tk-即時框");
+      內框.style.minHeight = 送高 + "px";
+      this.內輸 = 內即;
+    } else {
+    const 內輸 = 內框.createEl("textarea");
     st(內輸, "width:100%;flex:1 1 auto;min-width:0;min-height:" + 送高 + "px;resize:none;border-radius:6px;" +
       "font-family:var(--font-text);font-size:0.92em;line-height:1.5;");
     內輸.value = s.新內容;
@@ -3398,6 +3773,7 @@ class 看板視圖 extends TextFileView {
       內圖.style.left = Math.round((parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0) + 2) + "px";
       內圖.style.top = Math.round((parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.borderTopWidth) || 0) + (行高 - 空框圖寬) / 2) + "px";
     } catch (e) {}
+    }   // 退路 textarea 結束
 
     /* ---- 送出欄 ----
        ⚠ 1.4.2 重做。以前這一格是「一行小灰字 + 一顆 32px 的純 ＋」,
@@ -3613,13 +3989,14 @@ class 看板視圖 extends TextFileView {
       const v = 框.value;
       // ⚠ 游標後面如果本來就有 `]]`(使用者自己先打了),要吃掉它,
       //   不然會變成 `[[名]]]]`,畫面上就多出一截莫名其妙的 `]]`
-      let 後 = v.slice(框.selectionStart);
-      if (後.slice(0, 2) === "]]") 後 = 後.slice(2);
-      框.value = v.slice(0, 起位) + "[[" + f.basename + "]]" + 後;
+      let 迄 = 框.selectionStart;
+      if (v.slice(迄, 迄 + 2) === "]]") 迄 += 2;
       const 落 = 起位 + f.basename.length + 4;
       關();
-      try { 框.focus(); 框.setSelectionRange(落, 落); } catch (e) {}
-      框.dispatchEvent(new Event("input", { bubbles: true }));
+      // 1.6.1:走 可復原換,Ctrl+Z 退得回來(execCommand 自己會發 input 事件)
+      const 有發 = 可復原換(框, 起位, 迄, "[[" + f.basename + "]]");
+      try { 框.setSelectionRange(落, 落); } catch (e) {}
+      if (!有發) 框.dispatchEvent(new Event("input", { bubbles: true }));
     };
     const 查 = () => {
       const v = String(框.value || ""), 游 = 框.selectionStart;
@@ -4480,7 +4857,7 @@ class 看板視圖 extends TextFileView {
 
   /* 融合成一張:
        ・主題和第一行用「日期最新」那張的
-       ・日期不一樣就寫成區間 ＠{最早~最晚};都一樣就是那一天
+       ・日期不一樣就寫成區間 @{最早} ~ @{最晚};都一樣就是那一天
        ・內容依卡片新到舊排成小清單,每一段前面標原本的日期
        ・最新那張的第一行只會出現一次(它就是合併後的第一行,不再重複列一條)
        ・指派人沿用最新那張的(沒有就往下找);任何一張置頂,合併後就置頂
@@ -4521,27 +4898,30 @@ class 看板視圖 extends TextFileView {
     const 頂 = 選.some(k => k.置頂);
     const 題 = (排.find(k => k.主題) || {}).主題 || "";
 
+    // 1.6.1:有主題的話主卡的內容全部放第二行以下;沒有主題的,主卡第一行內容留在第一行(不重複)
+    // 1.6.1:每一行帶著它原本的符號搬過來(既往不咎)
+    const 原行們 = (k) => k.內容行.map((t, i) => 照打行(((k.內容符 && k.內容符[i]) || "") + t));
+    const 主行 = 原行們(主);
+    const 首文 = (!題 && 可放首行(主行[0])) ? 主行[0] : "";
     const 尾 = [];
     排.forEach((k, i) => {
-      const 行們 = (i === 0) ? k.內容行.slice(1) : k.內容行;   // 主卡第一行就是合併後的第一行,不重複
+      const 行們 = (i === 0 && 首文) ? 主行.slice(1) : 原行們(k);
       /* 1.6:日期**自己一行**,那張卡片的內容排在它底下。
          以前日期黏在第一行內容前面(「09-14(一)  打給廠商」),日期和內容擠成一句,掃過去分不出來。
          ⚠ 內容跟日期同一層(一個 tab):以前寫的兩個 tab 會被 寫手.一行() 壓成一個空白,寫進筆記變成「 ．…」。 */
       if (i > 0 && 行們.length && k.起日) 尾.push("\t" + 符() + 日期短(k.起日));
-      行們.forEach(t => 尾.push("\t" + 符() + t));
+      行們.forEach(t => 尾.push("\t" + t));
     });
     // 留言全部搬進來,新到舊
     const 留 = [];
     選.forEach(k => k.留言.forEach(c => 留.push(c)));
     留.sort((a, b) => (b.日 + b.分).localeCompare(a.日 + a.分));
-    留.forEach(c => 留.push);
-    const 留行 = 留.map(c => "\t" + 符() + "💬{" + c.日 + " " + c.分 + "|" + c.人 + "} " + c.文);
+    const 留行 = 留.map(c => 組留言行文(c.日, c.分, c.人, c.文));
 
-    const 日 = 起 ? ("＠{" + 起 + ((迄 && 迄 !== 起) ? " ~ " + 迄 : "") + "}") : "";
-    const 首行 = "- [ ] " + (題 ? "[" + 題 + "] " : "") + 符() + (主.內容行[0] || "") +
-      (日 ? " " + 日 : "") + (人 ? " #" + 人 : "") + (頂 ? " 📌" : "") + " ✎{" + 現在戳() + "}";
+    const 首行 = 組首行({ 題: 題 || null, 文: 首文, 起: 起, 迄: 迄, 人: 人, 頂: 頂 });
 
-    const ok = await this.插件.寫手.融合(this.file, 選, 主.分類, 首行, 留行.concat(尾), this.名單);
+    // 1.6.1 順序:內容 → 留言 → [ed::](最後一行)
+    const ok = await this.插件.寫手.融合(this.file, 選, 主.分類, 首行, 尾.concat(留行, [組編行(現在戳())]), this.名單);
     if (ok) {
       this.狀態.融合中 = false; this.狀態.融合選 = {};
       new Notice(T.merged.replace("N", String(選.length)));
@@ -5391,20 +5771,30 @@ class 看板視圖 extends TextFileView {
     st(文, "flex:1 1 auto;min-width:0;word-break:break-word;");
 
     if (this.狀態.改留 === c.id) {
-      const inp = 文.createEl("textarea");
-      st(inp, "width:100%;min-height:2.1em;resize:none;padding:5px 8px;" +
-        "font-family:var(--font-text);font-size:0.94em;line-height:1.5;border-radius:6px;" +
-        "background:var(--background-secondary);border:1px solid var(--text-accent);" +
-        "color:var(--text-normal);");
-      inp.value = c.文;
-      掛md快捷(inp);
-      inp.onclick = (e) => e.stopPropagation();
-      inp.oninput = () => 撐高(inp);
-      inp.onkeydown = (e) => {
-        if (是送出(e)) { e.preventDefault(); this.存留言(k, c, inp.value); return; }
-        if (e.isComposing || e.keyCode === 229) return;
-        if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); this.狀態.改留 = null; this.重畫清單(); }
-      };
+      const 取消改 = () => { this.狀態.改留 = null; this.重畫清單(); };
+      // 1.6.1:改留言也用即時預覽編輯器;拿不到才用 textarea
+      const 殼 = 文.createDiv();
+      let inp = this.即時編(殼, c.文, { 送出: () => this.存留言(k, c, inp.value), 取消: 取消改 });
+      if (inp) {
+        殼.addClass("tk-即時框", "tk-即時框-強");
+        殼.onclick = (e) => e.stopPropagation();
+      } else {
+        殼.remove();
+        inp = 文.createEl("textarea");
+        st(inp, "width:100%;min-height:2.1em;resize:none;padding:5px 8px;" +
+          "font-family:var(--font-text);font-size:0.94em;line-height:1.5;border-radius:6px;" +
+          "background:var(--background-secondary);border:1px solid var(--text-accent);" +
+          "color:var(--text-normal);");
+        inp.value = c.文;
+        掛md快捷(inp);
+        inp.onclick = (e) => e.stopPropagation();
+        inp.oninput = () => 撐高(inp);
+        inp.onkeydown = (e) => {
+          if (是送出(e)) { e.preventDefault(); this.存留言(k, c, inp.value); return; }
+          if (e.isComposing || e.keyCode === 229) return;
+          if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); 取消改(); }
+        };
+      }
       /* ⚠ 1.4.4 補上送出 / 取消兩顆鈕。以前改留言只能按 Enter 存、Esc 取消 ——
          手機的鍵盤沒有 Esc,而且輸入法開著的時候 Enter 是「選字」(keyCode 229,上面直接略過),
          於是手機上改完留言**根本沒有辦法存**。 */
@@ -5427,7 +5817,12 @@ class 看板視圖 extends TextFileView {
         存.disabled = true; 存.setText("…");
         this.存留言(k, c, inp.value);
       };
-      setTimeout(() => { try { 撐高(inp); inp.focus({ preventScroll: true }); inp.select(); } catch (e) {} }, 0);
+      setTimeout(() => {
+        try {
+          if (inp.聚焦) inp.聚焦(true, true);
+          else { 撐高(inp); inp.focus({ preventScroll: true }); inp.select(); }
+        } catch (e) {}
+      }, 0);
       return;
     }
 
@@ -5475,21 +5870,33 @@ class 看板視圖 extends TextFileView {
     st(頭, "flex:0 0 auto;width:20px;height:20px;border-radius:50%;margin-top:0.5em;" +
       "display:flex;align-items:center;justify-content:center;line-height:1;" +
       "font-size:0.62em;font-weight:700;color:#141414;background:" + pc + ";");
-    const ta = 盒.createEl("textarea");
-    ta.placeholder = T.placeholder;
-    st(ta, "flex:1 1 auto;min-width:0;min-height:2.1em;resize:none;" +
-      "padding:5px 8px;font-family:var(--font-text);font-size:0.94em;line-height:1.5;" +
-      "border-radius:6px;background:var(--background-secondary);" +
-      "border:1px solid var(--background-modifier-border);color:var(--text-normal);");
-    ta.onclick = (e) => e.stopPropagation();
-    /* 鍵盤跟新增框、編修框完全一樣(1.4.7 統一,見 是送出) ‧ Esc 取消。
+    const 取消寫 = () => { this.狀態.寫留言 = null; this.重畫清單(); };
+    /* 1.6.1:寫留言也用即時預覽編輯器(送出 / Esc 走同一套 是送出);拿不到才用 textarea。
+       鍵盤跟新增框、編修框完全一樣(1.4.7 統一,見 是送出) ‧ Esc 取消。
        ⚠ 1.4.6 以前留言是 Enter 送出、Shift+Enter 換行,跟新增和編輯反過來 —— 同一個看板裡兩套規則。 */
-    ta.onkeydown = (e) => {
-      if (是送出(e)) { e.preventDefault(); this.送留言(k, 我, ta.value, ta); return; }
-      if (e.isComposing || e.keyCode === 229) return;
-      if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); this.狀態.寫留言 = null; this.重畫清單(); }
-    };
-    ta.oninput = () => 撐高(ta);
+    const 殼 = 盒.createDiv();
+    st(殼, "flex:1 1 auto;min-width:0;");
+    let ta = this.即時編(殼, "", { 送出: () => this.送留言(k, 我, ta.value, ta), 取消: 取消寫, 提示: T.placeholder });
+    const 即時 = !!ta;
+    if (即時) {
+      殼.addClass("tk-即時框");
+      殼.onclick = (e) => e.stopPropagation();
+    } else {
+      殼.remove();
+      ta = 盒.createEl("textarea");
+      ta.placeholder = T.placeholder;
+      st(ta, "flex:1 1 auto;min-width:0;min-height:2.1em;resize:none;" +
+        "padding:5px 8px;font-family:var(--font-text);font-size:0.94em;line-height:1.5;" +
+        "border-radius:6px;background:var(--background-secondary);" +
+        "border:1px solid var(--background-modifier-border);color:var(--text-normal);");
+      ta.onclick = (e) => e.stopPropagation();
+      ta.onkeydown = (e) => {
+        if (是送出(e)) { e.preventDefault(); this.送留言(k, 我, ta.value, ta); return; }
+        if (e.isComposing || e.keyCode === 229) return;
+        if (e.key === "Escape" || e.code === "Escape") { e.preventDefault(); 取消寫(); }
+      };
+      ta.oninput = () => 撐高(ta);
+    }
     // 1.5.1:跟新增卡片的送出鈕同一顆 send-horizontal 圖示,「送出」留在 aria-label
     const 送 = 盒.createEl("button");
     st(送, "flex:0 0 auto;align-self:flex-start;margin-top:2px;" + this.小鈕樣(true) +
@@ -5497,10 +5904,10 @@ class 看板視圖 extends TextFileView {
     圖備(送, ["send-horizontal", "send-horizonal", "send"], 14);
     送.setAttribute("aria-label", T.send);
     送.title = T.send + " · " + 送出提示字(T);
-    this.掛連結建議(ta);
-    掛md快捷(ta);
+    if (!即時) { this.掛連結建議(ta); 掛md快捷(ta); }
+    送.onmousedown = (e) => e.preventDefault();          // 不要讓編輯器先失焦
     送.onclick = (e) => { e.stopPropagation(); this.送留言(k, 我, ta.value, ta); };
-    setTimeout(() => { try { ta.focus({ preventScroll: true }); } catch (e) {} }, 0);
+    setTimeout(() => { try { if (即時) ta.聚焦(true); else ta.focus({ preventScroll: true }); } catch (e) {} }, 0);
   }
 
   /* 卡片裡的小文字鈕(留言的送出/取消、刪除確認)。
@@ -5516,8 +5923,11 @@ class 看板視圖 extends TextFileView {
 
   /* ---- 內容:閱讀跟編修用同一個縮排(17px),字才不會左右跳 ---- */
   畫內容區(文區, k, 編修中) {
-    // 有項目符號才需要 17px 的懸掛縮排(讓「．」吊在外面);沒有的話只留一點點呼吸空間
-    const 掛行縮排 = 自動項目符 ? 17 : 4;
+    /* 有項目符號才需要 17px 的懸掛縮排(讓「．」吊在外面);沒有的話只留一點點呼吸空間。
+       1.6.1:照筆記裡實際寫的 —— 這張卡片有任何一行帶符號(或待辦)就整張用 17px,符號吊在外面。
+       編修框裡符號是字(使用者自己打的),所以只留 4px。 */
+    const 符們 = k.內容符 || [];
+    const 掛行縮排 = 符們.some(Boolean) ? 17 : 4;
     const 窄 = this.窄;
     if (編修中) {
       /* ⚠ 1.3:編修框改成看得出邊界的一個框(跟留言的輸入框同一套長相)。
@@ -5525,6 +5935,31 @@ class 看板視圖 extends TextFileView {
          常常不知道自己到底在不在編輯 —— 一個框就解決了。 */
       const 框 = 文區.createDiv();
       框.addClass("tk-編框");
+      const 草0 = this.草稿 && this.草稿[k.鍵];
+      // 1.6.1:符號照筆記裡寫的放回去(使用者自己打的「- 」不能被吃掉)
+      const 初值 = (草0 !== undefined && 草0 !== null) ? 草0 : k.內容行.map((t, i) => (符們[i] || "") + t).join("\n");
+      /* 1.6.1:優先用 Obsidian 自己的即時預覽編輯器(見 插件.建即時編輯)。
+         重畫時舊的那一個要先卸掉(它掛在外掛底下,DOM 拿掉了也還活著);字在 草稿 裡,新的會接著用。 */
+      if (this.編框 && this.編框.卸) { this.編框.卸(); this.編框 = null; }
+      let 即時 = null;
+      const 即排存 = () => {
+        if (!即時) return;
+        this.草稿 = this.草稿 || {};
+        this.草稿[k.鍵] = 即時.value;
+        clearTimeout(this.存計時);
+        this.存計時 = setTimeout(() => { this.自動存(k, 即時); }, 900);
+      };
+      即時 = this.即時編(框, 初值, { 改了: 即排存, 收工: () => this.完成編輯(k) });
+      if (即時) {
+        框.onclick = (e) => e.stopPropagation();
+        this.排存 = 即排存;
+        this.編修卡 = k;
+        this.編框 = 即時;
+        // 1.4.5:窄螢幕不自動聚焦(聚焦 = 跳鍵盤 = iOS 自己捲畫面);游標位置照設定
+        if (!窄) setTimeout(() => 即時.聚焦(this.插件.設定.編輯游標 === "後"), 0);
+        return;
+      }
+      // 退路:一般的 textarea
       // 1.4.5 起完成鈕在主題那一行(兩種寬度都是),編輯框不必讓位,用滿整個寬度
       const ta = 框.createEl("textarea");
       ta.addClass("tk-編");
@@ -5532,11 +5967,10 @@ class 看板視圖 extends TextFileView {
          但那會變成使用者要自己管的字(刪一半、貼上時多一顆…)。
          現在改成單純**縮排**:內容比主題再右邊一點,層級關係就看得出來了。 */
       st(ta, "display:block;vertical-align:top;width:100%;box-sizing:border-box;" +
-        "padding:0 4px 0 " + 掛行縮排 + "px;margin:0;border:0;outline:none;resize:none;" +
+        "padding:0 4px 0 4px;margin:0;border:0;outline:none;resize:none;" +
         "font-family:var(--font-text);font-size:0.94em;line-height:1.55;" +
         "background:transparent;color:var(--text-normal);");
-      const 草 = this.草稿 && this.草稿[k.鍵];
-      ta.value = (草 !== undefined && 草 !== null) ? 草 : k.內容行.join("\n");
+      ta.value = 初值;
       ta.onclick = (e) => e.stopPropagation();
 
       const 長高 = () => 撐高(ta);
@@ -5614,14 +6048,33 @@ class 看板視圖 extends TextFileView {
       const 行 = 區.createDiv();
       行.addClass("卡片內文");
       const 預告 = 要收 && i === 露幾行;      // 第三行只露一半高度當預告
-      st(行, "padding-left:" + 掛行縮排 + "px;" + (自動項目符 ? "text-indent:-" + 掛行縮排 + "px;" : "") +
+      const 記 = 符們[i] || "";
+      st(行, "padding-left:" + 掛行縮排 + "px;" + (記 ? "text-indent:-" + 掛行縮排 + "px;" : "") +
         "line-height:1.55;font-size:0.94em;" +
         (預告 ? "max-height:0.8em;overflow:clip;opacity:0.42;" +
                 "mask-image:linear-gradient(180deg,#000 30%,transparent);" +
                 "-webkit-mask-image:linear-gradient(180deg,#000 30%,transparent);" : ""));
-      if (自動項目符) 行.createSpan({ text: 項目符 });
+      // 1.6.1:內容裡的待辦(`- [ ] …`)畫成可以勾的 checkbox,取代項目符號的位置
+      const 勾 = 內勾Re.exec(t);
+      if (勾) {
+        const box = 行.createEl("input", { type: "checkbox" });
+        box.addClass("tk-內勾");
+        box.checked = 勾[1] !== " ";
+        box.onclick = (e) => { e.stopPropagation(); this.切內勾(k, t, box.checked); };
+        // Obsidian 的 checkbox 本身 15px(裡面的勾會撐到 15),壓小會溢出;15 + 右邊 2 = 17px 懸掛縮排
+        st(box, "width:15px;height:15px;min-width:15px;margin:0 2px 0 0;vertical-align:-2px;");
+        畫文字(行, t.slice(勾[0].length), this.app, this.file ? this.file.path : "");
+        return;
+      }
+      // 有編號的清單照寫數字,其他符號畫成「．」
+      if (記) {
+        // 1.6.1:跟 Obsidian 的清單一樣畫「•」(使用者:不要再是「．」);固定 17px 寬,換行的字才對得齊
+        const 點 = 行.createSpan({ text: /\d/.test(記) ? 記.trim() : 顯示符 });
+        點.addClass("tk-清單符");
+        st(點, "display:inline-block;min-width:" + 掛行縮排 + "px;text-indent:0;");
+      }
       // [[筆記]] 畫成真的可以點的連結,http(s) 也是
-      畫文字(行, t, this.app, this.file ? this.file.path : "");
+      畫文字(行, 顯示內文(t, this.T), this.app, this.file ? this.file.path : "");
     });
     if (多) {
       /* ⚠ 接在**真正露出的最後一行**尾端 —— 不是那條淡淡的預告行
@@ -5818,6 +6271,7 @@ class 看板視圖 extends TextFileView {
     const ce = this.contentEl, 捲 = ce.scrollTop;
     this.畫內文(格, k, 列);
     ce.scrollTop = 捲;
+    this.清即時();
   }
 
   改指派(e, k) {
@@ -5951,23 +6405,11 @@ class 看板視圖 extends TextFileView {
   /* 把 🔁 標記寫回首行。循 = null 就是把循環拿掉。 */
   async 設循環(k, 循) {
     const T = this.T;
-    const ok = await this.插件.寫手.改首行(this.file, k, (首) => {
-      const m = 卡首Re.exec(首);
-      if (!m) return null;
-      let 本體 = m[3];
-      if (循環標記Re.test(本體)) {
-        本體 = 循 ? 本體.replace(循環標記Re, 循環字(循))
-                  : 本體.replace(循環標記Re, "").replace(/[ \t]{2,}/g, " ");
-      } else if (循) {
-        /* 還沒有標記 → 加在本體最前面(主題後面)。
-           ⚠ 不可以加在最後面:尾巴是 ＠{日期} #指派人 📌 那一串,
-             插進去會把日期標記切開,解析就對不上了。 */
-        const 主 = 主題Re.exec(本體);
-        const 前 = 主 ? 主[0] : "";
-        本體 = 前 + 循環字(循) + " " + 本體.slice(前.length);
-      } else return null;
-      return m[1] + "- [" + m[2] + "] " + 本體.replace(/[ \t]+$/, "");
-    }, this.名單);
+    // 1.6.1:循環寫成 [repeat:: every 2 weeks],位置由 組首行 決定
+    const ok = await this.插件.寫手.改首行(this.file, k, (首) => 改零件(首, this.名單, p => {
+      if (!循 && !p.循) return false;
+      p.循 = 循 || null;
+    }), this.名單);
     if (ok) {
       new Notice(循 ? T.cycleSaved.replace("N", 循環說明短(循)) : T.cycleNone);
       this.閃一下(k, 320);
@@ -6052,10 +6494,10 @@ class 看板視圖 extends TextFileView {
         d.textContent = "💬 " + c.人 + "  " + c.文 + "   " + c.日 + " " + c.分;
         td3.appendChild(d);
       });
-      k.內容行.forEach(t => {
+      k.內容行.forEach((t, i) => {
         const d = document.createElement("div");
         d.style.cssText = "padding-left:16px;text-indent:-16px;";
-        d.textContent = 符() + t;
+        d.textContent = (((k.內容符 || [])[i]) ? 顯示符 : "") + 顯示內文(t, this.T);
         td3.appendChild(d);
       });
       tr.appendChild(td3);
@@ -6158,14 +6600,17 @@ class 看板視圖 extends TextFileView {
     // s.新指派:null = 沒選過(用這台電腦是誰);"" = 選了不指派 → 不寫 #名字
     const 人 = this.個人 ? "" : ((s.新指派 !== null && s.新指派 !== undefined) ? s.新指派 : (this.我是誰() || ""));
     const d = this.新增日期();
-    const 段 = 文.replace(/\r/g, "").split("\n").map(x => 去符(x)).filter(Boolean);
-    const 首內 = 段.shift() || 題;
-    const 日 = d.起 ? ("＠{" + d.起 + (d.迄 ? " ~ " + d.迄 : "") + "}") : "";
-    // 1.5「週期」那一格新增的卡片:從今天開始、每週一次。🔁 放在主題後面,跟 設循環 同一個位置
-    const 循 = d.週期 ? 循環字({ 型: "週", 隔: 1 }) + " " : "";
-    const 首行 = "- [ ] " + (題 ? "[" + 題 + "] " : "") + 循 + 符() + 首內 +
-      (日 ? " " + 日 : "") + (人 ? " #" + 人 : "") + " ✎{" + 現在戳() + "}";
-    const 尾行 = 段.map(x => "\t" + 符() + x);
+    // 1.6.1:開著自動項目符號,沒有自己打符號的行才加「- 」;待辦的各種打法整理成「- [ ] 」
+    const 段 = 文.replace(/\r/g, "").split("\n").map(x => 照打行(x)).filter(Boolean);
+    /* 1.6.1:有主題的卡片,內容全部從第二行開始;只打主題、內容留空,就**沒有內容**
+       (以前會把主題再抄一份當第一行內容)。沒有主題的卡片,第一行內容留在第一行。
+       「週期」那一格新增的卡片:從今天開始、每週一次。 */
+    const 首行 = 組首行({
+      題: 題 || null, 文: (!題 && 可放首行(段[0])) ? 段.shift() : "",
+      起: d.起 || null, 迄: d.迄 || null, 人: 人 || null,
+      循: d.週期 ? { 型: "週", 隔: 1 } : null
+    });
+    const 尾行 = 段.map(x => "\t" + 新增行(x)).concat([組編行(現在戳())]);
     /* 1.4.6 拿掉了「這一行跟另一張卡片一模一樣」的提醒。第一行一樣的卡片現在分得開了
        (整行原文、到秒的時戳、內容指紋,見 定位文),不必再叫使用者去改字。 */
     const ok = await this.插件.寫手.新增卡片(this.file, s.新分類, 首行, 尾行);
@@ -6183,7 +6628,7 @@ class 看板視圖 extends TextFileView {
         if (!區 || d.起 < 區[0] || d.起 > 區[1]) this.回到今天();
       }
       await this.插件.存設定();
-      const 新鍵 = 鍵由首行(首行, this.名單);
+      const 新鍵 = 鍵由行們(首行, 尾行, this.名單);
       const 要跳 = this.插件.設定.跳轉_新增 !== false;
       if (要跳) this.要看的卡 = 新鍵;
       this.畫();
@@ -6233,15 +6678,27 @@ class 看板視圖 extends TextFileView {
     const 內 = String(新文 || "").trim();
     // ⚠ 同一分鐘可能有兩則 id 一樣的留言,所以要連「原本的內文」一起比,才不會改到隔壁那則
     const 認 = (t) => {
-      const x = 去符(t || "");
-      const m = 留言Re.exec(x);
-      if (!m) return false;
-      if ((m[1] + " " + m[2] + "|" + m[3].trim()) !== c.id) return false;
-      return String(m[4] || "").trim() === c.文;
+      const m = 讀留言(去符(t || ""));
+      return !!m && m.id === c.id && m.文 === c.文;
     };
-    const 新行 = 內 ? ("\t" + 符() + "💬{" + c.日 + " " + c.分 + "|" + c.人 + "} " + 內) : null;
+    const 新行 = 內 ? 組留言行文(c.日, c.分, c.人, 內) : null;
     await this.插件.寫手.改一行(this.file, k, 認, 新行, this.名單);   // 清空 = 刪掉
     this.狀態.改留 = null;
+  }
+  /* 1.6.1 勾 / 取消勾 內容裡的待辦(`- [ ] …`)。只改那一行。
+     t 是畫面上那一行(去掉符號之後);新寫法有主題的卡片,第一行的 #標籤 會接在第一行內容後面顯示,所以也認「t 的開頭」。 */
+  async 切內勾(k, t, 勾上) {
+    const 認 = (x) => {
+      if (!/^[ \t]/.test(x || "")) return false;          // 只找內容行,不找卡片第一行
+      const y = 內文之(x);
+      return 內勾Re.test(y) && (y === t || t.indexOf(y + " #") === 0);
+    };
+    const 換 = (x) => {
+      const y = 內文之(x), m = 內勾Re.exec(y);
+      return 前空白(x) + "- [" + (勾上 ? "x" : " ") + "] " + y.slice(m[0].length);
+    };
+    const ok = await this.插件.寫手.改一行(this.file, k, 認, 換, this.名單);
+    if (!ok) this.重畫清單();          // 沒寫進去:把 checkbox 放回原本的樣子
   }
   /* ⚠⚠ 0.9.0:打太快會存不進去的第二個原因在這裡。
      舊版是「先把編修狀態關掉,再去寫檔」——寫檔現在是排隊的,可能要等前一棒跑完,
@@ -6266,7 +6723,8 @@ class 看板視圖 extends TextFileView {
     this.略過到 = Date.now() + 2500;
     let r = null;
     try {
-      r = await this.插件.寫手.換內容(this.file, k, 去符多行(內), this.名單, null);
+      // ⚠ 1.6.1:不可以再先 去符多行 —— 使用者自己打的「- 」會被吃掉
+      r = await this.插件.寫手.換內容(this.file, k, 內, this.名單, null);
     } finally { this.存中 = false; }
     if (r === false || r === null || r === undefined) {
       this.略過到 = 0;
@@ -6286,7 +6744,9 @@ class 看板視圖 extends TextFileView {
       const 列 = this.找列(舊鍵);
       if (列) 列.__鍵 = r;
     }
-    k.內容行 = 去符多行(內).split("\n").map(x => 去符(x)).filter(Boolean);
+    const 新行們 = 內.replace(/\r/g, "").split("\n").filter(x => 內文之(x));
+    k.內容行 = 新行們.map(內文之);
+    k.內容符 = 新行們.map(取符);
   }
 
   /* 把還沒寫進去的那一下寫掉,然後把編修相關的狀態清乾淨。
@@ -6296,6 +6756,7 @@ class 看板視圖 extends TextFileView {
     clearTimeout(this.存計時);
     const ta = this.編框, k = this.編修卡;
     if (ta && ta.isConnected && k) await this.自動存(k, ta);
+    if (ta && ta.卸) ta.卸();                  // 1.6.1 即時預覽編輯器要卸掉
     this.編框 = null;
     this.編修卡 = null;
     this.上次存的 = null;
@@ -6357,9 +6818,7 @@ class 看板視圖 extends TextFileView {
   }
 
   async 切置頂(k) {
-    const ok = await this.插件.寫手.改首行(this.file, k, (首) =>
-      置頂Re.test(首) ? 首.replace(置頂清除Re, "")
-                      : (首.replace(時戳清除Re, "").replace(/\s+$/, "") + " 📌"),
+    const ok = await this.插件.寫手.改首行(this.file, k, (首) => 改零件(首, this.名單, p => { p.頂 = !p.頂; }),
       this.名單);
     // 置頂會把卡片搬到置頂表 —— 預設跟著跑過去,設定可以關(1.4.7)
     if (ok && this.插件.設定.跳轉_置頂 !== false) this.浮到最上(k);
@@ -6376,13 +6835,11 @@ class 看板視圖 extends TextFileView {
     const T = this.T, 設 = this.插件.設定.排程顯示;
     const 變完成 = !k.完成;
     const 取消釘 = 變完成 && !!this.插件.設定.完成取消置頂;
-    const ok = await this.插件.寫手.改首行(this.file, k, (首) => {
-      let 新 = 首.replace(卡首Re, (全, 空, 勾, 本體) =>
-        空 + "- [" + (勾.toLowerCase() === "x" ? " " : "x") + "] " + 本體);
+    const ok = await this.插件.寫手.改首行(this.file, k, (首) => 改零件(首, this.名單, p => {
+      p.勾 = p.勾.toLowerCase() === "x" ? " " : "x";
       // 1.5:設定打開的話,打勾完成時順便取消置頂(同一次寫入)
-      if (取消釘) 新 = 新.replace(置頂清除Re, "");
-      return 新;
-    }, this.名單);
+      if (取消釘) p.頂 = false;
+    }), this.名單);
     if (!ok) return;
     // ② 自動把篩選調到看得到它的地方(設定裡可以個別關掉)
     const 要跳 = 變完成 ? this.插件.設定.跳轉_未完成到完成 : this.插件.設定.跳轉_完成到未完成;
@@ -6471,20 +6928,11 @@ class 看板視圖 extends TextFileView {
     setTimeout(跑, 延遲 === undefined ? 60 : 延遲);
   }
   設指派(k, 人) {
-    const 清 = 人規則(this.名單).清;
-    return this.插件.寫手.改首行(this.file, k, (首) => {
-      const 去 = 首.replace(清, "");
-      if (!人) return 去;
-      return 去.replace(時戳清除Re, "").replace(/\s+$/, "") + " #" + 人;
-    }, this.名單);
+    return this.插件.寫手.改首行(this.file, k, (首) => 改零件(首, this.名單, p => { p.人 = 人 || null; }),
+      this.名單);
   }
   async 設日期(k, 起, 迄) {
-    const 標 = "＠{" + 起 + (迄 ? " ~ " + 迄 : "") + "}";
-    const ok = await this.插件.寫手.改首行(this.file, k, (首) => {
-      標記Re.lastIndex = 0;
-      if (標記Re.test(首)) { 標記Re.lastIndex = 0; return 首.replace(標記Re, 標); }
-      return 首.replace(時戳清除Re, "").replace(/\s+$/, "") + " " + 標;
-    }, this.名單);
+    const ok = await this.插件.寫手.改首行(this.file, k, (首) => 換日期(首, 起, 迄), this.名單);
     // 改了日期 = 卡片多半會換到別的一段去,捲過去閃一下他才找得到
     if (ok) this.浮到最上(k);
     return ok;
@@ -6505,7 +6953,8 @@ class 看板視圖 extends TextFileView {
     // ① 先看內容
     /* ⚠ 記錄行寫的是 `26-08-14(五)`(帶星期),所以比對時**只比日期那一段**,
        不要拿帶星期的字串去比 —— 那樣永遠比不中,擋不住重複。 */
-    const 只日 = (x) => { const m = /(\d{2}-\d{2}-\d{2})/.exec(String(x || "")); return m ? m[1] : ""; };
+    // 1.6.1 的 Done{2026-09-16} 跟舊的「✔ 本次完成 26-09-16(三)」都比「26-09-16」那一段
+    const 只日 = (x) => { const m = /(\d{2}-\d{2}-\d{2})(?!\d)/.exec(String(x || "")); return m ? m[1] : ""; };
     const 已記 = (k.內容行 || []).filter(x => 本次完成Re.test(x)).map(只日);
     // ② 同一天不重複記
     if (已記.indexOf(只日(日期短(這次))) >= 0) {
@@ -6515,7 +6964,7 @@ class 看板視圖 extends TextFileView {
     // ③ 推到今天之後
     let 新日 = 下一次(這次, k.循環);
     for (let i = 0; i < 400 && 新日 <= this.今; i++) 新日 = 下一次(新日, k.循環);
-    const 記 = "\t" + 符() + "✔ 本次完成 " + 日期短(這次);
+    const 記 = 組完成記(這次);
     const ok = await this.插件.寫手.本次完成(this.file, k, 記, 這次, 新日, this.名單);
     if (!ok) return;
     this.記剛動過(k, T.doneOnce.replace("N", 日期短(新日)),
@@ -6593,7 +7042,7 @@ module.exports = class 卡片日誌看板 extends Plugin {
     目前app = this.app;       // 快捷鍵要問 app.hotkeyManager,見 取md快捷()
     md表 = null;              // 重載外掛時把上一輪讀到的鍵位丟掉
     語言設定 = this.設定.語言 || "auto";
-    自動項目符 = this.設定.項目符號 !== false;
+    自動項目符 = false;      // 1.6.1:設定拿掉了,舊的 data.json 裡的「項目符號」不再有作用
     週起日 = this.設定.週起始 === "日" ? 0 : 1;
     送出用Enter = this.設定.送出鍵 === "Enter";
     this.T = 語();
@@ -6623,7 +7072,9 @@ module.exports = class 卡片日誌看板 extends Plugin {
         const leaf = this.app.workspace.activeLeaf;
         if (!leaf) return false;
         const t = leaf.getViewState().type;
-        if (t !== "markdown" && t !== 視圖種類) return false;
+        // 1.6.1:Kanban 這類外掛開著的 .md 筆記也能切過來
+        const 檔 = leaf.view && leaf.view.file;
+        if (t !== 視圖種類 && !(檔 && 檔.extension === "md")) return false;
         if (只問) return true;
         this.切視圖(leaf);
       }
@@ -6766,9 +7217,172 @@ module.exports = class 卡片日誌看板 extends Plugin {
       name: this.T.scanNow,
       callback: () => { if (this.自動掃) this.自動掃(true); new Notice(this.T.scanned); }
     });
+    this.addCommand({
+      id: "whats-new",
+      name: this.T.whatsNew,
+      callback: () => this.秀更新介紹(true)
+    });
+    // 1.6.1:安裝或更新之後跳一次這一版的更新介紹
+    this.app.workspace.onLayoutReady(() => this.秀更新介紹(false));
   }
 
   onunload() {}
+
+  /* ============================================================
+     1.6.1 即時預覽編輯器(使用者:「md 編輯時沒有即時顯示、不能 undo」)
+     ------------------------------------------------------------
+     卡片內容改用 Obsidian 自己的編輯器(CodeMirror 6 + 即時預覽):
+     粗體、螢光、連結當場呈現,Ctrl+Z、所有快捷鍵、[[ 建議都是 Obsidian 原生的。
+     ⚠ Obsidian 沒有公開這個類別。做法跟 Kanban 外掛一樣:開一個看不見的 Markdown 嵌入,
+       叫它進入編輯模式,從 editMode 的原型鏈拿到建構子。任何一步失敗就回傳 null,
+       呼叫的人退回原本的 textarea —— 不能因為 Obsidian 改版就讓卡片不能編輯。 */
+  取即時編輯器類() {
+    if (this.__編類 !== undefined) return this.__編類;
+    this.__編類 = null;
+    try {
+      const md = this.app.embedRegistry.embedByExtension.md({ app: this.app, containerEl: createDiv(), state: {} }, null, "");
+      md.load(); md.editable = true; md.showEditor();
+      const 類 = Object.getPrototypeOf(Object.getPrototypeOf(md.editMode)).constructor;
+      md.unload();
+      if (typeof 類 === "function" && typeof 類.prototype.buildLocalExtensions === "function") this.__編類 = 類;
+    } catch (e) { console.warn("[card-table] 拿不到即時預覽編輯器,改用一般輸入框", e); }
+    return this.__編類;
+  }
+  /* 在 容器 裡建一個即時預覽編輯器。
+     選 = { 改了(值), 收工(), 送出(), 取消(), 提示: 空白時的灰字, 提示圖: [Lucide 名字…] }
+       送出鍵 → 送出 ?? 收工;Esc → 取消 ?? 收工。
+     回傳一個長得像 textarea 的物件(value / isConnected / disabled / style / focus()),
+     自動存、送留言 那幾套不用改;另外有 聚焦(尾, 全選)、卸()、編輯器。
+     ⚠ 用完一定要 卸():編輯器是掛在外掛底下的子元件,DOM 被拿掉它也還活著(看板用 即時編 / 清即時 管)。 */
+  建即時編輯(view, 容器, 初值, 選) {
+    const 類 = this.取即時編輯器類();
+    if (!類) return null;
+    try {
+      const app = this.app;
+      let 提示 = null;
+      const 更新提示 = () => { if (提示 && ed) 提示.style.display = ed.editor.getValue() ? "none" : ""; };
+      class 卡片編輯器 extends 類 {
+        updateBottomPadding() {}                  // 不要在卡片底下留一大段捲動空白
+        onUpdate(u, 變) {
+          super.onUpdate(u, 變);
+          if (!變) return;
+          更新提示();
+          if (選.改了) 選.改了(this.editor.getValue());
+        }
+      }
+      let ed = null;
+      const 控 = {
+        app: app, scroll: 0, editMode: null,
+        showSearch() {}, toggleMode() {}, onMarkdownScroll() {}, getMode: () => "source",
+        get editor() { return ed ? ed.editor : null; },
+        get file() { return view.file; },
+        get path() { return view.file ? view.file.path : ""; }
+      };
+      // 卡片裡不要行號、不要折疊箭頭(照 Kanban 的做法,只在這個編輯器看到的 app 上蓋掉)
+      const 關掉 = { showLineNumber: 1, foldHeading: 1, foldIndent: 1 };
+      const app代 = new Proxy(app, { get: (t, p, r) => p !== "vault" ? Reflect.get(t, p, r) :
+        new Proxy(app.vault, { get: (t2, p2, r2) => p2 !== "config" ? Reflect.get(t2, p2, r2) :
+          new Proxy(app.vault.config, { get: (t3, p3, r3) => 關掉[p3] ? false : Reflect.get(t3, p3, r3) }) }) });
+      ed = this.addChild(new 卡片編輯器(app代, 容器, 控));
+      控.editMode = ed;
+      ed.set(初值 || "");
+      容器.addClass("tk-即時編");
+      /* ⚠ 1.6.1 手機實測:iPhone 上新增卡片的內容框被撐到快 400px 高。
+         手機版 Obsidian 會用**行內樣式**在編輯器底下加一大段空白(讓整頁筆記能捲過最後一行),
+         行內樣式壓過 CSS,桌機的手機模擬也看不到。所以這幾層只要被寫上底部空白 / 最小高度就清掉。 */
+      const 壓扁 = () => {
+        容器.querySelectorAll(".markdown-source-view, .cm-editor, .cm-scroller, .cm-sizer, .cm-contentContainer, .cm-content").forEach(el => {
+          const s = el.style;
+          if (s.paddingBottom) s.paddingBottom = "";
+          if (s.paddingBlockEnd) s.paddingBlockEnd = "";
+          if (s.minHeight) s.minHeight = "";
+          if (s.marginBottom) s.marginBottom = "";
+        });
+      };
+      壓扁();
+      const 看樣式 = new MutationObserver(壓扁);
+      看樣式.observe(容器, { subtree: true, attributes: true, attributeFilter: ["style"] });
+      // 空白時的提示(灰字或圖示),絕對定位在第一行開頭;有字就藏起來
+      if (選.提示 || 選.提示圖) {
+        if (!容器.style.position) 容器.style.position = "relative";
+        提示 = 容器.createDiv();
+        提示.addClass("tk-即時提示");
+        if (選.提示圖) 圖備(提示, 選.提示圖, 空框圖寬); else 提示.setText(選.提示);
+        更新提示();
+      }
+      /* 送出鍵、Esc:在**視窗**上用捕獲階段攔 —— 比 Obsidian 的快捷鍵(Ctrl+Enter 預設是「切換勾選框」)
+         和 CodeMirror 自己的鍵盤處理都早一步(不用 import @codemirror)。只管焦點在這個容器裡的按鍵。
+         判斷一律走 是送出()(1.4.7 的規則)。 */
+      const 窗 = 容器.win || window;
+      const 攔 = (e) => {
+        if (e.isComposing || !容器.contains(e.target)) return;
+        const 是Esc = e.key === "Escape" || e.code === "Escape";
+        if (!是Esc && !是送出(e)) return;
+        e.preventDefault(); e.stopPropagation();
+        const 做 = 是Esc ? (選.取消 || 選.收工) : (選.送出 || 選.收工);
+        if (做) 做();
+      };
+      窗.addEventListener("keydown", 攔, true);
+      // 聚焦時讓 Obsidian 把它當成「現在的編輯器」:Ctrl+B 這類快捷鍵、手機工具列才會作用在這裡
+      // ⚠ 手機上 Obsidian 會在聚焦之後把 activeEditor 重設一次,所以下一拍再設一次(Kanban 也是這樣做)
+      const 設焦 = () => {
+        if (卸了) return;
+        try { app.workspace.activeEditor = 控; } catch (e) {}
+        try { if (app.mobileToolbar) app.mobileToolbar.update(); } catch (e) {}
+      };
+      const 焦 = () => { 設焦(); (容器.win || window).setTimeout(設焦, 0); };
+      容器.addEventListener("focusin", 焦);
+      let 卸了 = false, 停用 = false;
+      const 物 = {
+        get value() { return 卸了 ? "" : ed.editor.getValue(); },
+        set value(v) { if (!卸了) { ed.set(v || ""); 更新提示(); } },
+        get isConnected() { return !卸了 && 容器.isConnected; },
+        get 編輯器() { return 卸了 ? null : ed; },
+        get style() { return 容器.style; },
+        get disabled() { return 停用; },
+        set disabled(v) {
+          停用 = !!v;
+          try { ed.cm.contentDOM.setAttribute("contenteditable", 停用 ? "false" : "true"); } catch (e) {}
+        },
+        focus() { 物.聚焦(true); },
+        聚焦(尾, 全選) {
+          if (卸了) return;
+          try {
+            const E = ed.editor;
+            const 末 = E.offsetToPos(E.getValue().length);
+            if (全選) E.setSelection({ line: 0, ch: 0 }, 末);
+            else E.setCursor(尾 ? 末 : { line: 0, ch: 0 });
+            ed.focus();
+            焦();          // 視窗在背景時 focusin 不會觸發,直接設一次
+          } catch (e) {}
+        },
+        卸: () => {
+          if (卸了) return;
+          卸了 = true;
+          看樣式.disconnect();
+          窗.removeEventListener("keydown", 攔, true);
+          容器.removeEventListener("focusin", 焦);
+          try { if (app.workspace.activeEditor === 控) app.workspace.activeEditor = null; } catch (e) {}
+          try { app.mobileToolbar && app.mobileToolbar.update(); } catch (e) {}
+          this.removeChild(ed);
+        }
+      };
+      return 物;
+    } catch (e) {
+      console.warn("[card-table] 即時預覽編輯器建立失敗,改用一般輸入框", e);
+      return null;
+    }
+  }
+
+  秀更新介紹(硬要) {
+    const 版 = 插件版本;
+    if (!硬要 && this.設定.看過版本 === 版) return;
+    const 語碼 = 語() === 字典["en"] ? "en" : "zh-TW";
+    const 項 = 更新介紹[版] && 更新介紹[版][語碼];
+    if (!硬要 && this.設定.看過版本 !== 版) { this.設定.看過版本 = 版; this.存設定(); }
+    if (!項) { if (硬要) new Notice(this.T.noWhatsNew); return; }
+    new 更新介紹框(this.app, 版, 項, 更新標題[語碼]).open();
+  }
 
   /* 左側欄那顆圖示(1.5):
        看板裡 → 切回 Markdown ‧ 記過模式的筆記 → 照舊切換
@@ -6780,8 +7394,11 @@ module.exports = class 卡片日誌看板 extends Plugin {
     const 檔 = leaf && leaf.view && leaf.view.file;
     if (型 === 視圖種類) { this.切視圖(leaf); return; }
     const 記 = this.設定.看板檔案 || {};
-    if (型 === "markdown" && 檔 && Object.prototype.hasOwnProperty.call(記, 檔.path)) { this.切視圖(leaf); return; }
-    new 開啟詢問(this.app, this, (型 === "markdown" && 檔) ? leaf : null).open();
+    /* 1.6.1 修:只要這個分頁開著一份 .md 筆記就算數 —— 不只 Markdown,Kanban 這類外掛的畫面也是。
+       以前只認 "markdown",在 Kanban 模式按這顆圖示只剩「開一份新檔案」,切不過來。 */
+    const 是筆記 = !!檔 && 檔.extension === "md";
+    if (是筆記 && 型 === "markdown" && Object.prototype.hasOwnProperty.call(記, 檔.path)) { this.切視圖(leaf); return; }
+    new 開啟詢問(this.app, this, 是筆記 ? leaf : null).open();
   }
   /* 開一份新的空白筆記當卡片日誌:放在「新筆記預設的資料夾」,名字撞到就加數字。
      分區(## 1 ~ ## 5)交給看板打開時的 開分區如果是新的() 建。 */
@@ -6876,12 +7493,147 @@ class 確認框 extends Modal {
   onOpen() {
     const T = 語(), c = this.contentEl;
     c.empty();
-    c.createEl("p", { text: this.文 });
+    st(c.createEl("p", { text: this.文 }), "white-space:pre-line;");
     const 列 = c.createDiv({ cls: "modal-button-container" });
     const 是 = 列.createEl("button", { text: this.是字, cls: "mod-warning" });
     是.onclick = () => { this.close(); this.做(); };
     const 否 = 列.createEl("button", { text: T.cancel });
     否.onclick = () => this.close();
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
+/* ============================================================
+   更新介紹(1.6.1 起每一版都要有,使用者明講)
+   ------------------------------------------------------------
+   安裝或更新之後,Obsidian 版面好了就跳一次「這一版新增了什麼」。看過的版本記在 設定.看過版本,
+   同一版不再跳(data.json 會同步,所以一台看過,其他台也不跳)。
+   ⚠ 升版時在這裡加一筆 [插件版本],內容跟 CHANGELOG.md 一起寫,中英兩份。
+     沒有這一版的內容就不跳,只把版本記起來。
+   每一項:[Lucide 圖示名, 標題, 說明]
+   ============================================================ */
+const 更新介紹 = {
+  "1.6.1": {
+    "zh-TW": [
+      ["file-text", "Tasks、Dataview 讀得懂的格式", "卡片改用 [欄位:: 值]:日期 [due:: 2026-09-16]、區間 [start:: …] [due:: …]、循環 [repeat:: every 2 weeks],Tasks 和 Dataview 的查詢都看得到。"],
+      ["tag", "格式裡不再有圖示", "置頂 [pin:: on]、留言 [cm:: …]、本次完成 [done:: …];最後一行永遠是編輯時間 [ed:: …]。第一行是置頂、主題、日期、循環、指派人,內容從第二行開始。"],
+      ["history", "舊筆記不用轉", "舊的 ＠{…}、✎、📌、🔁、💬、「．」都照讀。哪張卡片被改到,那張才換成新寫法。想一次全部換掉,設定裡有「全部轉換」(會先備份)。其他裝置也要更新到 1.6.1,舊版讀不懂新寫法。"],
+      ["square-check", "內容裡的待辦可以直接勾", "內容寫「- [ ] 事情」(或「-[ ]」「[]」),卡片上就是一個可以勾的方框。"],
+      ["list", "內容照你打的", "不再自動加項目符號;自己打的「- 」「* 」「1. 」都會留著。卡片編輯改用 Obsidian 的即時預覽,粗體、螢光、連結當場呈現,也能 Ctrl+Z 復原。"],
+      ["house", "只打主題就只有主題", "內容留空送出,不會再把主題抄一份當內容。"]
+    ],
+    "en": [
+      ["file-text", "A format Tasks and Dataview understand", "Cards use [key:: value] fields: [due:: 2026-09-16], ranges as [start:: …] [due:: …], repeats as [repeat:: every 2 weeks] — visible to Tasks and Dataview queries."],
+      ["tag", "No more emoji in the format", "Pins are [pin:: on], comments [cm:: …], repeat records [done:: …], and the last line is always the edit time [ed:: …]. The first line holds pin, title, dates, repeat and assignee; content starts on the next line."],
+      ["history", "Old notes keep working", "The older ＠{…}, ✎, 📌, 🔁, 💬 and ． are still read. A card switches to the new format only when it is changed. To switch everything at once, use Convert all in settings (it backs up first). Update your other devices to 1.6.1 too; older versions cannot read the new format."],
+      ["square-check", "Tick to-dos inside a card", "Write “- [ ] something” (or “-[ ]”, “[]”) in the content and the card shows a checkbox you can tick."],
+      ["list", "Content as you type it", "Bullets are no longer added automatically; your own “- ”, “* ” and “1. ” stay. Cards are edited in Obsidian's Live Preview editor: formatting renders as you type, and Ctrl+Z works."],
+      ["house", "A title alone stays a title", "Adding a card with an empty content no longer copies the title into the content."]
+    ]
+  }
+};
+const 更新標題 = { "zh-TW": "卡片看板 N 更新了什麼", "en": "What’s new in Card Table N" };
+/* 1.6.1 設定最上面「看所有版本」用的精簡版(使用者要的:合併著寫,不列細項)。
+   ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。 */
+const 版本摘要 = [
+  ["1.6.1",
+    ["卡片改用 [欄位:: 值](due / start / repeat / pin / cm / ed),Tasks 和 Dataview 讀得到日期,格式裡不再有圖示。",
+     "舊筆記照讀、改到才轉;設定裡也可以一次全部轉換(會先備份)。",
+     "內容裡的待辦可以直接勾;卡片用 Obsidian 的即時預覽編輯;內容照你打的寫,不再自動加項目符號。設定分成幾個大標,最上面看得到所有版本。"],
+    ["Cards use [key:: value] fields (due / start / repeat / pin / cm / ed): Tasks and Dataview see the dates, and the format has no emoji.",
+     "Old notes keep working and switch when changed; settings can also convert everything at once (with a backup).",
+     "Tick to-dos inside cards; cards are edited with Obsidian's Live Preview; content is saved as you type it, with no automatic bullets. Settings are grouped, with all versions at the top."]],
+  ["1.6.0",
+    ["時間篩選的年、月、週、日跟著同一個日期連動,格子寫實際的日期。",
+     "新增卡片的「⋯」換成分類與指派人設定,行事曆也在同一塊打開。",
+     "主題框會建議用過的主題,並帶回它上一次的分類。"],
+    ["The year, month, week and day filters follow one date and show the actual dates.",
+     "The New card `⋯` turns the block into section and assignee settings; the calendar opens there too.",
+     "The title box suggests used titles and brings back their last section."]],
+  ["1.5.2", ["英文名稱改成 Card Table - Dated Tasks。"], ["Renamed to Card Table - Dated Tasks."]],
+  ["1.5.1",
+    ["改名為卡片看板:任務分類日誌;標題列和按鈕改成圖示。",
+     "新增卡片區更精簡;手機的卡片直接接在標題列底下。"],
+    ["Renamed; block headers and buttons became icons.",
+     "A leaner New card area; phone cards sit right under the table header."]],
+  ["1.5.0",
+    ["分類就是狀態,卡片上可以顯示分類名稱。",
+     "已逾期和週期合成一格,長期拿掉了;可以多一格「全部」。",
+     "第一行一樣的卡片先靠位置分辨;常用主題的釘選每份筆記各自一組。"],
+    ["Sections double as status and can be shown on cards.",
+     "Overdue and Repeat share one tile, long-term is gone, and an optional All tile was added.",
+     "Identical cards are told apart by position first; pinned titles belong to each note."]],
+  ["1.4.9", ["時間篩選也能收合,年份的箭頭跟本日齊平。"], ["Time filters fold like other blocks; the year arrows line up with Today."]],
+  ["1.4.8", ["新增卡片區重新排版;可以隱藏最後編輯時間。"], ["A redesigned New card area; the last edited time can be hidden."]],
+  ["1.4.7",
+    ["箭頭加大,窄分頁自動換成手機版面。",
+     "送出鍵統一(也可以改成 Enter 送出);一週可以從週一或週日開始;留言可以關掉,常用主題可以釘選。"],
+    ["Bigger arrows; narrow panes switch to the phone layout.",
+     "One submit key everywhere (or Enter to submit); Monday or Sunday weeks; comments can be turned off and titles pinned."]],
+  ["1.4.6",
+    ["第一行一模一樣的卡片分得開了。",
+     "個人使用模式、三種動作後跳轉各自設定、贊助連結。"],
+    ["Cards with identical first lines are told apart.",
+     "Solo mode, separate jump settings per action, and a support link."]],
+  ["1.4.5",
+    ["置頂卡片獨立一張表;新增區和清單工具都能收合。",
+     "窄版 / 寬版、留言位置、項目符號都可以設定;編輯最後一張卡片不再跳動。"],
+    ["Pinned cards get their own table; the add area and list tools fold away.",
+     "Narrow or wide layout, comment position and bullets are settings; editing the last card no longer jumps."]],
+  ["1.4.4", ["窄螢幕版面重做,手機一輪修正。"], ["Rebuilt narrow-screen layout and a round of phone fixes."]],
+  ["1.4.3", ["修掉手機上蓋滿畫面的閃光;窄螢幕卡片欄位固定;可以設定按編輯後卡片停在哪裡。"],
+    ["Fixed a full-screen flash on phones; fixed card fields on narrow screens; choose where a card sits when editing."]],
+  ["1.4.2", ["修掉手機上被裁掉的篩選;窄螢幕的工具收成一個「⋯」。"], ["Fixed clipped filters on phones; narrow-screen tools fold into one `⋯`."]],
+  ["1.4.1", ["打字時畫面不再跳;格式快捷鍵跟著你的 Obsidian 設定。"], ["No more jumping while typing; formatting keys follow your Obsidian hotkeys."]],
+  ["1.4.0", ["第一個正式版本。"], ["First release."]]
+];
+class 版本列表框 extends Modal {
+  onOpen() {
+    const c = this.contentEl, 英 = 語() === 字典["en"];
+    c.empty();
+    this.titleEl.setText(語().updates);
+    const 清 = c.createDiv();
+    st(清, "display:flex;flex-direction:column;gap:14px;margin:2px 0 8px;max-height:60vh;overflow-y:auto;");
+    版本摘要.forEach(([版, 中, 英文], i) => {
+      const 段 = 清.createDiv();
+      const 頭 = 段.createDiv({ text: 版 });
+      st(頭, "font-weight:700;font-size:0.95em;margin-bottom:4px;" +
+        (i === 0 ? "color:var(--interactive-accent);" : "color:var(--text-normal);"));
+      (英 ? 英文 : 中).forEach(t => {
+        const 行 = 段.createDiv({ text: t });
+        st(行, "font-size:0.88em;line-height:1.5;color:var(--text-muted);padding-left:12px;text-indent:-12px;");
+        行.prepend("· ");
+      });
+    });
+    const 列 = c.createDiv({ cls: "modal-button-container" });
+    const 好 = 列.createEl("button", { text: 語().finish, cls: "mod-cta" });
+    好.onclick = () => this.close();
+  }
+  onClose() { this.contentEl.empty(); }
+}
+class 更新介紹框 extends Modal {
+  constructor(app, 版, 項, 標) { super(app); this.版 = 版; this.項 = 項; this.標 = 標; }
+  onOpen() {
+    const c = this.contentEl;
+    c.empty();
+    this.titleEl.setText(this.標.replace("N", this.版));
+    const 清 = c.createDiv();
+    st(清, "display:flex;flex-direction:column;gap:14px;margin:4px 0 10px;");
+    this.項.forEach(([名, 題, 說]) => {
+      const 列 = 清.createDiv();
+      st(列, "display:flex;gap:12px;align-items:flex-start;");
+      const 座 = 列.createDiv();
+      st(座, "flex:0 0 30px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;" +
+        "color:var(--interactive-accent);background:var(--background-modifier-hover);");
+      圖備(座, [名, "sparkles"], 16);
+      const 字 = 列.createDiv();
+      st(字, "min-width:0;");
+      st(字.createDiv({ text: 題 }), "font-weight:600;line-height:1.4;");
+      st(字.createDiv({ text: 說 }), "font-size:0.88em;line-height:1.5;color:var(--text-muted);margin-top:2px;");
+    });
+    const 列 = c.createDiv({ cls: "modal-button-container" });
+    const 好 = 列.createEl("button", { text: 語().finish, cls: "mod-cta" });
+    好.onclick = () => this.close();
   }
   onClose() { this.contentEl.empty(); }
 }
@@ -6917,43 +7669,30 @@ class 設定頁 extends PluginSettingTab {
   constructor(app, 插件) { super(app, 插件); this.插件 = 插件; }
   display() {
     const T = 語(), c = this.containerEl;
+    const 設 = this.插件.設定;
     c.empty();
+    const 存 = async (重畫) => { await this.插件.存設定(); if (重畫) this.插件.重畫所有看板(); };
+    // 1.6.1:設定分成幾個大標(使用者:「現在有點太亂」)
+    const 標 = (名, 說) => { const s = new Setting(c).setName(名).setHeading(); if (說) s.setDesc(說); return s; };
 
-    /* ⚠ 1.2:指派人名單和分類都從設定頁搬走了。
+    /* 1.6.1 最上面:看所有版本的更新內容(精簡版,見 版本摘要) */
+    new Setting(c).setName(T.updates).setDesc(T.updatesDesc.replace("N", 插件版本))
+      .addButton(b => b.setButtonText(T.updatesBtn).setCta()
+        .onClick(() => new 版本列表框(this.app).open()));
+
+    /* ---- 一般 ----
+       ⚠ 1.2:指派人名單和分類都從設定頁搬走了。
        它們是「這一份看板長什麼樣」的事,不是「這個外掛怎麼運作」的事 ——
-       擺在設定頁要先離開看板、開設定、改完再回來,而且改的時候看不到卡片。
-       現在都在新增卡片那一排:分類圓點旁邊的「⋯」改分類,指派人框的「⋯」改名單。 */
-    new Setting(c).setName(T.whoAmI).setDesc(T.whoAmIDesc)
-      .addDropdown(d => {
-        d.addOption("", "—");
-        (this.插件.設定.指派人 || []).forEach(n => d.addOption(n, n));
-        d.setValue(讀我是誰() || "");
-        d.onChange(v => 存我是誰(v || null));
-      });
-
-    new Setting(c).setName(T.soloMode).setDesc(T.soloModeDesc)
-      .addToggle(t => t.setValue(!!this.插件.設定.個人模式)
-        .onChange(async (v) => {
-          this.插件.設定.個人模式 = v;
-          await this.插件.存設定(); this.插件.重畫所有看板();
-        }));
-
-    new Setting(c).setName(T.defaultRange).setDesc(T.defaultRangeDesc)
-      .addDropdown(d => {
-        [["今日", T.today], ["7天內", T.week], ["本月", T.month], ["全部", T.all]]
-          .forEach(([v, t]) => d.addOption(v, t));
-        d.setValue(this.插件.設定.預設範圍 === "本週" ? "7天內" : (this.插件.設定.預設範圍 || "今日"));
-        d.onChange(async (v) => { this.插件.設定.預設範圍 = v; await this.插件.存設定(); });
-      });
-
+       現在都在新增卡片標題列的「⋯」(分類與指派人)。 */
+    標(T.setGeneral);
     new Setting(c).setName(T.lang).setDesc(T.langDesc)
       .addDropdown(d => {
         d.addOption("auto", T.langAuto);
         d.addOption("zh-TW", T.langZh);
         d.addOption("en", T.langEn);
-        d.setValue(this.插件.設定.語言 || "auto");
+        d.setValue(設.語言 || "auto");
         d.onChange(async (v) => {
-          this.插件.設定.語言 = v; 語言設定 = v;
+          設.語言 = v; 語言設定 = v;
           await this.插件.存設定();
           this.插件.T = 語();
           /* 側邊欄那顆圖示的提示文字也跟著換。
@@ -6966,141 +7705,154 @@ class 設定頁 extends PluginSettingTab {
           this.display();
         });
       });
-
-    new Setting(c).setName(T.doneLook).setDesc(T.doneLookDesc)
+    new Setting(c).setName(T.whoAmI).setDesc(T.whoAmIDesc)
       .addDropdown(d => {
-        [["淡化劃掉", T.doneBoth], ["淡化", T.doneFade], ["劃掉", T.doneStrike], ["無", T.doneNone]]
+        d.addOption("", "—");
+        (設.指派人 || []).forEach(n => d.addOption(n, n));
+        d.setValue(讀我是誰() || "");
+        d.onChange(v => 存我是誰(v || null));
+      });
+    new Setting(c).setName(T.soloMode).setDesc(T.soloModeDesc)
+      .addToggle(t => t.setValue(!!設.個人模式)
+        .onChange(async (v) => { 設.個人模式 = v; await 存(true); }));
+
+    /* ---- 時間篩選 ---- */
+    標(T.filterBlock);
+    new Setting(c).setName(T.defaultRange).setDesc(T.defaultRangeDesc)
+      .addDropdown(d => {
+        [["今日", T.today], ["7天內", T.week], ["本月", T.month], ["全部", T.all]]
           .forEach(([v, t]) => d.addOption(v, t));
-        d.setValue(this.插件.設定.完成樣式 || "淡化劃掉");
-        d.onChange(async (v) => {
-          this.插件.設定.完成樣式 = v;
-          await this.插件.存設定(); this.插件.重畫所有看板();
-        });
+        d.setValue(設.預設範圍 === "本週" ? "7天內" : (設.預設範圍 || "今日"));
+        d.onChange(async (v) => { 設.預設範圍 = v; await 存(false); });
       });
-
-    new Setting(c).setName(T.layoutWidth).setDesc(T.layoutWidthDesc)
-      .addDropdown(d => {
-        d.addOption("窄", T.layoutNarrow);
-        d.addOption("寬", T.layoutWide);
-        d.setValue(this.插件.設定.版面寬度 === "寬" ? "寬" : "窄");
-        d.onChange(async (v) => {
-          this.插件.設定.版面寬度 = v;
-          await this.插件.存設定(); this.插件.重畫所有看板();
-        });
-      });
-
-    new Setting(c).setName(T.commentPos).setDesc(T.commentPosDesc)
-      .addDropdown(d => {
-        d.addOption("上", T.commentAbove);
-        d.addOption("下", T.commentBelow);
-        d.setValue(this.插件.設定.留言位置 === "下" ? "下" : "上");
-        d.onChange(async (v) => {
-          this.插件.設定.留言位置 = v;
-          await this.插件.存設定(); this.插件.重畫所有看板();
-        });
-      });
-
-    new Setting(c).setName(T.bullet).setDesc(T.bulletDesc)
-      .addToggle(t => t.setValue(this.插件.設定.項目符號 !== false)
-        .onChange(async (v) => {
-          this.插件.設定.項目符號 = v; 自動項目符 = v;
-          await this.插件.存設定(); this.插件.重畫所有看板();
-        }));
-
-    // ---- 1.4.7 ----
-    new Setting(c).setName(T.useComments).setDesc(T.useCommentsDesc)
-      .addToggle(t => t.setValue(this.插件.設定.使用留言 !== false)
-        .onChange(async (v) => {
-          this.插件.設定.使用留言 = v;
-          await this.插件.存設定(); this.插件.重畫所有看板();
-        }));
-
-    // ---- 1.4.8 ----
-    new Setting(c).setName(T.showEditTime).setDesc(T.showEditTimeDesc)
-      .addToggle(t => t.setValue(this.插件.設定.顯示編輯時間 !== false)
-        .onChange(async (v) => {
-          this.插件.設定.顯示編輯時間 = v;
-          await this.插件.存設定(); this.插件.重畫所有看板();
-        }));
-
-    new Setting(c).setName(T.sendKey).setDesc(T.sendKeyDesc)
-      .addDropdown(d => {
-        d.addOption("組合", T.sendKeyCombo);
-        d.addOption("Enter", T.sendKeyEnter);
-        d.setValue(this.插件.設定.送出鍵 === "Enter" ? "Enter" : "組合");
-        d.onChange(async (v) => {
-          this.插件.設定.送出鍵 = v; 送出用Enter = v === "Enter";
-          await this.插件.存設定(); this.插件.重畫所有看板();
-        });
-      });
-
     /* 1.6:「一週從哪天開始」和「本周怎麼算」合併成一個選項(兩個分開的時候,使用者分不出差在哪)。
        資料還是存在原本兩個鍵:週起始 一 / 日、週模式 週曆 / 七天 / 月初 —— 舊的設定照讀。
        「每月 1 號起」跟星期無關,週起始維持原值,行事曆的第一欄照舊看它。 */
     new Setting(c).setName(T.weekRule).setDesc(T.weekRuleDesc)
       .addDropdown(d => {
-        const 設0 = this.插件.設定;
         [["一|週曆", T.weekMon], ["日|週曆", T.weekSun], ["一|七天", T.weekMonRolling],
          ["日|七天", T.weekSunRolling], ["月初", T.weekMonthStart]].forEach(([v, t]) => d.addOption(v, t));
-        d.setValue(設0.週模式 === "月初" ? "月初"
-          : (設0.週起始 === "日" ? "日" : "一") + "|" + (設0.週模式 === "七天" ? "七天" : "週曆"));
+        d.setValue(設.週模式 === "月初" ? "月初"
+          : (設.週起始 === "日" ? "日" : "一") + "|" + (設.週模式 === "七天" ? "七天" : "週曆"));
         d.onChange(async (v) => {
-          if (v === "月初") 設0.週模式 = "月初";
+          if (v === "月初") 設.週模式 = "月初";
           else {
             const 段 = v.split("|");
-            設0.週起始 = 段[0]; 設0.週模式 = 段[1];
+            設.週起始 = 段[0]; 設.週模式 = 段[1];
             週起日 = 段[0] === "日" ? 0 : 1;
           }
-          await this.插件.存設定(); this.插件.重畫所有看板();
+          await 存(true);
         });
       });
-
-    // ---- 1.5 ----
-    const 設 = this.插件.設定;
     new Setting(c).setName(T.showAllTile).setDesc(T.showAllTileDesc)
       .addToggle(t => t.setValue(!!設.顯示全部篩選)
-        .onChange(async (v) => { 設.顯示全部篩選 = v; await this.插件.存設定(); this.插件.重畫所有看板(); }));
+        .onChange(async (v) => { 設.顯示全部篩選 = v; await 存(true); }));
+
+    /* ---- 卡片外觀 ---- */
+    標(T.setLook);
+    new Setting(c).setName(T.layoutWidth).setDesc(T.layoutWidthDesc)
+      .addDropdown(d => {
+        d.addOption("窄", T.layoutNarrow);
+        d.addOption("寬", T.layoutWide);
+        d.setValue(設.版面寬度 === "寬" ? "寬" : "窄");
+        d.onChange(async (v) => { 設.版面寬度 = v; await 存(true); });
+      });
+    new Setting(c).setName(T.doneLook).setDesc(T.doneLookDesc)
+      .addDropdown(d => {
+        [["淡化劃掉", T.doneBoth], ["淡化", T.doneFade], ["劃掉", T.doneStrike], ["無", T.doneNone]]
+          .forEach(([v, t]) => d.addOption(v, t));
+        d.setValue(設.完成樣式 || "淡化劃掉");
+        d.onChange(async (v) => { 設.完成樣式 = v; await 存(true); });
+      });
     new Setting(c).setName(T.showSectionName).setDesc(T.showSectionNameDesc)
       .addToggle(t => t.setValue(!!設.顯示分類名稱)
-        .onChange(async (v) => { 設.顯示分類名稱 = v; await this.插件.存設定(); this.插件.重畫所有看板(); }));
+        .onChange(async (v) => { 設.顯示分類名稱 = v; await 存(true); }));
+    new Setting(c).setName(T.showEditTime).setDesc(T.showEditTimeDesc)
+      .addToggle(t => t.setValue(設.顯示編輯時間 !== false)
+        .onChange(async (v) => { 設.顯示編輯時間 = v; await 存(true); }));
+    new Setting(c).setName(T.useComments).setDesc(T.useCommentsDesc)
+      .addToggle(t => t.setValue(設.使用留言 !== false)
+        .onChange(async (v) => { 設.使用留言 = v; await 存(true); }));
+    new Setting(c).setName(T.commentPos).setDesc(T.commentPosDesc)
+      .addDropdown(d => {
+        d.addOption("上", T.commentAbove);
+        d.addOption("下", T.commentBelow);
+        d.setValue(設.留言位置 === "下" ? "下" : "上");
+        d.onChange(async (v) => { 設.留言位置 = v; await 存(true); });
+      });
 
-    /* ⚠ frontmatter 那一排拿掉了。每個檔案上次用哪一種模式都會自動記住,
-       frontmatter 只是「從來沒開過的檔案」的第一印象 —— 那是一條規則,不是一個選項,
-       擺在設定裡只會讓人以為要先開它才會自動切換。 */
-    c.createEl("h3", { text: T.jumps });
-    // 1.4.6:未完成 / 已完成 / 封存 三個各自獨立(順序跟看板上「顯示」那一格一樣)
-    [["跳轉_完成到未完成", T.jumpTodo], ["跳轉_未完成到完成", T.jumpDone], ["跳轉_封存", T.jumpArchive],
-     ["跳轉_置頂", T.jumpPin], ["跳轉_設回今日", T.jumpToday], ["跳轉_新增", T.jumpAdd]].forEach(([k, 名]) => {
-      new Setting(c).setName(名).setDesc(T.jumpDesc)
-        .addToggle(t => t.setValue(this.插件.設定[k] !== false)
-          .onChange(async (v) => { this.插件.設定[k] = v; await this.插件.存設定(); }));
-    });
-    // 1.5(預設關)
-    new Setting(c).setName(T.unpinOnDone).setDesc(T.unpinOnDoneDesc)
-      .addToggle(t => t.setValue(!!this.插件.設定.完成取消置頂)
-        .onChange(async (v) => { this.插件.設定.完成取消置頂 = v; await this.插件.存設定(); }));
-
+    /* ---- 新增與編輯 ---- */
+    標(T.setEdit);
+    new Setting(c).setName(T.sendKey).setDesc(T.sendKeyDesc)
+      .addDropdown(d => {
+        d.addOption("組合", T.sendKeyCombo);
+        d.addOption("Enter", T.sendKeyEnter);
+        d.setValue(設.送出鍵 === "Enter" ? "Enter" : "組合");
+        d.onChange(async (v) => { 設.送出鍵 = v; 送出用Enter = v === "Enter"; await 存(true); });
+      });
+    // 1.6.1:「自動加項目符號」的設定拿掉了(使用者明講)—— 內容一律照打的寫
+    new Setting(c).setName(T.editCursor).setDesc(T.editCursorDesc)
+      .addDropdown(d => {
+        d.addOption("前", T.cursorStart);
+        d.addOption("後", T.cursorEnd);
+        d.setValue(設.編輯游標 === "後" ? "後" : "前");
+        d.onChange(async (v) => { 設.編輯游標 = v; await 存(false); });
+      });
     new Setting(c).setName(T.editPos).setDesc(T.editPosDesc)
       .addDropdown(d => {
         d.addOption("原位", T.editPosKeep);
         d.addOption("頂端", T.editPosTop);
         d.addOption("不動", T.editPosNone);
-        d.setValue(this.插件.設定.編輯位置 || "原位");
-        d.onChange(async (v) => { this.插件.設定.編輯位置 = v; await this.插件.存設定(); });
+        d.setValue(設.編輯位置 || "原位");
+        d.onChange(async (v) => { 設.編輯位置 = v; await 存(false); });
       });
-    // 1.5
-    new Setting(c).setName(T.editCursor).setDesc(T.editCursorDesc)
-      .addDropdown(d => {
-        d.addOption("前", T.cursorStart);
-        d.addOption("後", T.cursorEnd);
-        d.setValue(this.插件.設定.編輯游標 === "後" ? "後" : "前");
-        d.onChange(async (v) => { this.插件.設定.編輯游標 = v; await this.插件.存設定(); });
-      });
+    new Setting(c).setName(T.unpinOnDone).setDesc(T.unpinOnDoneDesc)
+      .addToggle(t => t.setValue(!!設.完成取消置頂)
+        .onChange(async (v) => { 設.完成取消置頂 = v; await 存(false); }));
 
-    /* 贊助(1.4.6)。網址跟 manifest.json 的 fundingUrl 是同一個 ——
+    /* ---- 動作後跳轉 ----(說明寫在大標上,六個開關就不再各寫一次)
+       1.4.6:未完成 / 已完成 / 封存 三個各自獨立(順序跟看板上「顯示」那一格一樣) */
+    標(T.jumps, T.jumpDesc);
+    [["跳轉_完成到未完成", T.jumpTodo], ["跳轉_未完成到完成", T.jumpDone], ["跳轉_封存", T.jumpArchive],
+     ["跳轉_置頂", T.jumpPin], ["跳轉_設回今日", T.jumpToday], ["跳轉_新增", T.jumpAdd]].forEach(([k, 名]) => {
+      new Setting(c).setName(名)
+        .addToggle(t => t.setValue(設[k] !== false)
+          .onChange(async (v) => { 設[k] = v; await 存(false); }));
+    });
+
+    /* ---- 筆記格式 ----
+       1.6.1 全部轉成新格式(使用者要求,先給他測)。平常不需要:舊寫法照讀、改到才轉。
+       對象 = 記住用卡片看板開的筆記(看板檔案[路徑] === true)而且檔案還在。 */
+    標(T.setFormat);
+    const 板們 = () => Object.keys(設.看板檔案 || {})
+      .filter(p => 設.看板檔案[p] === true)
+      .map(p => this.app.vault.getAbstractFileByPath(p))
+      .filter(f => f && f.extension === "md");
+    new Setting(c).setName(T.convertAll).setDesc(T.convertAllDesc.replace("N", String(板們().length)))
+      .addButton(b => b.setButtonText(T.convertBtn).setWarning()
+        .onClick(() => {
+          const 檔們 = 板們();
+          if (!檔們.length) { new Notice(T.convertNone); return; }
+          const 清單 = 檔們.map(f => "・" + f.path).join("\n");
+          new 確認框(this.app, T.convertAsk.replace("LIST", 清單), T.convertYes, async () => {
+            const 名單 = 設.指派人 || [];
+            let 張 = 0, 份 = 0, 敗 = 0;
+            for (const f of 檔們) {
+              const r = await this.插件.寫手.轉新格式(f, 名單);
+              if (r === false) 敗++;
+              else if (r.張 > 0) { 張 += r.張; 份++; }
+            }
+            if (敗) new Notice(T.convertFail.replace("N", String(敗)), 8000);
+            new Notice(張 ? T.convertDone.replace("N", String(張)).replace("F", String(份)) : T.convertNone, 8000);
+          }).open();
+        }));
+
+    /* ---- 支持 ----
+       贊助(1.4.6)。網址跟 manifest.json 的 fundingUrl 是同一個 ——
        Obsidian 的社群外掛頁會自己放一顆 Donate,這裡是給已經裝好、只會打開設定頁的人。 */
+    標(T.setSupport);
     new Setting(c).setName(T.donate).setDesc(T.donateDesc)
-      .addButton(b => b.setButtonText(T.donateBtn).setCta()
+      .addButton(b => b.setButtonText(T.donateBtn)
         .onClick(() => { window.open(贊助網址, "_blank"); }));
 
     c.createEl("p", { cls: "cjb-淡", text: T.board + " " + 插件版本 });

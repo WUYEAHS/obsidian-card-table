@@ -5,11 +5,20 @@
 
 # Card Table - Dated Tasks
 
-**Turn any markdown note into a dated table of task cards — pick today, this week or this month in one tap, and let everyone leave comments right on the card.**
+**A task-first card journal.** Every task is a card, and the cards form a table — time filters show today, this week or this month in one tap, typing searches titles and content, sections mark each task's status, and several people can work on the same board.
 
-- **Dates come first.** The filter bar is always on screen: year, month, week, day, overdue, repeat. No date pickers, no pop-up dialogs — one tap narrows the table, and ◀ ▶ reach any date in a few taps.
-- **Every card can hold a conversation.** Comments are signed and timestamped, so a card turns into a small log of what happened. Several people can work in the same note at once.
-- **It is still just a note.** Dates, assignees, pins, comments and repeats are plain text. Turn the plugin off and you still have a task list anyone can read.
+Use the same board two ways, whichever suits you:
+
+- **Table mode** — one card per row; a glance tells you what is next.
+- **Immersive mode** (coming in 1.7) — open a single card full-page to read it, then edit it as if it were a note of its own.
+
+From 1.6.1 cards are written with the same `[key:: value]` fields as the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) and [Dataview](https://github.com/blacksmithgu/obsidian-dataview) plugins, so their queries see your cards' dates and repeats too.
+
+- **Time filters.** Year, month, week, day, overdue and repeat are always on screen, and the four date tiles follow one date. No date pickers, no pop-up dialogs — ◀ ▶ reach any day in a few taps.
+- **Instant search.** Type a title or some content under New card and the table filters as you type.
+- **Sections.** A section is a colour and a status — name the red one *Waiting* and every card in it is waiting.
+- **Working together.** Every card takes signed, timestamped comments, and every write is atomic, so two syncing devices never overwrite each other.
+- **Still plain text.** Dates, assignees, pins, comments and repeats live in the note. Turn the plugin off and you still have a task list anyone can read.
 
 If Card Table saves you time, you can [buy me a coffee on Ko-fi](https://ko-fi.com/jiajiunwu).
 
@@ -40,55 +49,46 @@ then reload Obsidian and enable **Card Table - Dated Tasks**.
 - [Keyboard](#keyboard)
 - [Settings](#settings)
 - [The text format](#the-text-format)
-- [Card Table and Kanban](#card-table-and-kanban)
+- [Card Table, Tasks and Kanban](#card-table-tasks-and-kanban)
 - [Design rules](#design-rules)
 - [Support](#support)
 
 ## Features
 
-### Filtering by time
+### Time filters
+- **Linked tiles** — year, month, week and day follow one date; step any of them and the others follow.
+- **Overdue and repeat** — one tap each, next to the date tiles.
+- **Calendar** — pick a day or a range when the tiles are not enough. Weeks can start on Monday, Sunday, today or the 1st.
 
-- **One-tap filters** — the year, month, week and day sit in the first block of the filter bar and show the actual dates (`Oct`, `10/12–10/18`, `10/15`); the ones containing today are underlined. Tap a tile to view it, tap it again to go back to today.
-- **Linked steps** — the four tiles follow one date. Step the month and the week and day jump to the start of that month; step the week and the day jumps to its first day; step past the end of a week, month or year and the rest follow. From September 15 to October 15: month ▶, week ▶▶, day ▶▶▶.
-- **Today in the header** — the Time filters header always shows today's date; tap it to go back.
-- **Overdue and Repeat** — one tile, half each. Turn on **All** in settings to add an All tile to the left of the year.
-- **Weeks, your way** — Monday or Sunday first (weeks may cross months), optionally with the current week as seven days from today, or seven-day blocks from the 1st of each month.
-- **Show to do / done / archived** — three switches that apply to the list, the counts and the calendar. On a narrow window they fold into a `⋯`.
-- **Calendar** — tap a day, or two days for a range. It opens in place of New card, always on the current month. You rarely need it now.
-- **Search without a search box** — the title and content boxes of *New card* filter the table as you type.
+### Search
+- **Type to filter** — the New card title and content boxes filter the table as you type.
+- **Frequent titles** — reuse a title in one tap; a used title brings back its last section.
 
 ### Cards
+- **Edit in place** — Obsidian's Live Preview editor right in the card, saved as you type; to-dos inside a card can be ticked.
+- **Pinned, repeating, archived** — a pinned table on top, `[repeat:: every 2 weeks]`, archive before delete.
+- **Merge and export** — combine several cards into one, or export the current view to PNG or PDF.
 
-- **Pinned table** — pinned cards get their own collapsible table above the list, whatever the date filter.
-- **Frequent titles** — the titles you use most, one tap to reuse. Pin the ones you use every day; they always come first. Each note keeps its own pins. The title box also suggests used titles as you type, and a title you used before brings back the section it was last in.
-- **Edit in place** — title and content in one edit, saved as you type. The cursor starts at the beginning or the end, as you prefer.
-- **Sections as colours** — the `⋯` on the New card header switches it to section and assignee settings: rename, recolour, add or delete sections (1 to 10; the cards of a deleted section move where you choose), then ✓ to save. Renaming changes the `## heading` in the note. Turn on section names to see them on every card.
-- **Sections as status** — name a section after a state, such as *Waiting*, and turn on section names: every card in it shows *Waiting* (desktop above the done circle, phones after the title). Tap the name to move the card to another section; a done card shows Done instead. A setting can also unpin cards when they are done.
-- **Assignees, or solo** — assign cards to people on the list, or switch assignees off (solo, the default for new installs) and the assignee fields go away.
-- **Repeats** — `🔁 every 2 weeks`. Marking it done moves the date forward and leaves a record line.
-- **Archive, then delete** — archiving moves a card to `## Archive`; deleting is only offered after that.
-- **Merge** several cards into one, **export** the current filter as a long PNG or print it to PDF.
+### Sections
+- **Colour and status in one** — name the red section *Waiting* and every card in it is waiting.
+- **Managed in place** — rename, recolour, add or delete sections from the New card `⋯`.
 
-### Comments and working together
+### Working together
+- **Comments** — signed and timestamped, kept with the card they are about.
+- **Assignees or solo** — assign cards to people, or switch assignees off.
+- **Safe with sync** — every write is atomic, so two devices never overwrite each other.
 
-- **Signed, timestamped comments** on every card — each device remembers who is using it (kept on that device, never synced).
-- **A richer log** — comments sit with the card they are about, so a card collects the whole story: the task, the follow-ups, the replies.
-- **Made for more than one person** — every write is an atomic read-modify-write, so two devices syncing the same note do not overwrite each other. Cards with identical first lines are still told apart.
-- Show comments above or below the content, or turn comments off.
+### Phones and layout
+- **A real phone layout** — cards, not a squeezed table.
+- **Narrow or wide** on desktop; light and dark follow your Obsidian theme.
 
-### Phone and narrow screens
-
-- A dedicated card layout on phones and narrow panes, not a squeezed table.
-- Large tap targets for the date arrows and card actions; room for the floating navigation bar.
-- Narrow (readable line width) or wide layout on desktop.
-
-### Language
-
-- English and Traditional Chinese (繁體中文). Follows Obsidian's language, or pick one in settings.
+### Plain text
+- **Tasks- and Dataview-friendly fields** — `[due:: …]`, `[start:: …]`, `[repeat:: …]`; older notes keep working.
+- **English and 繁體中文.**
 
 ## Keyboard
 
-Formatting keys are **your own**: editing a card uses whatever you have bound in Settings → Hotkeys, exactly like any other note.
+Formatting keys are **your own**: editing a card uses whatever you have bound in Settings → Hotkeys, exactly like any other note — the card editor *is* Obsidian's editor, with Live Preview, undo and `[[` suggestions.
 
 | Obsidian command | Inserts |
 | --- | --- |
@@ -111,22 +111,16 @@ Submitting works the same in the new card, the card editor and comments:
 
 ## Settings
 
-| Setting | What it does |
+Grouped the same way as in the plugin; **What's new** at the top lists what every version added.
+
+| Group | What you can set |
 | --- | --- |
-| Solo | Hide assignees everywhere |
-| Range on open | Which filter the board starts on |
-| Language | Follow Obsidian, English or 繁體中文 |
-| Board width | Narrow (like readable line length) or wide |
-| Comments | Use comments, and show them above or below the content |
-| Bullet | Add `．` in front of content lines |
-| Submit key | See [Keyboard](#keyboard) |
-| Jump after an action | Per action: back to to do, done, archived, pinned, moved to today, added |
-| Where a card sits when editing | Leave it, pull it to the top, or let the browser decide |
-| Cursor position when editing | Start (default) or end of the text |
-| How weeks are counted | Monday or Sunday first, either with this week as seven days from today, or seven-day blocks from the 1st of each month |
-| Show “All” in the time filters | Adds an All tile left of the year (off by default) |
-| Show section names | The section heading on each card, used as its status |
-| Unpin when marked done | Off by default |
+| General | Language, who uses this device, solo mode |
+| Time filters | Range on open, how weeks are counted, an All tile |
+| Cards | Board width, how done cards look, section names, last edited time, comments and where they go |
+| Adding and editing | Submit key (see [Keyboard](#keyboard)), cursor and card position when editing, unpin when done |
+| Jump after an action | Whether each action scrolls to the card |
+| Note format | Convert every old card to the new format (backs up first) |
 
 ## The text format
 
@@ -135,34 +129,46 @@ That is the whole storage format — everything the table shows comes from lines
 ```markdown
 ## 1
 
-- [ ] [Orders] ．Two boxes each, needs to arrive before Friday ＠{2026-09-11} #Alex 📌 ✎{2026-09-10 09:12}
-	．Called the supplier, waiting for the quote
-	．💬{2026-09-11 14:20|Alex} Quote came back, 8% up on last time
+- [ ] [pin:: on] [Orders] [start:: 2026-09-11] [due:: 2026-09-14] #Alex
+	Two boxes each, needs to arrive before Friday
+	- [ ] Call the supplier
+	[cm:: 2026-09-11 14:20|Alex] Quote came back, 8% up on last time
+	[ed:: 2026-09-11 14:20]
 
-- [x] [Field] ．Check the greening suspect tree again ＠{2026-09-08}
+- [x] [Field] [due:: 2026-09-08] [repeat:: every 2 weeks]
+	Check the greening suspect tree again
+	[done:: 2026-08-25]
+	[ed:: 2026-09-08 08:30]
 ```
+
+The first line is the card: pin, title, dates, repeat, assignee. Below it come the content (written exactly as you type it — no automatic bullets), repeat records, comments, and last of all the edit time. The lines the plugin writes itself have no bullet either.
 
 | In the note | Means |
 | --- | --- |
 | `- [ ]` / `- [x]` | One card, not done / done |
+| `[pin:: on]` | Pinned |
 | `[Title]` | The card's title |
-| `＠{2026-09-11}` | Date. `＠{2026-09-11 ~ 2026-09-14}` is a range |
+| `[due:: 2026-09-11]` | Date. A range is `[start:: 2026-09-11] [due:: 2026-09-14]` |
+| `[repeat:: every 2 weeks]` | Repeats every 2 weeks. `every 3 days` and `every month` work too |
 | `#Alex` | Assignee (must be on the people list) |
-| `📌` | Pinned |
-| `✎{2026-09-11 14:20}` | Last touched, to the minute — written by the plugin (older stamps with seconds still read) |
-| `💬{2026-09-11 14:20\|Alex} text` | A comment |
-| `🔁 every 2 weeks` | Repeats every 2 weeks. `every 3 days`, `every month` and the older `🔁 每2週` also work |
-| `#long-term` | No special meaning since 1.5 (it used to mark long-term cards); stays in the note as a plain tag |
-| `．` | Optional bullet in front of content lines |
+| content lines | One line each; bullets are optional (`- `, `* `, `1. `). `- [ ]` shows as a checkbox you can tick |
+| `[done:: 2026-08-25]` | Repeating cards only: that occurrence was marked done (other cards just use the checkbox) |
+| `[cm:: 2026-09-11 14:20\|Alex] text` | A comment |
+| `[ed:: 2026-09-11 14:20]` | Last edited, always the card's last line — written by the plugin |
 | `## Archive` | The archive section |
 
-Indented lines under a card are its content.
+Other fields on the first line (for example `[completion:: …]` or `[priority:: …]` written by Tasks) are kept as they are.
 
-## Card Table and Kanban
+**Older notes keep working and change only when touched.** The pre-1.6.1 syntax — `＠{2026-09-11 ~ 2026-09-14}`, `✎{…}`, `📌`, `🔁 every 2 weeks` (and `🔁 每2週`), `💬{…}`, and the `．` bullet — is still read.
+A card switches to the new syntax only when you edit it, tick it or change its date; nothing else in the note is touched.
+To switch every card at once, use **Convert everything to the new format** in settings (it backs up each note first).
+Card Table 1.6.0 and older cannot read the new syntax, so update every device that opens these notes. `#long-term` has had no special meaning since 1.5 and stays as a plain tag.
 
-Card Table was inspired by the **table view of the [Kanban](https://github.com/mgmeyers/obsidian-kanban) plugin** — the same markdown lists, read as rows instead of lanes. It grew from there into a board built around dates and comments.
+## Card Table, Tasks and Kanban
 
-Both plugins read a markdown note made of `## headings` and `- [ ]` cards, but they are built around different questions.
+**Tasks and Dataview.** Card Table writes `due`, `start` and `repeat` the way the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin reads them in its Dataview format, and every `[key:: value]` field is visible to [Dataview](https://github.com/blacksmithgu/obsidian-dataview) queries. Repeats are handled by Card Table itself (mark this time done), so let Card Table tick repeating cards.
+
+**Kanban.** Card Table was inspired by the **table view of the [Kanban](https://github.com/mgmeyers/obsidian-kanban) plugin** — the same markdown lists, read as rows instead of lanes. It grew from there into a board built around dates and comments.
 
 | | Kanban | Card Table |
 | --- | --- | --- |
@@ -173,15 +179,15 @@ Both plugins read a markdown note made of `## headings` and `- [ ]` cards, but t
 | Several people | — | Designed for it: per-device identity, atomic writes |
 | Phone | — | A dedicated narrow layout |
 
-**Can I use both?** Yes. They can be installed side by side. Card Table only takes over notes you open with it (it remembers each note), and it never switches a Kanban board over on its own. As of 1.4.7 Card Table also unloads cleanly when another plugin such as Kanban intercepts the same Obsidian method.
-Pick one plugin per note, though: Card Table writes its own markers (such as `✎{…}`) into the notes it edits.
+**Can I use both?** Yes. Card Table only takes over notes you open with it (it remembers each note), and it never switches a Kanban board over on its own; it also unloads cleanly when Kanban intercepts the same Obsidian method.
+Both read `## headings` and `- [ ]` cards, so a Card Table note opens in Kanban too, but Kanban only understands its own `@{date}` dates — Card Table's `[due:: …]` fields show as plain text there.
 
 ## Design rules
 
 1. **Every write is one atomic read-modify-write** inside `Vault.process`, so a concurrent write (sync, another tab, the previous action) is never overwritten with a stale copy.
 2. **The view never writes its own copy back.** All changes go through one writer.
-3. **A card is identified by its first line.** When two first lines match, its position in its section is tried first (checked against the line and the content), then content, the whole line and the edit stamp. If nothing tells them apart, the plugin refuses to write rather than guess.
-4. **Writes touch the smallest number of lines possible.** Ticking a checkbox rewrites one line, not the file.
+3. **A card is identified by its title and first content line.** When two cards match, its position in its section is tried first (checked against the line and the content), then content, the whole line and the edit stamp. If nothing tells them apart, the plugin refuses to write rather than guess.
+4. **Writes touch the smallest number of lines possible.** Ticking a checkbox changes that line and the edit time, not the file.
 
 ## Support
 

@@ -1,5 +1,68 @@
 # Changelog
 
+## 1.6.1
+
+**A note format Tasks and Dataview understand**
+
+- Cards are now written with `[key:: value]` fields:
+  `- [ ] [pin:: on] [Title] [start:: 2026-09-01] [due:: 2026-09-30] [repeat:: every 2 weeks] #Alex`.
+  A single day is just `[due:: …]`. `due`, `start` and `repeat` are the names
+  the Tasks plugin reads, and Dataview queries can see every field.
+- Below the first line come the content (as you typed it), repeat records
+  `[done:: 2026-09-02]` (repeating cards only), comments
+  `[cm:: 2026-09-17 09:00|Alex] text`, and last of all the edit time
+  `[ed:: 2026-09-17 02:37]`. Times are always written with a four-digit year,
+  and the lines the plugin writes have no bullet.
+- The format no longer uses emoji. Other fields on the first line (such as
+  Tasks' `[completion:: …]`) are kept.
+- Older notes keep working. Everything written before 1.6.1 is still read, and
+  a card switches to the new format only when it is changed (ticked, edited,
+  moved, commented on); nothing else in the note is touched.
+- A card without a title keeps its first content line on the first line.
+- Kanban still opens these notes, but it only understands its own `@{date}`
+  dates, so the dates show as plain text there.
+- **Convert everything to the new format** (settings, testing): rewrites every
+  old-format card in the notes remembered as Card Tables in one go. Edit times
+  are kept, everything outside cards is left alone, and a copy of each note's
+  original text is saved next to it first (`name backup-20260916-1420.md`).
+  A warning explains the risks before anything is written.
+- Card Table 1.6.0 and older cannot read the new format; update every device.
+
+**Editing**
+
+- The automatic bullet setting is gone: content is written exactly as you type
+  it. Your own `- `, `* ` and `1. ` are no longer removed, and the board shows a
+  bullet only on lines that have one. Bullets are drawn as `•`, like
+  Obsidian's own lists.
+- The card editor, the New card content box and both comment boxes are now
+  Obsidian's own editor with Live Preview: bold, highlights, links and to-dos
+  render as you type, and undo, every formatting hotkey and `[[` link
+  suggestions work exactly as in a note. `Ctrl/⌘ + Enter` still submits. If
+  Obsidian ever stops providing the editor, the plain text boxes come back.
+  Title boxes stay plain one-line inputs.
+- To-dos can be typed as `- [ ]`, `-[ ]`, `[]` or `* - [ ]`; they are all
+  written as `- [ ]`, and to-dos inside a card show as checkboxes you can tick.
+- Adding a card with only a title no longer copies the title into the content.
+- A line starting with `[[link]]` or `[text](url)` is no longer mistaken for a
+  title.
+
+**Layout and fixes**
+
+- The month and week tiles no longer underline the range that contains today.
+- On phones, the New card content box no longer grows to a huge empty area.
+- Fixed: in a note open in the Kanban plugin, the ribbon icon and the
+  **Open with Card Table** command offered only to create a new note; they now
+  switch that note to Card Table.
+
+**Other**
+
+- A short “What’s new” window opens once after installing or updating. The
+  **What’s new in this version** command opens it again.
+- Settings are grouped under headings (General, Time filters, Cards, Adding
+  and editing, Jump after an action, Note format, Support), and **What’s new**
+  at the top lists every version in a sentence or two.
+- The README is shorter: features and settings are summarised by group.
+
 ## 1.6.0
 
 **Time filters**
