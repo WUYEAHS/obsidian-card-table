@@ -1,10 +1,14 @@
-# Card Table: deploy to the vault, reload, run format + board + editor tests.
+# Card Table: sync the three plugin files, reload, run format + board + editor tests.
 # ASCII only (PowerShell 5.1 reads .ps1 as ANSI).
-# Usage: .\tools\run-tests.ps1 [-SkipBoard]
+# Usage: .\tools\run-tests.ps1 [-SkipBoard] [-FromRepo]
+# Default (since 1.6.1): the VAULT copy is the one being edited (it syncs to the phone),
+#   so main.js / manifest.json / styles.css are copied vault -> repo before testing.
+# -FromRepo: the old direction, repo -> vault (e.g. after git checkout).
 # The plugin folder is asked from Obsidian (app.plugins.manifests['card-table'].dir):
 # Obsidian finds plugins by manifest id, so the folder name can be anything.
 param(
-  [switch]$SkipBoard
+  [switch]$SkipBoard,
+  [switch]$FromRepo
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -18,9 +22,11 @@ $sameFile = $false
 try { $sameFile = (Resolve-Path (Join-Path $plug 'main.js')).Path -eq (Resolve-Path (Join-Path $repo 'main.js')).Path } catch {}
 if (-not $item.LinkType -and -not $sameFile) {
   foreach ($n in 'main.js', 'manifest.json', 'styles.css') {
-    Copy-Item (Join-Path $repo $n) (Join-Path $plug $n) -Force
+    if ($FromRepo) { Copy-Item (Join-Path $repo $n) (Join-Path $plug $n) -Force }
+    else { Copy-Item (Join-Path $plug $n) (Join-Path $repo $n) -Force }
   }
-  Write-Host "copied build into $plug (data.json untouched)"
+  if ($FromRepo) { Write-Host "copied repo -> $plug (data.json untouched)" }
+  else { Write-Host "copied $plug -> repo (data.json not copied)" }
 }
 foreach ($n in 'main.js', 'manifest.json', 'styles.css') {
   $a = (Get-FileHash (Join-Path $repo $n)).Hash

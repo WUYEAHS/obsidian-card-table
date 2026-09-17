@@ -22,6 +22,15 @@ From 1.6.1 cards are written with the same `[key:: value]` fields as the [Tasks]
 
 If Card Table saves you time, you can [buy me a coffee on Ko-fi](https://ko-fi.com/jiajiunwu).
 
+> [!WARNING]
+> **1.6.1 is a big update that changes the note format. Sorry for the trouble.**
+> Cards are now written with Tasks / Dataview `[key:: value]` fields instead of emoji.
+> - **Your old notes still work**: the old syntax is still read, and a card switches to the new syntax only when it is changed.
+> - **To switch everything at once**: Settings → Note format → **Convert everything to the new format** (one click; each note is backed up in its own folder first).
+> - **Update every device to 1.6.1**: Card Table 1.6.0 and older cannot read the new syntax.
+> - The full old-vs-new table is in [The text format](#the-text-format).
+>
+> If anything goes wrong with the conversion or the plugin, please email me at [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com), or open a [GitHub issue](../../issues).
 
 
 ## Installation
@@ -143,26 +152,39 @@ That is the whole storage format — everything the table shows comes from lines
 
 The first line is the card: pin, title, dates, repeat, assignee. Below it come the content (written exactly as you type it — no automatic bullets), repeat records, comments, and last of all the edit time. The lines the plugin writes itself have no bullet either.
 
-| In the note | Means |
-| --- | --- |
-| `- [ ]` / `- [x]` | One card, not done / done |
-| `[pin:: on]` | Pinned |
-| `[Title]` | The card's title |
-| `[due:: 2026-09-11]` | Date. A range is `[start:: 2026-09-11] [due:: 2026-09-14]` |
-| `[repeat:: every 2 weeks]` | Repeats every 2 weeks. `every 3 days` and `every month` work too |
-| `#Alex` | Assignee (must be on the people list) |
-| content lines | One line each; bullets are optional (`- `, `* `, `1. `). `- [ ]` shows as a checkbox you can tick |
-| `[done:: 2026-08-25]` | Repeating cards only: that occurrence was marked done (other cards just use the checkbox) |
-| `[cm:: 2026-09-11 14:20\|Alex] text` | A comment |
-| `[ed:: 2026-09-11 14:20]` | Last edited, always the card's last line — written by the plugin |
-| `## Archive` | The archive section |
+### Old and new syntax
 
-Other fields on the first line (for example `[completion:: …]` or `[priority:: …]` written by Tasks) are kept as they are.
+| Meaning | From 1.6.1 | 1.6.0 and older (still read) | Where |
+| --- | --- | --- | --- |
+| One card, not done / done | `- [ ]` / `- [x]` | Same | Start of the first line |
+| Pinned | `[pin:: on]` | `📌` | First line, before the title |
+| Title | `[Title]` | Same | First line |
+| One day | `[due:: 2026-09-11]` | `＠{2026-09-11}` | First line, after the title |
+| A range | `[start:: 2026-09-11] [due:: 2026-09-14]` | `＠{2026-09-11 ~ 2026-09-14}` | First line |
+| Repeat | `[repeat:: every 2 weeks]` (`every 3 days`, `every month`…) | `🔁 every 2 weeks`, `🔁 每2週` | First line, after the dates |
+| Assignee | `#Alex` (must be on the people list) | Same | End of the first line |
+| Content | From the second line, as you type it | Could also follow the title on the first line | Second line on |
+| Content bullets | Only if you type them: `- `, `* `, `1. ` | `．` (optional) | Start of a content line |
+| To-do inside a card | `- [ ] something` (`-[ ]` and `[]` are tidied to this) | — | Content line |
+| Repeat record | `[done:: 2026-08-25]` (repeating cards only) | — | After the content |
+| Comment | `[cm:: 2026-09-11 14:20\|Alex] text` | `．💬{2026-09-11 14:20\|Alex} text` | After the content |
+| Last edited (written by the plugin) | `[ed:: 2026-09-11 14:20]` | `✎{2026-09-11 14:20}` (on the first line) | Always the card's last line |
+| Archive | `## Archive` | Same | Section heading |
+| Long-term | — | `#long-term` (no special meaning since 1.5; kept as a plain tag) | — |
 
-**Older notes keep working and change only when touched.** The pre-1.6.1 syntax — `＠{2026-09-11 ~ 2026-09-14}`, `✎{…}`, `📌`, `🔁 every 2 weeks` (and `🔁 每2週`), `💬{…}`, and the `．` bullet — is still read.
-A card switches to the new syntax only when you edit it, tick it or change its date; nothing else in the note is touched.
-To switch every card at once, use **Convert everything to the new format** in settings (it backs up each note first).
-Card Table 1.6.0 and older cannot read the new syntax, so update every device that opens these notes. `#long-term` has had no special meaning since 1.5 and stays as a plain tag.
+- Lines the plugin writes (`[done::]`, `[cm::]`, `[ed::]`) have no `- `; times always use a four-digit year and minutes.
+- Other fields on the first line (for example `[completion:: …]` or `[priority:: …]` written by Tasks) are kept as they are.
+- A card without a title keeps its first content line on the first line, so Kanban can still read it.
+
+### What about my old notes?
+
+**They keep working and change only when touched.** A card switches to the new syntax only when you edit it, tick it or change its date; nothing else in the note is touched.
+
+**One-click conversion.** Settings → Note format → **Convert everything to the new format** converts every note you have opened as a Card Table in one go.
+Each note's original text is first saved in the same folder (`name backup-20260916-1420.md`). Edit times are kept, lines outside cards are left alone, and running it a second time changes nothing.
+
+Card Table 1.6.0 and older cannot read the new syntax, so update every device that opens these notes.
+If something looks wrong after converting, or you have any question, please email [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com).
 
 ## Card Table, Tasks and Kanban
 
@@ -191,7 +213,7 @@ Both read `## headings` and `- [ ]` cards, so a Card Table note opens in Kanban 
 
 ## Support
 
-- Bugs and ideas: [GitHub issues](../../issues)
+- Bugs and ideas: [GitHub issues](../../issues), or email [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com)
 - Support development: [Ko-fi](https://ko-fi.com/jiajiunwu)
 
 ## Licence

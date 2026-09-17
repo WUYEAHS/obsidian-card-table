@@ -10,7 +10,7 @@ description: 卡片看板(obsidian-card-table)的格式與寫入測試流程。�
 | 檔案 | 測什麼 | 會不會寫檔 |
 | --- | --- | --- |
 | `tools/format-test.js` | 純函式:新舊寫法解析、`組首行` 往返、`蓋卡` 轉換、`轉整份`、留言 / 記錄 / 待辦、雙胞胎定位 | 不寫 |
-| `tools/editor-test.js` | 即時預覽編輯器:卡片編修(掛上、即時呈現、聚焦、自動存、`[ed::]` 還在最後、復原、Esc 收起並存檔、卸乾淨)、新增框(搜尋、送出、清空)、寫留言(Ctrl+Enter 送出)、沒有殘留的編輯器 | 建 `ZZ-live-edit.md`,測完丟垃圾桶 |
+| `tools/editor-test.js` | 所見即所得(閱讀和編輯時每一行的字、項目符號、待辦方框位置差 1.5px 以內)、即時預覽編輯器:卡片編修(掛上、即時呈現、聚焦、自動存、`[ed::]` 還在最後、復原、Esc 收起並存檔、卸乾淨)、新增框(搜尋、送出、清空)、寫留言(Ctrl+Enter 送出)、沒有殘留的編輯器 | 建 `ZZ-live-edit.md`,測完丟垃圾桶 |
 | `tools/board-test.js` | 真的看板:打勾 → 反悔、改日期、改內容、勾待辦、本次完成、留言、置頂、新增、融合、封存、全部轉換(含同資料夾備份) | 建 `ZZ-board-test.md`,測完丟垃圾桶;`存設定` 換成空函式,設定物件最後還原 |
 
 `format-test.js` 讀的是 **vault 裡已部署的** `main.js`(`app.plugins.manifests['card-table'].dir`),所以一定要先部署、重載再跑。
@@ -20,9 +20,13 @@ description: 卡片看板(obsidian-card-table)的格式與寫入測試流程。�
 ### Windows(一鍵)
 
 ```powershell
-.\tools\run-tests.ps1            # 部署 → 語法檢查 → 重載 → 確認版本 → 三支測試
+.\tools\run-tests.ps1            # vault 那份複製回 repo → 語法檢查 → 重載 → 確認版本 → 三支測試
 .\tools\run-tests.ps1 -SkipBoard # 只跑純函式
+.\tools\run-tests.ps1 -FromRepo  # 反方向:repo → vault(git checkout 之後)
 ```
+
+⚠ 2026-09-17 起程式先改在 vault 的 `.obsidian/plugins/obsidian-card-table/`(使用者要同步到手機),
+所以預設是 vault → repo。只改了 repo 的 main.js 就跑預設,會被 vault 的舊版蓋掉。
 
 最後一行要是 `ALL TESTS PASSED`。失敗會印出整份結果。
 

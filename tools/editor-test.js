@@ -9,7 +9,9 @@ window.__ctEditorTest = 'running';
   const path = 'ZZ-live-edit.md';
   let f = app.vault.getAbstractFileByPath(path);
   if (f) await app.vault.delete(f);
-  f = await app.vault.create(path, ['## 1', '', '- [ ] [訂貨] [due:: ' + window.moment().format('YYYY-MM-DD') + ']', '\t**粗體** 和 ==螢光==', '\t[ed:: 2026-09-17 10:00]', ''].join('\n'));
+  const 今 = window.moment().format('YYYY-MM-DD');
+  f = await app.vault.create(path, ['## 1', '', '- [ ] [訂貨] [due:: ' + 今 + ']', '\t**粗體** 和 ==螢光==', '\t[ed:: 2026-09-17 10:00]',
+    '- [ ] [對齊] [due:: ' + 今 + ']', '\t- 項目一', '\t純文字', '\t- [ ] 待辦', '\t1. 編號', '\t[ed:: 2026-09-17 09:00]', ''].join('\n'));
   const leaf = app.workspace.getLeaf(true);
   await leaf.setViewState({ type: 'card-table', state: { file: path } });
   app.workspace.setActiveLeaf(leaf, { focus: true });
@@ -17,7 +19,46 @@ window.__ctEditorTest = 'running';
   const v = leaf.view;
   try {
     const kids0 = P._children ? P._children.length : -1;
-    const 列 = v.contentEl.querySelector('.tk-列');
+    // ---- 所見即所得:閱讀和編輯時,每一行的字、項目符號在同一個位置 ----
+    {
+      v.狀態.展開全部 = true; v.重畫清單(); await 等(300);
+      const 找列 = () => [...v.contentEl.querySelectorAll('.tk-列')].find(r => r.textContent.includes('對齊'));
+      const 量 = (行, 基) => {
+        const lr = 行.getBoundingClientRect();
+        const tn = [...行.querySelectorAll('*')].concat([行]).flatMap(e => [...e.childNodes])
+          .find(n => n.nodeType === 3 && /[一-鿿]/.test(n.textContent) && !(n.parentElement && n.parentElement.closest('.list-number')));
+        const rg = document.createRange(); rg.selectNodeContents(tn);
+        const tr = rg.getClientRects()[0];
+        const bu = 行.querySelector('.list-bullet');
+        let 點 = null;
+        if (bu) { const a = getComputedStyle(bu, '::after'); 點 = bu.getBoundingClientRect().top + parseFloat(a.top) - lr.top; }
+        const cb = 行.querySelector('input[type=checkbox]');
+        return { x: tr.left - 基.left, ty: tr.top - lr.top, h: lr.height, 點, 勾x: cb ? cb.getBoundingClientRect().left - 基.left : null };
+      };
+      const 列0 = 找列();
+      const 讀行 = [...列0.querySelectorAll('.tk-文區 .tk-預覽行')];
+      const 基0 = 列0.querySelector('.tk-文區').parentElement.getBoundingClientRect();
+      const 前 = 讀行.map(l => 量(l, 基0));
+      const 鈕0 = [...列0.querySelectorAll('[aria-label],[title]')].find(b => /^(編輯|Edit)$/.test(b.title || b.getAttribute('aria-label') || ''));
+      鈕0.click(); await 等(500);
+      { const E0 = v.編框.編輯器.editor; E0.setCursor({ line: E0.lastLine(), ch: E0.getLine(E0.lastLine()).length }); }   // 游標所在的行會露出原始的「- 」
+      await 等(300);
+      const 框 = v.contentEl.querySelector('.tk-編框');   // 編修中的主題是輸入框,textContent 找不到「對齊」
+      const 基1 = 框.parentElement.getBoundingClientRect();
+      const 後 = [...框.querySelectorAll('.cm-line')].map(l => 量(l, 基1));
+      ok('wysiwyg: same line count', 前.length === 4 && 後.length === 4, [前.length, 後.length]);
+      const 近 = (a, b) => a === b || (a != null && b != null && Math.abs(a - b) <= 1.5);
+      ['清單', '純文字', '待辦', '編號'].forEach((名, i) => {
+        const a = 前[i] || {}, b = 後[i] || {};
+        ok('wysiwyg ' + 名 + ': text x', 近(a.x, b.x), [a.x, b.x]);
+        ok('wysiwyg ' + 名 + ': text y in line', 近(a.ty, b.ty), [a.ty, b.ty]);
+        ok('wysiwyg ' + 名 + ': line height', 近(a.h, b.h), [a.h, b.h]);
+        ok('wysiwyg ' + 名 + ': bullet y', 近(a.點, b.點), [a.點, b.點]);
+        ok('wysiwyg ' + 名 + ': checkbox x', 近(a.勾x, b.勾x), [a.勾x, b.勾x]);
+      });
+      await v.收掉編修(); v.狀態.展開全部 = false; v.重畫清單(); await 等(400);
+    }
+    const 列 = [...v.contentEl.querySelectorAll('.tk-列')].find(r => r.textContent.includes('訂貨'));
     const 鈕 = 列 && [...列.querySelectorAll('[aria-label],[title]')].find(b => /^(編輯|Edit)$/.test(b.title || b.getAttribute('aria-label') || ''));
     ok('edit button found', !!鈕, '');
     鈕.click();

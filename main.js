@@ -160,7 +160,7 @@ const 字典 = {
     bullet: "新增卡片時自動加項目符號「-」", bulletDesc: "開著的話,新增卡片時沒有自己打符號的內容行會寫成「- 內容」(畫面上顯示成「．」)。已經寫好的內容不會被加上或拿掉,編輯時照你打的寫 —— 自己打「- 」「* 」「1. 」都會留著。內容裡的待辦一律寫成「- [ ]」(打「-[ ]」「[]」也可以)。預設關。",
     doneRec: "本次完成",
     whatsNew: "看這一版更新了什麼", noWhatsNew: "這一版沒有更新介紹",
-    updates: "更新內容", updatesDesc: "現在是 N。每一版加了什麼(精簡版)", updatesBtn: "看所有版本",
+    updates: "更新內容", updatesDesc: "現在是 N。這一版的更新介紹,以及每一版加了什麼", updatesBtn: "看更新內容", allVersions: "所有版本",
     setGeneral: "一般", setLook: "卡片外觀", setEdit: "新增與編輯", setFormat: "筆記格式", setSupport: "支持",
     convertAll: "把舊寫法全部轉成新格式(測試中)",
     convertAllDesc: "記住用卡片看板開的筆記有 N 份,把裡面 1.6.1 以前寫法的卡片一次換成新格式([due:: …]、[pin:: on]、[repeat:: …]、[cm:: …]、最後一行的 [ed:: …])。平常不需要按:舊寫法照讀,卡片被改到的時候會自己換。",
@@ -314,7 +314,7 @@ const 字典 = {
     bullet: "Add a - bullet to new cards", bulletDesc: "When on, content lines of a new card that have no marker of their own are written as “- text” (shown as ． on the board). Content that already exists never gains or loses bullets, and edits are saved as you type them — your own “- ”, “* ” and “1. ” stay. To-dos are always written as “- [ ]” (typing “-[ ]” or “[]” works too). Off by default.",
     doneRec: "Done",
     whatsNew: "What’s new in this version", noWhatsNew: "No release notes for this version",
-    updates: "What’s new", updatesDesc: "You are on N. What each version added, in short", updatesBtn: "See all versions",
+    updates: "What’s new", updatesDesc: "You are on N. This version's highlights, and what each version added", updatesBtn: "See what's new", allVersions: "All versions",
     setGeneral: "General", setLook: "Cards", setEdit: "Adding and editing", setFormat: "Note format", setSupport: "Support",
     convertAll: "Convert everything to the new format (testing)",
     convertAllDesc: "N notes are remembered as Card Tables. Rewrite every card in them that still uses the pre-1.6.1 syntax to the new format ([due:: …], [pin:: on], [repeat:: …], [cm:: …], [ed:: …] as the last line). You normally don't need this: the old syntax is still read, and a card switches when it is changed.",
@@ -517,7 +517,7 @@ function 存新增收合(收) { 存收合(新增收合鍵, 收); }
    ・不認得的欄位(Tasks 寫的 [completion:: …]、[priority:: …]…)原樣留在第一行尾巴。
    ・**舊寫法永遠照讀,改到才轉**:1.6.0 以前的 ＠{} ✎{} 📌 🔁 💬 ．,以及 1.6.1 開發中寫過的
      Ed{} Pin{} Re{} Cm{} Done{} @{a} ~ @{b}。每一次寫入都經過 蓋卡(),那一張就換成新寫法;沒被寫到的卡片一個字都不動。 */
-const 顯示符 = "•";           // 畫面上的項目符號(只管顯示,不寫進檔案)。1.6.1 起跟 Obsidian 的清單一樣是「•」
+const 顯示符 = "•";           // 純文字場合(拖曳預覽)的項目符號;卡片上用 Obsidian 的 .list-bullet(見 畫預覽行)
 /* 項目符號:**既往不咎**(使用者明講)。1.6.1 起「自動加項目符號」的設定拿掉了,自動項目符 固定 false ——
    內容一律照使用者打的寫(自己打的 `- `、`* `、`1. ` 都留著),畫面只在有符號的行畫 bullet。
    外掛自己寫的行(留言、本次完成、ed)**不帶**符號(使用者明講);舊的「- [cm:: …]」照讀。程式路徑(新增行)留著,將來要加回來再討論。 */
@@ -2218,6 +2218,42 @@ function 畫文字(容器, 文, app, 來源檔, 深) {
   }
   if (位 < s.length) 容器.createSpan({ text: s.slice(位) });
   return 容器;
+}
+/* 1.6.1 所見即所得(統一原則第 10 條):卡片閱讀時的一行 = 即時預覽編輯器裡的那一行。
+   ⚠ 不是自己畫一顆「•」:編輯器的項目符號是 Obsidian 的 `.list-bullet`(一個 CSS 圓點,掛在「-」字的位置上),
+     字元「•」的高度跟它不一樣,使用者看到閱讀時的點比編輯時低一點。所以這裡用**同樣的 class、同樣的結構**,
+     間距照編輯器量出來的值寫在 styles.css 的 .tk-預覽行(字級 0.94em、行高、清單行上下 list-spacing、
+     符號前 0.75em、懸掛縮排)。改編輯器那邊的字級或邊距時,兩邊一起改。
+   記 = 這一行原本的符號(`- `、`1. `,沒有就是 "");t = 剝掉符號的內文;勾了(是否) = 點待辦時要做的事 */
+function 畫預覽行(行, t, 記, 勾了, app, 來源檔, T) {
+  行.addClass("tk-預覽行");
+  const 勾 = 內勾Re.exec(t);
+  if (勾) {
+    行.addClass("tk-預覽-待辦");
+    const 標 = 行.createEl("label");
+    標.addClass("task-list-label");
+    const box = 標.createEl("input", { type: "checkbox" });
+    box.addClass("task-list-item-checkbox");
+    box.addClass("tk-內勾");
+    box.checked = 勾[1] !== " ";
+    box.onclick = (e) => { e.stopPropagation(); 勾了(box.checked); };
+    畫文字(行, t.slice(勾[0].length), app, 來源檔);
+    return;
+  }
+  if (記) {
+    const 號 = /\d/.test(記);
+    行.addClass(號 ? "tk-預覽-編號" : "tk-預覽-清單");
+    const 座 = 行.createSpan();
+    座.addClass("tk-預覽符");
+    if (號) {
+      座.createSpan({ text: 記.trim() + " " }).addClass("list-number");
+    } else {
+      座.createSpan({ text: "-" }).addClass("list-bullet");
+      座.appendText(" ");
+    }
+  }
+  // [[筆記]] 畫成真的可以點的連結,http(s) 也是
+  畫文字(行, 顯示內文(t, T), app, 來源檔);
 }
 // 主題膠囊:淡淡的分類底色 + 分類色的字(常用主題那排鈕也是同一個樣子)
 function 清掉落點線() {
@@ -5923,11 +5959,8 @@ class 看板視圖 extends TextFileView {
 
   /* ---- 內容:閱讀跟編修用同一個縮排(17px),字才不會左右跳 ---- */
   畫內容區(文區, k, 編修中) {
-    /* 有項目符號才需要 17px 的懸掛縮排(讓「．」吊在外面);沒有的話只留一點點呼吸空間。
-       1.6.1:照筆記裡實際寫的 —— 這張卡片有任何一行帶符號(或待辦)就整張用 17px,符號吊在外面。
-       編修框裡符號是字(使用者自己打的),所以只留 4px。 */
+    /* 1.6.1 所見即所得:閱讀時每一行的長相照抄即時預覽編輯器(見 畫預覽行)。 */
     const 符們 = k.內容符 || [];
-    const 掛行縮排 = 符們.some(Boolean) ? 17 : 4;
     const 窄 = this.窄;
     if (編修中) {
       /* ⚠ 1.3:編修框改成看得出邊界的一個框(跟留言的輸入框同一套長相)。
@@ -6048,33 +6081,10 @@ class 看板視圖 extends TextFileView {
       const 行 = 區.createDiv();
       行.addClass("卡片內文");
       const 預告 = 要收 && i === 露幾行;      // 第三行只露一半高度當預告
-      const 記 = 符們[i] || "";
-      st(行, "padding-left:" + 掛行縮排 + "px;" + (記 ? "text-indent:-" + 掛行縮排 + "px;" : "") +
-        "line-height:1.55;font-size:0.94em;" +
-        (預告 ? "max-height:0.8em;overflow:clip;opacity:0.42;" +
-                "mask-image:linear-gradient(180deg,#000 30%,transparent);" +
-                "-webkit-mask-image:linear-gradient(180deg,#000 30%,transparent);" : ""));
-      // 1.6.1:內容裡的待辦(`- [ ] …`)畫成可以勾的 checkbox,取代項目符號的位置
-      const 勾 = 內勾Re.exec(t);
-      if (勾) {
-        const box = 行.createEl("input", { type: "checkbox" });
-        box.addClass("tk-內勾");
-        box.checked = 勾[1] !== " ";
-        box.onclick = (e) => { e.stopPropagation(); this.切內勾(k, t, box.checked); };
-        // Obsidian 的 checkbox 本身 15px(裡面的勾會撐到 15),壓小會溢出;15 + 右邊 2 = 17px 懸掛縮排
-        st(box, "width:15px;height:15px;min-width:15px;margin:0 2px 0 0;vertical-align:-2px;");
-        畫文字(行, t.slice(勾[0].length), this.app, this.file ? this.file.path : "");
-        return;
-      }
-      // 有編號的清單照寫數字,其他符號畫成「．」
-      if (記) {
-        // 1.6.1:跟 Obsidian 的清單一樣畫「•」(使用者:不要再是「．」);固定 17px 寬,換行的字才對得齊
-        const 點 = 行.createSpan({ text: /\d/.test(記) ? 記.trim() : 顯示符 });
-        點.addClass("tk-清單符");
-        st(點, "display:inline-block;min-width:" + 掛行縮排 + "px;text-indent:0;");
-      }
-      // [[筆記]] 畫成真的可以點的連結,http(s) 也是
-      畫文字(行, 顯示內文(t, this.T), this.app, this.file ? this.file.path : "");
+      if (預告) st(行, "max-height:0.8em;overflow:clip;opacity:0.42;" +
+        "mask-image:linear-gradient(180deg,#000 30%,transparent);" +
+        "-webkit-mask-image:linear-gradient(180deg,#000 30%,transparent);");
+      畫預覽行(行, t, 符們[i] || "", (勾) => this.切內勾(k, t, 勾), this.app, this.file ? this.file.path : "", this.T);
     });
     if (多) {
       /* ⚠ 接在**真正露出的最後一行**尾端 —— 不是那條淡淡的預告行
@@ -7222,6 +7232,11 @@ module.exports = class 卡片日誌看板 extends Plugin {
       name: this.T.whatsNew,
       callback: () => this.秀更新介紹(true)
     });
+    this.addCommand({
+      id: "export-layout-diagnostics",
+      name: 語() === 字典["en"] ? "Export layout diagnostics (for bug reports)" : "匯出版面診斷(回報問題用)",
+      callback: () => this.匯出版面診斷()
+    });
     // 1.6.1:安裝或更新之後跳一次這一版的更新介紹
     this.app.workspace.onLayoutReady(() => this.秀更新介紹(false));
   }
@@ -7300,6 +7315,10 @@ module.exports = class 卡片日誌看板 extends Plugin {
         });
       };
       壓扁();
+      /* ⚠ 手機版 Obsidian 在 .cm-scroller 上面加了浮動標題列那麼高的 padding-top(0,7,0 的規則,見 styles.css)。
+         CSS 已經把變數歸零;這裡再用行內樣式釘一次,以防哪天 Obsidian 換了變數名字。
+         (只設 padding-top:壓扁 只清底部,不會互相打架。) */
+      容器.querySelectorAll(".cm-scroller").forEach(el => { el.style.paddingTop = "0px"; });
       const 看樣式 = new MutationObserver(壓扁);
       看樣式.observe(容器, { subtree: true, attributes: true, attributeFilter: ["style"] });
       // 空白時的提示(灰字或圖示),絕對定位在第一行開頭;有字就藏起來
@@ -7374,14 +7393,80 @@ module.exports = class 卡片日誌看板 extends Plugin {
     }
   }
 
+  /* 1.6.1 版面診斷:手機上的版面問題桌機模擬不出來(模擬的是 is-tablet)。
+     在手機上跑這個指令,把看板裡每個編輯器從外到內每一層的尺寸、算出來的樣式、命中的 CSS 規則
+     寫進 `ZZ-card-table-版面診斷.md`,Sync 回桌機再看。只寫這一份檔案,不碰任何看板筆記。 */
+  async 匯出版面診斷() {
+    const o = [];
+    const b = document.body;
+    o.push("# Card Table 版面診斷", "", "- 版本:" + 插件版本 + " / Obsidian " + (window.apiVersion || "?"),
+      "- body:" + b.className, "- 視窗:" + window.innerWidth + "×" + window.innerHeight + " dpr " + window.devicePixelRatio,
+      "- 時間:" + new Date().toISOString(), "");
+    const 規則們 = (el) => {
+      const r = [];
+      [...document.styleSheets].forEach(sh => {
+        let 列; try { 列 = sh.cssRules; } catch (e) { return; }
+        const 走 = (x) => {
+          if (x.cssRules && !x.selectorText) { [...x.cssRules].forEach(走); return; }
+          if (!x.selectorText) return;
+          try { if (el.matches(x.selectorText) && /height|padding|margin|flex|display|top|position/.test(x.style.cssText)) r.push(x.selectorText + " { " + x.style.cssText + " }"); } catch (e) {}
+        };
+        [...列].forEach(走);
+      });
+      return r;
+    };
+    const 描 = (el, 深) => {
+      const c = getComputedStyle(el), r = el.getBoundingClientRect();
+      const 名 = el.tagName.toLowerCase() + (el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/).join(".") : "");
+      o.push("  ".repeat(深) + "- `" + 名 + "` " + Math.round(r.width) + "×" + Math.round(r.height) +
+        " | h " + c.height + " min " + c.minHeight + " | pad " + c.padding + " | mar " + c.margin +
+        " | " + c.display + " flex " + c.flex + " | overflow " + c.overflow +
+        (el.getAttribute("style") ? " | inline `" + el.getAttribute("style") + "`" : ""));
+      ["::before", "::after"].forEach(p => {
+        const s = getComputedStyle(el, p);
+        if (s.content && s.content !== "none" && s.content !== "normal") o.push("  ".repeat(深 + 1) + "- " + p + " content " + s.content + " h " + s.height + " display " + s.display);
+      });
+    };
+    const 編們 = [...document.querySelectorAll(".tk-board .tk-即時編")];
+    o.push("## 編輯器 " + 編們.length + " 個", "");
+    編們.forEach((容, i) => {
+      o.push("### #" + (i + 1), "", "外層:");
+      let 上 = 容.parentElement, 鏈 = [];
+      for (let n = 0; 上 && n < 3; n++, 上 = 上.parentElement) 鏈.unshift(上);
+      鏈.forEach(e => 描(e, 0));
+      o.push("", "由外到內:");
+      let 層 = 容, 深 = 0;
+      while (層 && 深 < 8) {
+        描(層, 深);
+        if (層.classList.contains("cm-content")) break;
+        層 = 層.querySelector(":scope > .markdown-source-view, :scope > .cm-editor, :scope > .cm-scroller, :scope > .cm-sizer, :scope > .cm-contentContainer, :scope > .cm-content");
+        深++;
+      }
+      const 捲 = 容.querySelector(".cm-scroller");
+      if (捲) { o.push("", "`.cm-scroller` 命中的規則:"); 規則們(捲).forEach(x => o.push("    " + x)); }
+      const 源 = 容.querySelector(".markdown-source-view");
+      if (源) { o.push("", "`.markdown-source-view` 命中的規則:"); 規則們(源).forEach(x => o.push("    " + x)); }
+      o.push("");
+    });
+    const 路 = "ZZ-card-table-版面診斷.md";
+    const 文 = o.join("\n") + "\n";
+    try {
+      const 舊 = this.app.vault.getAbstractFileByPath(路);
+      if (舊) await this.app.vault.process(舊, () => 文);
+      else await this.app.vault.create(路, 文);
+      new Notice(路);
+    } catch (e) { new Notice(String(e)); }
+  }
+
   秀更新介紹(硬要) {
     const 版 = 插件版本;
     if (!硬要 && this.設定.看過版本 === 版) return;
     const 語碼 = 語() === 字典["en"] ? "en" : "zh-TW";
     const 項 = 更新介紹[版] && 更新介紹[版][語碼];
     if (!硬要 && this.設定.看過版本 !== 版) { this.設定.看過版本 = 版; this.存設定(); }
-    if (!項) { if (硬要) new Notice(this.T.noWhatsNew); return; }
-    new 更新介紹框(this.app, 版, 項, 更新標題[語碼]).open();
+    if (!項 && !硬要) return;
+    // 自動跳出、指令、設定裡的「看所有版本」都是這同一個視窗(使用者:不要做兩種)
+    new 更新介紹框(this.app, 版, 項 || [], 更新標題[語碼], 更新前言[版] && 更新前言[版][語碼], this.manifest.id).open();
   }
 
   /* 左側欄那顆圖示(1.5):
@@ -7533,6 +7618,53 @@ const 更新介紹 = {
   }
 };
 const 更新標題 = { "zh-TW": "卡片看板 N 更新了什麼", "en": "What’s new in Card Table N" };
+/* 1.6.1 彈窗額外的一段(使用者要的):大更新的道歉、新舊格式對照表、一鍵轉換、寄信回報。
+   只有這一版有;之後的版本不用加。 */
+const 聯絡信箱 = "jiajiunwu.y@gmail.com";
+const 更新前言 = {
+  "1.6.1": {
+    "zh-TW": {
+      歉題: "很抱歉:這一版是大更新,筆記格式改了",
+      歉文: "舊筆記不用動,照樣讀得懂,卡片被改到時才換成新寫法。也可以在設定裡一鍵全部轉換(會先備份)。每台裝置都要更新到 1.6.1。",
+      表題: "新舊寫法對照",
+      表頭: ["意思", "1.6.1 起", "以前"],
+      表: [
+        ["置頂", "[pin:: on]", "📌"],
+        ["單日", "[due:: 2026-09-11]", "＠{2026-09-11}"],
+        ["區間", "[start:: …] [due:: …]", "＠{a ~ b}"],
+        ["循環", "[repeat:: every 2 weeks]", "🔁 每2週"],
+        ["內容", "第二行起,照你打的", "第一行主題後面"],
+        ["項目符號", "自己打的 - * 1.", "．"],
+        ["待辦", "- [ ] 事情", "—"],
+        ["本次完成", "[done:: 日期](循環卡片)", "—"],
+        ["留言", "[cm:: 時間|名字] 內容", "💬{時間|名字}"],
+        ["編輯時間", "[ed:: 時間](最後一行)", "✎{時間}(第一行)"]
+      ],
+      轉鈕: "開啟設定:一鍵轉換",
+      信前: "轉換或使用上有問題,請寄信給我:"
+    },
+    "en": {
+      歉題: "Sorry: this is a big update, and the note format changed",
+      歉文: "Old notes need nothing: they are still read, and a card switches to the new syntax when it is changed. You can also convert everything in one click in settings (with a backup). Update every device to 1.6.1.",
+      表題: "Old and new syntax",
+      表頭: ["Meaning", "From 1.6.1", "Before"],
+      表: [
+        ["Pinned", "[pin:: on]", "📌"],
+        ["One day", "[due:: 2026-09-11]", "＠{2026-09-11}"],
+        ["Range", "[start:: …] [due:: …]", "＠{a ~ b}"],
+        ["Repeat", "[repeat:: every 2 weeks]", "🔁 every 2 weeks"],
+        ["Content", "From line 2, as typed", "After the title"],
+        ["Bullets", "Your own - * 1.", "．"],
+        ["To-do", "- [ ] something", "—"],
+        ["Repeat record", "[done:: date] (repeating)", "—"],
+        ["Comment", "[cm:: time|name] text", "💬{time|name}"],
+        ["Edit time", "[ed:: time] (last line)", "✎{time} (first line)"]
+      ],
+      轉鈕: "Open settings: convert all",
+      信前: "Problems with the conversion or anything else? Email me:"
+    }
+  }
+};
 /* 1.6.1 設定最上面「看所有版本」用的精簡版(使用者要的:合併著寫,不列細項)。
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。 */
 const 版本摘要 = [
@@ -7587,36 +7719,45 @@ const 版本摘要 = [
   ["1.4.1", ["打字時畫面不再跳;格式快捷鍵跟著你的 Obsidian 設定。"], ["No more jumping while typing; formatting keys follow your Obsidian hotkeys."]],
   ["1.4.0", ["第一個正式版本。"], ["First release."]]
 ];
-class 版本列表框 extends Modal {
-  onOpen() {
-    const c = this.contentEl, 英 = 語() === 字典["en"];
-    c.empty();
-    this.titleEl.setText(語().updates);
-    const 清 = c.createDiv();
-    st(清, "display:flex;flex-direction:column;gap:14px;margin:2px 0 8px;max-height:60vh;overflow-y:auto;");
-    版本摘要.forEach(([版, 中, 英文], i) => {
-      const 段 = 清.createDiv();
-      const 頭 = 段.createDiv({ text: 版 });
-      st(頭, "font-weight:700;font-size:0.95em;margin-bottom:4px;" +
-        (i === 0 ? "color:var(--interactive-accent);" : "color:var(--text-normal);"));
-      (英 ? 英文 : 中).forEach(t => {
-        const 行 = 段.createDiv({ text: t });
-        st(行, "font-size:0.88em;line-height:1.5;color:var(--text-muted);padding-left:12px;text-indent:-12px;");
-        行.prepend("· ");
-      });
+/* 所有版本的精簡清單,接在更新介紹視窗的下半部(1.6.1 起彈窗和設定的「看所有版本」是同一個視窗) */
+function 畫版本摘要(c) {
+  const 英 = 語() === 字典["en"];
+  const 標 = c.createDiv({ text: 語().allVersions });
+  st(標, "font-weight:600;margin:6px 0 8px;padding-top:10px;border-top:1px solid var(--background-modifier-border);");
+  const 清 = c.createDiv();
+  st(清, "display:flex;flex-direction:column;gap:14px;margin:2px 0 8px;");
+  版本摘要.forEach(([版, 中, 英文], i) => {
+    const 段 = 清.createDiv();
+    const 頭 = 段.createDiv({ text: 版 });
+    st(頭, "font-weight:700;font-size:0.95em;margin-bottom:4px;" +
+      (i === 0 ? "color:var(--interactive-accent);" : "color:var(--text-normal);"));
+    (英 ? 英文 : 中).forEach(t => {
+      const 行 = 段.createDiv({ text: t });
+      st(行, "font-size:0.88em;line-height:1.5;color:var(--text-muted);padding-left:12px;text-indent:-12px;");
+      行.prepend("· ");
     });
-    const 列 = c.createDiv({ cls: "modal-button-container" });
-    const 好 = 列.createEl("button", { text: 語().finish, cls: "mod-cta" });
-    好.onclick = () => this.close();
-  }
-  onClose() { this.contentEl.empty(); }
+  });
 }
 class 更新介紹框 extends Modal {
-  constructor(app, 版, 項, 標) { super(app); this.版 = 版; this.項 = 項; this.標 = 標; }
+  constructor(app, 版, 項, 標, 前, 外掛id) { super(app); this.版 = 版; this.項 = 項; this.標 = 標; this.前 = 前; this.外掛id = 外掛id; }
   onOpen() {
     const c = this.contentEl;
     c.empty();
     this.titleEl.setText(this.標.replace("N", this.版));
+    const 前 = this.前;
+    if (前) {
+      // 道歉的那一塊:淡淡的警告色框,放在最上面
+      const 歉 = c.createDiv();
+      st(歉, "border:1px solid var(--color-orange);border-radius:8px;padding:10px 12px;margin:2px 0 14px;" +
+        "background:rgba(var(--color-orange-rgb),0.08);");
+      const 頭 = 歉.createDiv();
+      st(頭, "display:flex;gap:8px;align-items:center;font-weight:600;line-height:1.4;color:var(--text-normal);");
+      const 圖 = 頭.createSpan();
+      st(圖, "color:var(--color-orange);display:inline-flex;");
+      圖備(圖, ["triangle-alert", "alert-triangle"], 16);
+      頭.createSpan({ text: 前.歉題 });
+      st(歉.createDiv({ text: 前.歉文 }), "font-size:0.88em;line-height:1.5;color:var(--text-muted);margin-top:4px;");
+    }
     const 清 = c.createDiv();
     st(清, "display:flex;flex-direction:column;gap:14px;margin:4px 0 10px;");
     this.項.forEach(([名, 題, 說]) => {
@@ -7631,7 +7772,40 @@ class 更新介紹框 extends Modal {
       st(字.createDiv({ text: 題 }), "font-weight:600;line-height:1.4;");
       st(字.createDiv({ text: 說 }), "font-size:0.88em;line-height:1.5;color:var(--text-muted);margin-top:2px;");
     });
+    if (前) {
+      // 新舊寫法對照表(預設收著,不讓彈窗太長)
+      const 摺 = c.createEl("details");
+      st(摺, "margin:4px 0 12px;");
+      st(摺.createEl("summary", { text: 前.表題 }), "cursor:pointer;font-weight:600;");
+      const 表 = 摺.createEl("table");
+      st(表, "width:100%;border-collapse:collapse;margin-top:8px;font-size:0.82em;");
+      const 格 = (tr, t, 頭) => {
+        const td = tr.createEl(頭 ? "th" : "td", { text: t });
+        st(td, "border:1px solid var(--background-modifier-border);padding:3px 6px;text-align:left;vertical-align:top;" +
+          (頭 ? "background:var(--background-secondary);" : "") + "overflow-wrap:anywhere;");
+        return td;
+      };
+      const 頭列 = 表.createEl("tr");
+      前.表頭.forEach(t => 格(頭列, t, true));
+      前.表.forEach(r => {
+        const tr = 表.createEl("tr");
+        r.forEach((t, i) => { const td = 格(tr, t); if (i > 0) st(td, "font-family:var(--font-monospace);"); });
+      });
+      // 聯絡:mailto 連結
+      const 信 = c.createDiv();
+      st(信, "font-size:0.88em;line-height:1.5;color:var(--text-muted);margin-bottom:6px;");
+      信.appendText(前.信前 + " ");
+      信.createEl("a", { text: 聯絡信箱, href: "mailto:" + 聯絡信箱 + "?subject=" + encodeURIComponent("Card Table " + this.版) });
+    }
+    畫版本摘要(c);
     const 列 = c.createDiv({ cls: "modal-button-container" });
+    if (前 && this.外掛id) {
+      const 轉 = 列.createEl("button", { text: 前.轉鈕 });
+      轉.onclick = () => {
+        this.close();
+        try { this.app.setting.open(); this.app.setting.openTabById(this.外掛id); } catch (e) {}
+      };
+    }
     const 好 = 列.createEl("button", { text: 語().finish, cls: "mod-cta" });
     好.onclick = () => this.close();
   }
@@ -7678,7 +7852,7 @@ class 設定頁 extends PluginSettingTab {
     /* 1.6.1 最上面:看所有版本的更新內容(精簡版,見 版本摘要) */
     new Setting(c).setName(T.updates).setDesc(T.updatesDesc.replace("N", 插件版本))
       .addButton(b => b.setButtonText(T.updatesBtn).setCta()
-        .onClick(() => new 版本列表框(this.app).open()));
+        .onClick(() => this.插件.秀更新介紹(true)));
 
     /* ---- 一般 ----
        ⚠ 1.2:指派人名單和分類都從設定頁搬走了。

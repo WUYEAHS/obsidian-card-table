@@ -6,6 +6,7 @@ Obsidian 外掛,把一份 markdown 筆記讀成一張任務卡片表。
 ## 方向與原則
 
 **統一原則**在專案技能 `card-table-principles`(`.claude/skills/`):新功能、改版面、改格式之前先用它對照;跟原則衝突的,先跟使用者討論再做。
+第 10 條 **所見即所得**(使用者明講,2026-09-17):卡片閱讀和編輯時長得一樣,不一樣的地方要寫出原因。
 **`docs/roadmap.md` 只是建議,使用者還沒採用**(2026-09-17 明講)—— 裡面的版本規劃不要當成已決定的事,要做之前先問。
 發版用技能 `card-table-release`;改到解析或寫手之後用 `card-table-format-test`。
 
@@ -29,6 +30,18 @@ data.json       本機設定,已被 .gitignore 排除,不要 commit
 `require("obsidian")` 拿 API,結尾 `module.exports = class 卡片日誌看板 extends Plugin`。
 
 ## 開發循環
+
+⚠⚠ **2026-09-17 起(使用者明講):先改 vault 裡那份,改好再複製回這個 repo。**
+使用者靠 Obsidian Sync 把外掛帶到手機,所以正在用的外掛是**實體資料夾**
+`C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\obsidian-card-table\`(manifest id 仍是 `card-table`)。
+- `main.js`、`styles.css`、`manifest.json` 都直接改那一份(`data.json` 不要碰),`obsidian plugin:reload id=card-table` 生效。
+- `.\tools\run-tests.ps1` 預設把這三個檔案 **vault → repo** 複製後再測;要反方向(例如 git checkout 之後)加 `-FromRepo`。
+- `tools/`、README、CHANGELOG、skills 這些只在 repo 裡改。commit 之前一定要先跑一次 run-tests(它會把 vault 的版本帶回來)。
+- 手機要看新版:等 Sync 把那三個檔案同步過去,再在手機上重新載入外掛。
+- 手機的版面問題桌機模擬不出來(模擬是 is-tablet):請使用者在手機跑指令「匯出版面診斷」,
+  會寫 `ZZ-card-table-版面診斷.md`(每個編輯器由外到內的尺寸、樣式、命中的規則),同步回來再看。
+
+以下是舊的做法(junction / 複製進 `card-table`),留作參考:
 
 vault 的外掛資料夾是**指向這個 repo 的 junction**:
 
@@ -117,7 +130,7 @@ semver 升版時,`versions.json` 也要加一筆 `"新版本": "最低 Obsidian 
 `CHANGELOG.md` 也要加一段 `## 新版本`(release 的說明是從那裡撈的)。
 **1.6.1 起每一版都要有「更新介紹」彈窗**(使用者明講):安裝或更新後第一次開看板,
 跳一次這一版新增了什麼(中英兩份),看過的版本記在設定裡,同一版不再跳。升版時彈窗內容要跟 CHANGELOG 一起寫。
-升版時**三個地方**:`更新介紹[版本]`(彈窗,帶圖示)、`版本摘要` 最前面加一筆(設定最上面「看所有版本」,一版兩三句、合併著寫)、CHANGELOG.md(細節)。
+升版時**三個地方**:`更新介紹[版本]`(彈窗,帶圖示)、`版本摘要` 最前面加一筆(一版兩三句、合併著寫)。**彈窗、指令、設定最上面的「看更新內容」是同一個視窗**(使用者明講:不要做兩種):上半是這一版的介紹,下半是所有版本的摘要、CHANGELOG.md(細節)。
 
 **設定頁分大標**(1.6.1):更新內容(最上面)→ 一般 → 時間篩選 → 卡片外觀 → 新增與編輯 → 動作後跳轉 → 筆記格式 → 支持。
 新設定放進對應的大標,不要接在最後面。README 的設定表跟著同樣分組。

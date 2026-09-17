@@ -2,6 +2,11 @@
 
 ## 1.6.1
 
+> **Sorry — this is a big update, and the note format changed.** Old notes are
+> still read and switch only when a card is changed; settings can convert
+> everything in one click (with a backup). The full old-vs-new table is in the
+> README. Problems? Email [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com).
+
 **A note format Tasks and Dataview understand**
 
 - Cards are now written with `[key:: value]` fields:
@@ -32,8 +37,10 @@
 
 - The automatic bullet setting is gone: content is written exactly as you type
   it. Your own `- `, `* ` and `1. ` are no longer removed, and the board shows a
-  bullet only on lines that have one. Bullets are drawn as `•`, like
-  Obsidian's own lists.
+  bullet only on lines that have one.
+- What you see while reading a card is what you see while editing it: content
+  lines use the Live Preview editor's font size, line height, bullet dot,
+  number and checkbox positions, so nothing jumps when you start editing.
 - The card editor, the New card content box and both comment boxes are now
   Obsidian's own editor with Live Preview: bold, highlights, links and to-dos
   render as you type, and undo, every formatting hotkey and `[[` link
@@ -49,18 +56,25 @@
 **Layout and fixes**
 
 - The month and week tiles no longer underline the range that contains today.
-- On phones, the New card content box no longer grows to a huge empty area.
+- On phones, the New card content box and the card editor no longer grow a
+  large empty area above the text (Obsidian's phone header spacing is now
+  switched off inside card editors).
+- New command **Export layout diagnostics** writes
+  `ZZ-card-table-版面診斷.md` with the editor sizes and styles, for reporting
+  phone layout problems.
 - Fixed: in a note open in the Kanban plugin, the ribbon icon and the
   **Open with Card Table** command offered only to create a new note; they now
   switch that note to Card Table.
 
 **Other**
 
-- A short “What’s new” window opens once after installing or updating. The
-  **What’s new in this version** command opens it again.
+- A “What’s new” window opens once after installing or updating: this
+  version's highlights, a format table, a button to the one-click conversion,
+  a contact email, and every earlier version in a sentence or two. The
+  **What’s new in this version** command and **What’s new** at the top of the
+  settings open the same window.
 - Settings are grouped under headings (General, Time filters, Cards, Adding
-  and editing, Jump after an action, Note format, Support), and **What’s new**
-  at the top lists every version in a sentence or two.
+  and editing, Jump after an action, Note format, Support).
 - The README is shorter: features and settings are summarised by group.
 
 ## 1.6.0
