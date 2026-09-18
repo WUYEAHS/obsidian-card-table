@@ -147,6 +147,13 @@ window.__ctEditorTest = 'running';
       焦點ok('activeEditor set', app.workspace.activeEditor && app.workspace.activeEditor.editor === v.編框.編輯器?.editor || !!app.workspace.activeEditor, '');
     }
     步('type + autosave');
+    // 1.6.3:記下編修中每一次整份重畫是誰叫的(編修框被重建 = Ctrl+Z 紀錄消失),失敗時一起印出來
+    const 重畫紀錄 = [];
+    const 原畫 = v.畫, 原清單 = v.重畫清單, 原設 = v.setViewData;
+    const t0 = Date.now();
+    v.畫 = function (...a) { 重畫紀錄.push('畫@' + (Date.now() - t0) + ' ' + String(new Error().stack).split('\n').slice(2, 4).map(x => x.trim().replace(/\(.*\)/, '')).join(' < ')); return 原畫.apply(this, a); };
+    v.重畫清單 = function (...a) { 重畫紀錄.push('清單@' + (Date.now() - t0)); return 原清單.apply(this, a); };
+    v.setViewData = function (d, c) { 重畫紀錄.push('setViewData@' + (Date.now() - t0) + ' 同回音=' + (v.插件.寫手.最後寫出 && v.插件.寫手.最後寫出[v.file.path] === d) + ' 略過到剩=' + ((v.略過到 || 0) - Date.now())); return 原設.call(this, d, c); };
     // type through the editor API
     const E = v.編框.編輯器.editor;
     E.replaceRange('\n新的一行', { line: E.lastLine(), ch: E.getLine(E.lastLine()).length });
@@ -162,10 +169,14 @@ window.__ctEditorTest = 'running';
     const cm = v.contentEl.querySelector('.tk-編框 .cm-content');
     cm.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
     // 等到「存進去了」而且「完成編輯走完了」(檔案先變,編修框晚一點才關)
-    await 等到(async () => !(await app.vault.read(f)).includes('新的一行') && !v.contentEl.querySelector('.tk-編框') && !v.編框);
+    // 1.6.3:12 秒(以前 5 秒,視窗有焦點時失敗過一次);失敗時記下寫手當時忙不忙,分得出是等太短還是真的存檔競爭
+    const esc時 = Date.now();
+    await 等到(async () => !(await app.vault.read(f)).includes('新的一行') && !v.contentEl.querySelector('.tk-編框') && !v.編框, 12000);
     文 = await app.vault.read(f);
     ok('esc closed editor', !v.contentEl.querySelector('.tk-編框'), '');
-    ok('undo saved on close', !文.includes('新的一行'), 文);
+    ok('undo saved on close', !文.includes('新的一行'),
+      { 等了: Date.now() - esc時, 存中: !!v.存中, 上次存的有新行: String(v.上次存的 || '').includes('新的一行'), 框還在: !!v.編框, 重畫: 重畫紀錄, 文: 文.slice(0, 120) });
+    v.畫 = 原畫; v.重畫清單 = 原清單; v.setViewData = 原設;
     { const k訂 = v.卡片.find(x => x.主題 === '訂貨');
       ok('B5 stays expanded after save', !!(k訂 && v.狀態.展開[k訂.鍵]), Object.keys(v.狀態.展開 || {})); }
     ok('editor unloaded (no leak)', !v.編框, '');

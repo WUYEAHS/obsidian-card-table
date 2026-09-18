@@ -12,6 +12,8 @@ const v=leaf.view;
 const S=app.plugins.plugins['card-table']['設定'];
 const 睡=(ms)=>new Promise(r=>setTimeout(r,ms));
 v['狀態']['篩']={'型':'全部'};   // 篩 = 全部
+// 1.6.3:未完成 / 已完成 / 含封存 全部打開再量(不然完成、封存的卡片長相量不到);結尾還原,不存檔
+const 原顯示=S['排程顯示']; S['排程顯示']={'未完成':true,'完成':true,'封存':true};
 v['畫']();
 await 睡(500);
 const b=v.contentEl;
@@ -58,5 +60,6 @@ if(!v['密']){
   S['版面寬度']=原;
   v['畫'](); await 睡(200);
 }
+S['排程顯示']=原顯示; v['畫']();
 return JSON.stringify(out,null,1);
 })()

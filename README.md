@@ -5,7 +5,7 @@
 
 # Card Table - Dated Tasks
 
-**A task-first card table.** Inspired by the Kanban plugin's table mode view. Every task is a card, and these cards form a table. Features include unique time-filtering functions, **multi-user collaboration**, and two viewing modes optimized for desktop and mobile.
+**A task-first card table.** Inspired by the Kanban plugin's table mode view. Every task is a card, and these cards form a table. Features include unique time-filtering functions, **multi-user collaboration**, and one card layout that looks the same on desktop and phone.
 
 > [!IMPORTANT]
 > **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!
@@ -88,7 +88,7 @@ then reload Obsidian and enable **Card Table - Dated Tasks**.
 - **Safe with sync** — every write is atomic, so two devices never overwrite each other.
 
 ### Phones and layout
-- **A real phone layout** — cards, not a squeezed table.
+- **One layout everywhere** — the same cards on desktop and phone; desktop is just wider.
 - **Narrow or wide** on desktop; light and dark follow your Obsidian theme.
 
 ### Plain text
@@ -199,7 +199,7 @@ If something looks wrong after converting, or you have any question, please emai
 | Everyday view | The whole board | Today (or any day, week, month) in one tap |
 | Conversation | — | Signed, timestamped comments on each card |
 | Several people | — | Designed for it: per-device identity, atomic writes |
-| Phone | — | A dedicated narrow layout |
+| Phone | — | The same cards as on desktop |
 
 **Can I use both?** Yes. Card Table only takes over notes you open with it (it remembers each note), and it never switches a Kanban board over on its own; it also unloads cleanly when Kanban intercepts the same Obsidian method.
 Both read `## headings` and `- [ ]` cards, so a Card Table note opens in Kanban too, but Kanban only understands its own `@{date}` dates — Card Table's `[due:: …]` fields show as plain text there.

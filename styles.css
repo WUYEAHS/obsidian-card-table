@@ -78,98 +78,11 @@
 .tk-board .tk-空隱:empty {
   display:none;
 }
-.tk-board .tk-換行 {
-  display:none;
-}
-.tk-board table {
-  table-layout:fixed;
-  border-collapse:collapse;
-  margin:0;
-  width:100%;
-  border:1px solid var(--background-modifier-border);
-}
+
 .tk-board .tk-塊 > div {
   margin:0;
 }
-.tk-board thead th, .tk-board tbody td {
-  border:1px solid var(--background-modifier-border);
-}
-/* 1.5 卡片表沒有表頭了:第一列的上框線跟塊標題列的底線疊在一起會變成兩條,拿掉一條 */
-.tk-board tbody tr:first-child > td {
-  border-top:0;
-}
-.tk-board tbody td {
-  overflow-wrap:anywhere;
-  word-break:break-word;
-}
-/* ⚠ 1.4.3:格子的 padding / 對齊本來是 st() 一格一格寫成 inline style 的。
-   搬進 class 之後才能被別的規則正常蓋掉。 */
-.tk-board tbody td[data-col] {
-  padding:7px 8px;
-  vertical-align:top;
-  text-align:left;
-}
-.tk-board tbody td[data-col='日期'],
-.tk-board tbody td[data-col='補日期'],
-.tk-board tbody td[data-col='分類'] {
-  padding:7px 6px;
-  vertical-align:middle;
-  text-align:center;
-}
-.tk-board tbody td[data-col='日期'] {
-  position:relative;
-}
-.tk-board tbody td[data-col='融合'] {
-  padding:7px 4px;
-  vertical-align:middle;
-  text-align:center;
-}
-.tk-board tbody tr:hover {
-  background:var(--background-modifier-hover);
-}
-.tk-board tbody tr td:first-child {
-  position:relative;
-}
-/* 📌 那一列(桌機):📌 **固定在日期格的左上角**。
-   ⚠ 日期格是 vertical-align:middle。如果這兩顆跟著內容排,卡片一高(內容很多行)
-     它們就跟著日期一起被置中,跑到格子中間去 —— 每張卡片的 📌 高度都不一樣。
-     所以:.tk-釘列 本身只是一條 19px 高的佔位(讓日期不要壓到它),
-     裡面的 📌 用絕對定位,對齊的是 td(td 是 position:relative)。
-   left 10px 是讓開分類色條(色條 6px 寬,滑過去 10px,貼著這一格的左緣)。 */
-/* ⚠ 1.5:.tk-釘列 **不再佔高度**。日期改放在 .tk-三排 的中間那一排,上帶本來就留了位置給 📌。 */
-.tk-board .tk-釘列 {
-  height:0;
-}
-/* 1.5 日期欄 / 分類欄的三排格線:上帶 / 主角(日期、完成圓點)/ 下帶。
-   上下兩帶都是 1fr:格子高度不固定的時候,格線會讓所有 fr 軌道取「內容最高的那一條」,
-   所以兩帶永遠一樣高 —— 主角一定在正中間,日期和圓點才會在同一條水平線上。
-   min-height 16px:上帶要讓開 📌(top 6px + 13px 高),日期才不會壓到它。 */
-.tk-board .tk-三排 {
-  display:grid;
-  grid-template-rows:1fr auto 1fr;
-  justify-items:center;
-  align-items:center;
-  row-gap:3px;
-  width:100%;
-}
-.tk-board .tk-三排 > .tk-排上,
-.tk-board .tk-三排 > .tk-排下 {
-  min-height:16px;
-  width:100%;
-  min-width:0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:4px;
-}
-.tk-board .tk-三排 > .tk-排上 { align-self:end; }
-.tk-board .tk-三排 > .tk-排下 { align-self:start; }
-.tk-board tbody td .tk-釘列 > .tk-釘 {
-  position:absolute;
-  left:10px;
-  top:6px;
-  z-index:2;
-}
+
 /* ⚠ 指派人的下拉本來吃 Obsidian 的預設高度 32px,而同一排的主題輸入框 24、
    分類圓點 22、常用主題膠囊 20 —— 它一個人把整排撐到 61px,
    於是圓點和膠囊在各自的框裡都偏上,看起來像沒對齊。拉成 24 跟主題輸入框一致。
@@ -184,9 +97,7 @@
   top:0;
   bottom:0;
 }
-.tk-board td[data-col='分類'], .tk-board td[data-col='日期'] {
-  text-align:center;
-}
+
 .tk-board .卡片內文 {
   overflow-wrap:anywhere;
   word-break:break-word;
@@ -252,19 +163,11 @@
   opacity:1;
 }
 }
-.tk-board .tk-傳送中 {
-  animation:tk-脈動 1.1s ease-in-out infinite;
-}
-@media (prefers-reduced-motion:reduce) {
-.tk-board .tk-傳送中 {
-  animation:none;
-  opacity:0.7;
-}
-}
+
 .tk-board .tk-留:hover .tk-留具, .tk-board .tk-留:focus-within .tk-留具 {
   opacity:1;
 }
-.tk-board tbody tr:hover .tk-動作, .tk-board .tk-動作:focus-within {
+ .tk-board .tk-動作:focus-within {
   opacity:1;
 }
 /* ---- 📌 ----
@@ -279,17 +182,13 @@
   color:var(--text-accent);
   opacity:1;
 }
-.tk-board tbody tr:hover .tk-釘 {
-  opacity:1;
-}
 
 /* ============================================================
    plugin 自己多出來的一點點
    ============================================================ */
 /* 版本列:固定 26px,永遠存在,尺寸不會變 —— 它就是捲動錨點,不要刪 */
 .tk-board .tk-版本列 { overflow-anchor:none; }
-/* 表格裡的小按鈕不要被 Obsidian 的預設樣式撐大 */
-.tk-board tbody button { box-shadow:none; }
+
 .tk-board .tk-統計格 button { box-shadow:none; }
 
 /* ============================================================
@@ -297,7 +196,7 @@
    ============================================================ */
 /* ⚠ 留言和內容要能「點住拖曳選字複製」,所以不可以 user-select:none。
    收合是靠 JS 判斷「有沒有選到字 / 有沒有拖過」來決定算不算點擊(見 掛收合)。 */
-.tk-board .tk-文區, .tk-board .tk-留區, .tk-board .卡片內文, .tk-board .tk-留文 {
+.tk-board .tk-文區, .tk-board .tk-留區, .tk-board .卡片內文{
   user-select: text; -webkit-user-select: text; cursor: auto;
 }
 /* 「查看更多 / 還有 N 則」接在最後一行的尾端,自己才是可以點的那一小塊 */
@@ -333,24 +232,6 @@
   12%  { opacity:0.22; }
   45%  { opacity:0.22; }
   100% { opacity:0; }
-}
-.tk-board tbody tr.tk-閃 > td { position:relative; }
-.tk-board tbody tr.tk-閃 > td::after {
-  content:"";
-  position:absolute; inset:0;
-  pointer-events:none;
-  background:var(--text-accent);
-  opacity:0;
-  animation:tk-閃現 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.tk-board tbody tr.tk-閃 > td:first-child::after { border-radius:3px 0 0 3px; }
-.tk-board tbody tr.tk-閃 > td:last-child::after  { border-radius:0 3px 3px 0; }
-/* 關掉動畫(或系統要求減少動態)的人:不閃,改成停一下下的上下實線,一樣指得出是哪一列 */
-.tk-board tbody tr.tk-定位 > td {
-  box-shadow:inset 0 1px 0 var(--text-accent), inset 0 -1px 0 var(--text-accent);
-}
-@media (prefers-reduced-motion: reduce) {
-  .tk-board tbody tr.tk-閃 > td::after { animation:none; opacity:0.16; }
 }
 
 /* ============================================================
@@ -391,55 +272,13 @@
 /* 動作組本身不可以有底色 —— 理由寫在 main.js 的 畫卡片工具() */
 .tk-board .tk-動作 { background:transparent; }
 
-/* ---- 封存確認的倒數條 ----
-   按了「封存」會變成「確定?」,這條從滿到空走 2.6 秒。走完 = 你不想封存了,自己收回去。
-   ⚠ 只動 transform,不動 width —— 動 width 每一格都要重新排版,在長清單上會頓。 */
-@keyframes tk-倒數走 { from { transform:scaleX(1); } to { transform:scaleX(0); } }
-.tk-board .tk-倒數 {
-  position:absolute;
-  inset:0;
-  transform-origin:left center;
-  background:color-mix(in srgb, var(--color-red, #e05252) 22%, transparent);
-  animation:tk-倒數走 2.6s linear forwards;
-  pointer-events:none;
-}
-@supports not (background: color-mix(in srgb, red 10%, transparent)) {
-  .tk-board .tk-倒數 { background:var(--background-modifier-hover); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .tk-board .tk-倒數 { animation-duration:2.6s; }
-}
-/* 1.6.2(U1)「再按一次確定」的 ✓ 疊在倒數條上面。CR-02 拿掉了旁邊的「?」 */
-.tk-board .tk-確認記 { position:relative; z-index:1; display:inline-flex; align-items:center; line-height:1; }
-/* 1.6.2(CR-02)封存可以回復:倒數條不用紅色(複合選擇器,壓過上面同權重的 .tk-倒數) */
-.tk-board .tk-倒數.tk-倒數-淡 { background:var(--background-modifier-hover); }
-
-/* ---- 已完成 ----
-   淡化 = 整列退到背景,劃掉 = 內容打一條線。設定裡可以各自關掉。
-   ⚠ 滑鼠移上去要回到完全可讀 —— 淡化是為了「掃過去時不搶眼」,
-     不是為了「要看的時候看不清楚」。 */
-.tk-board tbody tr.tk-完淡 > td { opacity:0.55; transition:opacity .12s ease; }
-.tk-board tbody tr.tk-完淡:hover > td { opacity:1; }
-.tk-board .tk-列.tk-完劃 .卡片內文,
-.tk-board .tk-列.tk-完劃 .tk-主題 {
+.tk-board .tk-列.tk-完劃 .卡片內文,.tk-board .tk-列.tk-完劃 .tk-主題 {
   /* ⚠ 1.4.3:本來還有 text-decoration-color / -thickness 兩個 longhand,
      在審核的相容性檢查裡是「部分支援」,而且只是修飾。留 line-through 本身就夠。 */
   text-decoration:line-through;
 }
 /* 留言不劃掉 —— 留言是「後來發生的事」,不會因為卡片做完就作廢 */
 .tk-board .tk-列.tk-完劃 .tk-留區 .卡片內文 { text-decoration:none; }
-
-/* ---- 已封存 ----
-   整列去彩度 + 淡化。封存區的卡片跟還在跑的卡片混在同一份清單裡的時候,
-   光靠一個「🗄 已封存」的小字根本看不出來。
-   ⚠ grayscale 要下在 td 不是 tr:filter 下在 tr 上,
-     Chrome 會把整列變成新的 containing block,絕對定位的色條就飛掉了。 */
-.tk-board tbody tr.tk-封存 > td {
-  filter:grayscale(1);
-  opacity:0.5;
-  transition:opacity .12s ease, filter .12s ease;
-}
-.tk-board tbody tr.tk-封存:hover > td { opacity:0.92; filter:grayscale(0.55); }
 
 /* ---- 行內 Markdown ---- */
 .tk-board .cjb-code {
@@ -455,32 +294,6 @@
 /* 導覽列/工具列那些還是 <button> 的鈕:不強迫改圓角,但至少不要讓主題的背景漸層
    蓋過我們的圓角(漸層那一層不吃 border-radius,角落就會露出一小塊)。 */
 .tk-board button { background-clip:padding-box; background-image:none; }
-
-/* ---- 封存與已完成的底色 ----
-   兩種都是「不用再管了」的卡片,但意思不一樣:
-     已完成 = 做完了,是好事,給它一點點綠;
-     已封存 = 收起來了,不再參與,整列退成灰。
-   ⚠ 底色用半透明疊在列上,不要用實色 —— 深色和淺色主題的底不一樣,
-     實色在其中一邊一定會太突兀。
-   ⚠ 寫在 tr:hover 規則的後面,不然滑過去底色會被 hover 蓋掉、兩種狀態又變得一樣。 */
-.tk-board tbody tr.tk-完淡 > td,
-.tk-board tbody tr.tk-完劃 > td {
-  background-color:color-mix(in srgb, var(--color-green, #3aa76d) 7%, transparent);
-}
-.tk-board tbody tr.tk-封存 > td {
-  background-color:color-mix(in srgb, var(--text-faint) 12%, transparent);
-}
-.tk-board tbody tr.tk-完淡:hover > td,
-.tk-board tbody tr.tk-完劃:hover > td {
-  background-color:color-mix(in srgb, var(--color-green, #3aa76d) 13%, transparent);
-}
-.tk-board tbody tr.tk-封存:hover > td {
-  background-color:color-mix(in srgb, var(--text-faint) 20%, transparent);
-}
-@supports not (background: color-mix(in srgb, red 10%, transparent)) {
-  .tk-board tbody tr.tk-完淡 > td, .tk-board tbody tr.tk-完劃 > td { background-color:rgba(58,167,109,0.08); }
-  .tk-board tbody tr.tk-封存 > td { background-color:rgba(128,128,128,0.12); }
-}
 
 /* 量游標用的鏡子 —— 永遠看不見,但要跟 textarea 同樣的排版規則 */
 .tk-鏡 { position:absolute; visibility:hidden; pointer-events:none; z-index:-1; }
@@ -518,8 +331,7 @@
    `.is-phone .mod-root .workspace-leaf-content .view-content .markdown-source-view > .cm-editor > .cm-scroller { padding-top: var(--view-top-spacing-markdown) }`,
    權重 0,7,0,比上面那幾條重。不跟它比權重,直接把這個變數在卡片編輯器裡歸零(Memos 類外掛也是這樣處理)。
    桌機的手機模擬是 is-tablet,看不到這個問題。 */
-.tk-board .tk-即時編,
-.tk-board .tk-即時編 .cm-scroller { --view-top-spacing-markdown:0px; --autoscroll-padding:0px; }
+.tk-board .tk-即時編,.tk-board .tk-即時編 .cm-scroller { --view-top-spacing-markdown:0px; --autoscroll-padding:0px; }
 
 /* 1.6.1 所見即所得:閱讀時的內容行照抄即時預覽編輯器的尺寸(見 main.js 的 畫預覽行)。
    數字是在編輯器裡量出來的:字級 0.94em、行高 --line-height-normal;
@@ -532,9 +344,7 @@
   font-size:calc(var(--font-text-size, 16px) * 0.94);
   line-height:var(--line-height-normal);
 }
-.tk-board .tk-預覽行.tk-預覽-清單,
-.tk-board .tk-預覽行.tk-預覽-編號,
-.tk-board .tk-預覽行.tk-預覽-待辦 {
+.tk-board .tk-預覽行.tk-預覽-清單,.tk-board .tk-預覽行.tk-預覽-編號,.tk-board .tk-預覽行.tk-預覽-待辦 {
   padding-top:var(--list-spacing);
   padding-bottom:var(--list-spacing);
 }
@@ -602,9 +412,7 @@
   pointer-events:none;
 }
 .tk-board .tk-即時框 .tk-即時提示 { top:12px; }
-.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .inline-title,
-.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .embedded-backlinks,
-.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .metadata-container { display:none; }
+.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .inline-title,.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .embedded-backlinks,.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .metadata-container { display:none; }
 
 /* ============================================================
    窄螢幕(1.4.4 重寫)
@@ -694,8 +502,7 @@
   flex:0 0 auto;
 }
 /* 摸得到的裝置沒有 hover —— 本來「滑過去才亮」的東西在窄螢幕一律亮著 */
-.tk-board.tk-窄 .tk-動作,
-.tk-board.tk-窄 .tk-留具 {
+.tk-board.tk-窄 .tk-動作,.tk-board.tk-窄 .tk-留具 {
   opacity:1;
 }
 .tk-board.tk-窄 .tk-動作 {
@@ -715,8 +522,7 @@
 .tk-board.tk-窄 .tk-列.tk-完淡 > .tk-格 {
   opacity:0.55;
 }
-.tk-board.tk-窄 .tk-列.tk-完淡,
-.tk-board.tk-窄 .tk-列.tk-完劃 {
+.tk-board.tk-窄 .tk-列.tk-完淡,.tk-board.tk-窄 .tk-列.tk-完劃 {
   background-color:color-mix(in srgb, var(--color-green, #3aa76d) 7%, var(--background-primary));
 }
 .tk-board.tk-窄 .tk-列.tk-封存 > .tk-格 {

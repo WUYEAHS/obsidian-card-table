@@ -110,7 +110,7 @@ const 字典 = {
     exporting: "輸出中…", exported: "✓ 已輸出", exportFail: "輸出失敗,請再試一次",
     exportBlocked: "瀏覽器擋掉了新視窗,請允許彈出視窗再試一次",
     moreComments: "還有 N 則", send: "送出",
-    sure: "確定?", archiveSure: "再按一次封存", deleteSure: "再按一次刪除(不能復原)",
+    sure: "確定?",
     tooFast: "剛剛才留過言,N 秒後再留一則（讓檔案先寫穩）",
     writeFail: "沒有寫進檔案（可能同步正在忙）。字還在框裡,按「送出」再試一次",
     movedDone: "✓ 已搬到「已完成」", movedTodo: "↩ 已搬回「未完成」",
@@ -266,7 +266,7 @@ const 字典 = {
     exporting: "Exporting…", exported: "✓ Exported", exportFail: "Export failed — please try again",
     exportBlocked: "The browser blocked the new window; allow pop-ups and try again",
     moreComments: "N more", send: "Send",
-    sure: "Sure?", archiveSure: "Tap again to archive", deleteSure: "Tap again to delete (cannot be undone)",
+    sure: "Sure?",
     tooFast: "You just commented — wait N seconds so the file settles",
     writeFail: "Not written to the file (sync may be busy). Your text is still here — press Send again",
     movedDone: "✓ Moved to Done", movedTodo: "↩ Moved back to To do",
@@ -1265,7 +1265,11 @@ class 寫手 {
       if (!r) { 誤 = this.T.lost; return null; }
       if (r.誤) { 誤 = r.誤; return null; }
       值 = (r.值 === undefined) ? true : r.值;
-      return (typeof r.文 === "string") ? r.文 : null;
+      const 新 = (typeof r.文 === "string") ? r.文 : null;
+      /* 1.6.3:記下自己最後寫出去的整份文字。Obsidian 寫完會回頭呼叫 setViewData,
+         內容一模一樣就是自己的回音 —— 編修中不重畫(見 setViewData),不再只靠 2.5 秒的時窗。 */
+      if (新 !== null) (this.最後寫出 = this.最後寫出 || {})[檔.path] = 新;
+      return 新;
     };
     if (typeof v.process === "function") {
       await v.process(檔, (文) => { const n = 跑(文); return (n === null) ? 文 : n; });
@@ -2418,6 +2422,11 @@ class 看板視圖 extends TextFileView {
        ⚠ 一定要有時間上限,不能只用一個布林旗子:萬一 setViewData 沒來,
          旗子會一直留著,之後別台電腦同步過來的真正變更就被吃掉了。 */
     if (this.狀態.編修 && this.略過到 && Date.now() < this.略過到) return;
+    /* ⚠ 1.6.3:時窗過了、但回來的正是自己剛寫的那一份(寫手排隊比較久時會這樣)—— 照樣不重畫。
+       以前這裡會整份重畫、把編修框砍掉重建:Ctrl+Z 的紀錄沒了、游標跳走(editor-test 5 次失敗 1 次抓到的)。
+       別台裝置同步來的變更內容不一樣,照樣會重畫。 */
+    const 寫出 = this.插件.寫手.最後寫出;
+    if (this.狀態.編修 && this.file && 寫出 && 寫出[this.file.path] === this.內文) return;
     this.畫();
     this.開分區如果是新的();
   }
@@ -2979,35 +2988,6 @@ class 看板視圖 extends TextFileView {
     待.forEach(縮到放得下);
   }
 
-  格子樣式(亮, 色, 底) {
-    return (this.密 ? "flex:1 1 0;width:auto;padding:6px 4px;"
-                    : "flex:0 0 " + 格寬 + "px;width:" + 格寬 + "px;padding:6px 9px;") +
-      "min-width:0;min-height:" + 格高 + "px;" +
-      "text-align:center;box-sizing:border-box;" +
-      "border-radius:8px;gap:2px;white-space:nowrap;" +
-      "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
-      "cursor:pointer;user-select:none;transition:transform .1s ease,border-color .12s ease;" +
-      "border:1px solid " + (亮 ? "var(--text-accent)" : "var(--background-modifier-border)") + ";" +
-      "border-left:3px solid " + 色 + ";" +
-      "background:" + (底 || "var(--background-primary)") + ";" +
-      (亮 ? "box-shadow:inset 0 0 0 1px var(--text-accent);" : "");
-  }
-  統計格(條, 標題, 數, 色, 鍵) {
-    const 亮 = (this.狀態.篩 || {}).型 === 鍵;
-    const 盒 = 條.createDiv();
-    盒.addClass("tk-統計格");
-    st(盒, this.格子樣式(亮, 色));
-    盒.title = "點一下:清單只看「" + 標題 + "」,新增的卡片也會放到這裡";
-    盒.onmouseenter = () => { 盒.style.transform = "translateY(-1px)"; };
-    盒.onmouseleave = () => { 盒.style.transform = ""; };
-    盒.onclick = () => { this.狀態.篩 = { 型: 鍵 }; this.狀態.開行事曆 = false; this.畫(); };
-    // 1.5:名稱比數字大、比數字粗(跟期間格同一套)
-    st(盒.createDiv({ text: String(數) }),
-      "font-size:0.8em;font-weight:600;color:" + 色 + ";line-height:1.15;font-variant-numeric:tabular-nums;");
-    st(盒.createDiv({ text: 標題 }),
-      "font-size:0.8em;font-weight:700;color:var(--text-muted);margin-top:1px;white-space:nowrap;");
-    return 盒;
-  }
   /* ◀ ▶ 換一格的箭頭。
      ⚠ 1.4.4:以前是 16px 的方框裡放一個 0.9em 的「◀」字元,實際畫出來的三角形只有 7px 寬,
        手機上幾乎點不到。改成 Lucide 的 chevron,框放大到 20px(手機 26px)。
@@ -4764,25 +4744,10 @@ class 看板視圖 extends TextFileView {
         "padding:26px 0;text-align:center;color:var(--text-faint);font-size:0.9em;");
       return 塊;
     }
-    // 窄螢幕:不是表格,是一疊卡片(理由見 畫卡片)
-    if (this.窄) {
-      const 群 = 身外.createDiv();
-      群.addClass("tk-卡群");
-      卡們.forEach(k => this.畫一列(群, k));
-      return 塊;
-    }
-    const 表 = 身外.createEl("table");
-    st(表, "width:100%;margin:0;table-layout:fixed;border-collapse:collapse;font-size:1.02em;");
-    /* ⚠ 1.5:不再畫「日期 / 分類 / 內容」那一排表頭 —— 每一欄長什麼樣一看就知道,那一排只是佔高度。
-       欄寬以前寫在 <th> 上;拿掉表頭之後改寫在 <colgroup>,table-layout:fixed 才照舊吃得到欄寬。 */
-    // 融合模式:每一列最前面多一個勾選欄(把「完成」勾選換掉,兩個勾選並排會分不清在勾什麼)
-    const 欄寬們 = this.狀態.融合中
-      ? ["40px", T.日期欄寬 + "px", T.分類欄寬 + "px", ""]
-      : [T.日期欄寬 + "px", T.分類欄寬 + "px", ""];
-    const 欄組 = 表.createEl("colgroup");
-    欄寬們.forEach(寬 => { const col = 欄組.createEl("col"); if (寬) col.style.width = 寬; });
-    const 身 = 表.createEl("tbody");
-    卡們.forEach(k => this.畫一列(身, k));
+    // 不是表格,是一疊卡片(理由見 畫卡片)。1.6.3(B5)起桌機也一樣,表格那一條拿掉了
+    const 群 = 身外.createDiv();
+    群.addClass("tk-卡群");
+    卡們.forEach(k => this.畫一列(群, k));
     return 塊;
   }
 
@@ -4799,7 +4764,7 @@ class 看板視圖 extends TextFileView {
       st(清, "font-size:0.72em;height:21px;min-height:0;padding:0 9px;border-radius:10px;cursor:pointer;" +
         "box-shadow:none;color:var(--text-accent);border:1px solid var(--text-accent);" +
         "display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;" +
-        "max-width:" + (this.窄 ? "44%" : "260px") + ";overflow:hidden;white-space:nowrap;");
+        "max-width:" + ("44%") + ";overflow:hidden;white-space:nowrap;");
       圖(清, "search", 12);
       const 行們 = String(this.狀態.搜尋).split("\n").map(x => x.trim()).filter(Boolean);
       const 字 = 清.createSpan({ text: (行們[0] || "") + (行們.length > 1 ? " …" : "") });
@@ -4838,26 +4803,9 @@ class 看板視圖 extends TextFileView {
     st(頭.createDiv({ text: 未.length + " " + T.cards }), "font-size:0.72em;color:var(--text-faint);" + 標頭補正);
     const 身外 = 塊.createDiv();
     st(身外, "overflow:visible;min-width:0;");
-    if (this.窄) {
-      const 群 = 身外.createDiv();
-      群.addClass("tk-卡群");
-      未.forEach(k => this.畫一列(群, k, true));
-      return;
-    }
-    const 表 = 身外.createEl("table");
-    st(表, "width:100%;margin:0;table-layout:fixed;border-collapse:collapse;font-size:1.02em;");
-    /* 補日期欄:鈕變小了,欄寬跟著收 —— 100px 的空欄在畫面上只是一塊空白。
-       ⚠ 寬度要跟著語言走:「設為今日」四個中文字比 "Move to today" 短得多,
-         寫死一個數字一定會有一邊被切掉(1.4.3 就先切到英文那邊)。
-       ⚠ 1.5:沒有表頭了(理由同 畫卡片塊),欄寬寫在 <colgroup>。
-       ⚠ 1.5:補日期欄**跟日期欄一樣寬**(T.日期欄寬,不是 T.補日期欄寬)——
-         沒有表頭之後,兩張表疊在一起看,分類和內容那兩條直線要對得上。 */
-    const 欄組 = 表.createEl("colgroup");
-    [T.日期欄寬 + "px", T.分類欄寬 + "px", ""].forEach(寬 => {
-      const col = 欄組.createEl("col"); if (寬) col.style.width = 寬;
-    });
-    const 身 = 表.createEl("tbody");
-    未.forEach(k => this.畫一列(身, k, true));
+    const 群 = 身外.createDiv();
+    群.addClass("tk-卡群");
+    未.forEach(k => this.畫一列(群, k, true));
   }
 
   /* 表格標題列右上角:一顆「⋯」,裡面是 全部展開 / 排序 / 融合 / 輸出 / 版面寬度。
@@ -4922,7 +4870,7 @@ class 看板視圖 extends TextFileView {
     /* 1.5.1:長得跟「新增卡片」標題列右上角的「⋯」一樣 —— 沒有框、沒有底色,就是一顆淡色圖示。
        手機保留 28px 高的點擊範圍;展開全部 / 融合中的時候圖示變重點色。 */
     // 桌機 16px 高:跟新增卡片的「⋯」一樣,不把置頂表的標題列撐高(量過 22px 的鈕讓標題列變 30.5px)
-    st(鈕, "height:" + (this.窄 ? 22 : 16) + "px;min-height:0;padding:0 4px;line-height:0;cursor:pointer;border-radius:5px;" +
+    st(鈕, "height:" + (22) + "px;min-height:0;padding:0 4px;line-height:0;cursor:pointer;border-radius:5px;" +
       "white-space:nowrap;flex:0 0 auto;box-shadow:none;border:0;background:transparent;" +
       ((s.展開全部 || s.融合中) ? "color:var(--text-accent);" : "color:var(--text-muted);"));
     圖鈕(鈕, "ellipsis", "", 15);
@@ -4947,8 +4895,8 @@ class 看板視圖 extends TextFileView {
         .onClick(() => { s.融合中 = !s.融合中; s.融合選 = {}; this.重畫清單(); }));
       // 1.6.2(B7):只留長圖;PDF 拿掉了(Obsidian 會擋開新視窗,手機也沒有列印)
       m.addItem((i) => i.setTitle(T.exportPng).setIcon("image").onClick(() => this.輸出()));
-      // 版面寬度只對桌機有意義(窄螢幕本來就用滿畫面)
-      if (!this.窄) {
+      // 版面寬度只對桌機有意義(手機、窄分頁本來就用滿畫面)。1.6.3:看 觸 / 密,不看 窄
+      if (!this.觸 && !this.密) {
         m.addSeparator();
         const 寬版 = 設.版面寬度 === "寬";
         m.addItem((i) => i
@@ -5099,9 +5047,8 @@ class 看板視圖 extends TextFileView {
   }
 
   畫一列(身, k, 未定) {
-    /* ⚠ 桌機是 <tr>,窄螢幕是 <div>(見 畫卡片)。兩種都掛 tk-列,
-       所有「找這一列」的地方一律用 .tk-列 / .tk-格,不要再寫 tr / td。 */
-    const 列 = this.窄 ? 身.createDiv() : 身.createEl("tr");
+    /* 1.6.3(B5)只剩卡片版面:每一列都是 <div>(見 畫卡片)。以前桌機是 <tr>,所以「找這一列」一律用 .tk-列 / .tk-格。 */
+    const 列 = 身.createDiv();
     列.addClass("tk-列");
     列.__鍵 = k.鍵;                      // 動作做完要捲回這一列,靠這個找
     列.__卡 = k;
@@ -5145,22 +5092,7 @@ class 看板視圖 extends TextFileView {
       if (樣.indexOf("劃掉") >= 0) 列.addClass("tk-完劃");
     }
     列.style.setProperty("--tk-sec", this.插件.分類色(k.分類));
-    if (this.窄) { this.畫卡片(列, k, 未定); return; }
-    const 欄 = [];
-    if (this.狀態.融合中 && !未定) 欄.push(["融合", "center", (格) => this.畫融合勾(格, k)]);
-    欄.push([未定 ? "補日期" : "日期", "center",
-      (格) => 未定 ? this.畫補日期格(格, k) : this.畫日期格(格, k, 列)]);
-    欄.push(["分類", "center", (格) => this.畫分類格(格, k, 列)]);
-    欄.push(["內容", "left", (格) => this.畫內文(格, k, 列)]);
-    欄.forEach(([名, 對, 產]) => {
-      const 格 = 列.createEl("td");
-      格.addClass("tk-格");
-      /* 1.4.3 起**每一格的 padding 和對齊都靠它挑**
-         —— 不要再用 st() 寫成 inline style(見 styles.css 的 td[data-col])。 */
-      格.setAttribute("data-col", 名);
-      產(格);
-    });
-    this.掛色條(列, k);                       // 分類色線永遠貼在整列最前面那格的左緣
+    this.畫卡片(列, k, 未定);
   }
 
   /* ============================================================
@@ -5202,49 +5134,6 @@ class 看板視圖 extends TextFileView {
     this.畫內文(內, k, 列);
   }
 
-  /* 分類色線:釘在「這一列最前面那一格」的左緣 —— 不管欄位怎麼排、
-     卡片多寬多高,色線永遠貼著整列最左邊、永遠填滿整列高。 */
-  掛色條(列, k) {
-    const 首格 = 列.firstElementChild;
-    if (!首格) return;
-    try { const 舊 = 首格.querySelector(".tk-色條"); if (舊) 舊.remove(); } catch (e) {}
-    const c = this.插件.分類色(k.分類);
-    const 條 = 首格.createDiv();
-    條.addClass("tk-色條");
-    const 樣 = (寬, 亮) => "width:" + 寬 + "px;cursor:pointer;border-radius:0 3px 3px 0;" +
-      "background:linear-gradient(180deg," + 透明(c, 0.85) + "," + c + ");" +
-      "transition:width .12s ease,box-shadow .12s ease;" +
-      (k.完成 ? "opacity:0.42;" : "box-shadow:" + (亮 ? "2px 0 7px " + 透明(c, 0.5) : "1px 0 3px " + 透明(c, 0.22)) + ";");
-    st(條, 樣(6, false));
-    首格.insertBefore(條, 首格.firstChild);
-    條.title = k.分類 + " —— 點一下換顏色 / 換分類";
-    條.onmouseenter = () => st(條, 樣(10, true));
-    條.onmouseleave = () => st(條, 樣(6, false));
-    條.onclick = (e) => { e.stopPropagation(); this.開分類選單(e, k); };
-  }
-
-  /* ---- 日期欄:置頂鈕釘在左上角,日期置中,逾期多一顆「設為今日」 ---- */
-  畫日期格(格, k, 列) {
-    const T = this.T;
-    // padding / 對齊 / position 都在 styles.css 的 td[data-col='日期']
-    // 📌 用絕對定位鎖死在左上角 —— 單日/區間、有沒有「設為今日」,它都待在同一個位置
-    const 釘列 = 格.createDiv();
-    釘列.addClass("tk-釘列");     // 不佔高度,📌 絕對定位在左上角(styles.css)
-    this.畫釘(釘列, k);
-    /* ⚠⚠ 1.5:日期放在「上帶 / 日期 / 下帶」三排格線的**正中間**(.tk-三排)。
-       以前 📌 佔一條 19px 在上面、「延」「設為今日」接在下面,日期被推上推下,
-       跟分類欄的完成圓點對不齊;區間的兩行日期更明顯。
-       上下兩帶是 1fr,格線會取比較高的那一邊,兩帶永遠一樣高 —— 日期一定在格子正中間。 */
-    const 疊 = 格.createDiv();
-    疊.addClass("tk-三排");
-    疊.createDiv().addClass("tk-排上");
-    this.畫日期盒(疊, k);
-    const 下 = 疊.createDiv();
-    下.addClass("tk-排下");
-    if (k.循環 && !k.完成) this.畫循排(下, k);
-    if (this.是逾期(k)) this.畫今鈕(下, k);
-  }
-
   畫釘(容器, k) {
     const T = this.T;
     const 釘 = 容器.createDiv();
@@ -5256,7 +5145,7 @@ class 看板視圖 extends TextFileView {
     if (k.置頂) 釘.addClass("tk-已釘");
     st(釘, "display:inline-flex;cursor:pointer;line-height:0;user-select:none;flex:0 0 auto;" +
       "transition:opacity .12s ease,color .12s ease;");
-    圖(釘, "pin", this.窄 ? 15 : 13);
+    圖(釘, "pin", 15);
     釘.title = k.置頂 ? T.unpin : T.pin;
     釘.onclick = (e) => { e.stopPropagation(); this.切置頂(k); };
     return 釘;
@@ -5271,71 +5160,15 @@ class 看板視圖 extends TextFileView {
     盒.onmouseleave = () => { 盒.style.background = ""; };
     盒.onclick = (e) => { e.stopPropagation(); this.開日期編輯(e, k); };
     const 今色 = (日) => (日 === this.今 ? "color:var(--text-accent);" : "");
-    if (this.窄) {
-      /* 窄螢幕:區間**橫著排**成一行(26-09-12(六) – 09-15(二))。
-         1.4.3 以前是上下疊兩行,卡頭因此忽高忽矮,每張卡片的主題起始高度都不一樣。 */
-      st(盒, "cursor:pointer;border-radius:5px;padding:2px 2px;flex:0 1 auto;min-width:0;" +
-        "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
-        // 0.8em:英文區間「09-12(Sat) – 09-20(Sun)」在 360px 的手機上剛好放得下(0.86 差 17px)
-        "font-variant-numeric:tabular-nums;font-size:0.8em;font-weight:600;line-height:1.4;" +
-        今色(k.起日));
-      盒.setText(k.起日 ? 日期範圍字(k.起日, k.迄日) : T.noDate);
-      return 盒;
-    }
-    /* ⚠ 字級 0.8 不是隨便挑的:日期欄是 110px,扣掉格子和盒子的 padding 只剩 90px,
-       而 0.88em 的「26-09-13(日)」量出來 95px —— 會貼著框、英文的 (Wed) 更擠。
-       ⚠ 桌機的區間**維持上下兩行**:橫排要 175px,日期欄只有 110。 */
-    /* ⚠ 1.5:區間的兩行日期**左邊對齊**,中間那條細線置中 ——
-         09-12(六)
-             |
-         09-20(日)
-       以前兩行各自置中,兩行寬度差一點(英文 (Sat) 跟 (Sun) 不一樣寬)左右就對不齊。
-       盒子本身是剛好包住兩行的寬度,整組再由 .tk-三排 放在格子正中間。 */
-    const 醒目 = (日) => "font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.35;" +
-      "font-size:0.8em;font-weight:600;text-align:left;" + 今色(日);
-    st(盒, "cursor:pointer;border-radius:5px;padding:3px 6px;box-sizing:border-box;" +
-      "display:inline-flex;flex-direction:column;align-items:stretch;justify-content:center;width:auto;max-width:100%;gap:2px;");
-    // 1.5:今年的日期不寫年份;區間只要有一天不在今年,兩行都寫年份
-    const 省年 = 今年嗎(k.起日, k.迄日);
-    /* ⚠ 1.5:每一行拆成「數字」和「(星期)」兩段,**兩段都是固定寬** ——
-       佈景主題的數字不一定等寬、「(一)」跟「(日)」也不一樣寬,整行置中的話每張卡片左右差 1–2px,
-       一整欄看下來參差不齊。數字靠右對齊在 5ch(有年份 8ch)裡,星期靠左在 T.週寬 裡,
-       同一種格式的每一列就是一模一樣的寬度,左右邊都對齊。 */
-    const 畫日期行 = (d) => {
-      const 行 = 盒.createDiv();
-      st(行, 醒目(d) + "display:flex;align-items:baseline;");
-      if (!d) { 行.setText(T.noDate); return; }
-      const 全 = 日期短(d);                     // 26-09-14(一)
-      const 括 = 全.indexOf("(");
-      /* ⚠ 1.5.1:數字**一個字一格**。佈景主題的字型(例如 LINE Seed TW)沒有等寬數字,
-         tabular-nums 沒有作用 —— 量到「11-11」30.9px、「09-08」43.2px,整段靠右對齊之後
-         左邊參差不齊,今天和未來的日期看起來像不一樣大。每個數字 1ch、連字號 0.6ch、置中,寬度永遠一樣。 */
-      const 數 = 行.createSpan();
-      st(數, "display:inline-flex;");
-      String(省年 ? 全.slice(3, 括) : 全.slice(0, 括)).split("").forEach(字 => {
-        // 連字號 0.8ch(1.5.1:0.6 太擠、「|」放不下;1ch 又讓日期看起來像「09 - 15」鬆掉)。中間的「|」用同寬的格子
-        st(數.createSpan({ text: 字 }), "display:inline-block;text-align:center;width:" + (字 === "-" ? "0.8ch" : "1ch") + ";");
-      });
-      st(行.createSpan({ text: 全.slice(括) }),
-        "display:inline-block;text-align:left;width:" + T.週寬 + ";");
-    };
-    畫日期行(k.起日);
-    if (k.迄日 && k.迄日 !== k.起日) {
-      // 區間畫成:起日 / 一條細直線(不用～字元)/ 迄日
-      /* ⚠⚠ 1.5.1:中間的直線用一個小 SVG 長方形畫,加 shape-rendering:crispEdges,在兩行日期中間**置中**。
-         試過的兩種都糊:① div 畫 1–2px 的線 ② 「|」字元 —— Obsidian 120% 縮放下,1px 的 CSS 線是 1.2 個裝置像素,
-         怎麼放都跨在兩個像素之間被反鋸齒成一條灰霧。crispEdges 會把邊緣對齊到整數像素,線就是實的。
-         (也試過對齊「09-12」的「-」,看起來反而偏一邊 —— 使用者要的是置中。) */
-      const 線 = 盒.createDiv();
-      線.addClass("tk-date-bar");
-      // 顏色跟日期文字同色:text-muted 的淺灰跟米白粗體數字對比太低,看起來就是一團霧
-      st(線, "display:flex;justify-content:center;align-items:center;height:12px;color:var(--text-normal);");
-      const 線圖 = 線.createSvg("svg", { attr: { width: "2", height: "10", viewBox: "0 0 2 10" } });
-      線圖.style.display = "block";
-      線圖.createSvg("rect", { attr: { x: "0", y: "0", width: "2", height: "10", fill: "currentColor", "shape-rendering": "crispEdges" } });
-      this.排對齊線();          // 畫完之後把這條線對齊到整數裝置像素(見 對齊日期線)
-      畫日期行(k.迄日);
-    }
+    // 1.6.3(B5)只剩卡片版面:區間一律橫著排成一行(以前桌機的上下兩行拿掉了)
+    /* 窄螢幕:區間**橫著排**成一行(26-09-12(六) – 09-15(二))。
+       1.4.3 以前是上下疊兩行,卡頭因此忽高忽矮,每張卡片的主題起始高度都不一樣。 */
+    st(盒, "cursor:pointer;border-radius:5px;padding:2px 2px;flex:0 1 auto;min-width:0;" +
+      "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
+      // 0.8em:英文區間「09-12(Sat) – 09-20(Sun)」在 360px 的手機上剛好放得下(0.86 差 17px)
+      "font-variant-numeric:tabular-nums;font-size:0.8em;font-weight:600;line-height:1.4;" +
+      今色(k.起日));
+    盒.setText(k.起日 ? 日期範圍字(k.起日, k.迄日) : T.noDate);
     return 盒;
   }
 
@@ -5346,7 +5179,7 @@ class 看板視圖 extends TextFileView {
       const 排 = 容器.createDiv();
       排.addClass("tk-循排");
       st(排, "display:flex;align-items:center;gap:4px;flex-wrap:wrap;" +
-        (this.窄 ? "flex:0 0 auto;" : "justify-content:center;"));      // 桌機的間距交給 .tk-排下 的 gap
+        "flex:0 0 auto;");
       /* 循環膠囊:圓框中間一點(circle-dot)+ 每N週。點下去就是改循環的面板。
          ⚠ 以前這裡只有一顆「延」,看不出這張是循環卡、也看不出隔多久一次,
            要滑到完成鈕上看 tooltip 才知道 —— 那等於沒說。 */
@@ -5368,36 +5201,6 @@ class 看板視圖 extends TextFileView {
       st(延, 循樣);
       延.title = "只改日期、不留記錄(挑一天延期)";
       延.onclick = (e) => { e.stopPropagation(); this.開日期編輯(e, k); };
-    }
-  }
-
-  /* 逾期卡片的「設為今日」。只有桌機畫 —— 窄螢幕點日期就能改,不需要第二個入口。 */
-  畫今鈕(格, k) {
-    const T = this.T;
-    {
-      const 今鈕 = 膠囊(格, T.setToday);
-      今鈕.addClass("tk-日鈕");
-      /* ⚠ 膠囊() 建的是 div,是 block-level。掛在 flex 容器裡會自己縮成內容寬,
-         但這一顆的父層是 <td>,不指定就直接撐滿整欄(量到 97px / 110px 欄)——
-         那看起來就是一個大框,而不是一顆小標籤。 */
-      st(今鈕, "display:inline-flex;align-items:center;justify-content:center;width:auto;" +
-        // 1.6:灰字、小一號(以前紅字紅框,一整欄逾期的卡片看起來全在喊)
-        "font-size:0.6em;height:17px;min-height:0;padding:0 6px;" +
-        "border-radius:9px;cursor:pointer;box-shadow:none;white-space:nowrap;" +
-        "color:var(--text-muted);" +
-        "border:1px solid var(--background-modifier-border);");
-      今鈕.title = "已逾期,點一下把日期改成今天(" + this.今 + ")";
-      今鈕.onclick = async (e) => {
-        e.stopPropagation();
-        if (今鈕.__鎖) return;
-        今鈕.鎖住("…");
-        const ok = await this.設日期(k, this.今);
-        if (ok === false) return;
-        // 改成今天之後,現在的篩選常常就看不到它了 —— 自動切到「本日」讓它看得見
-        if (this.插件.設定.跳轉_設回今日) this.回到今天();
-        this.記剛動過(k, this.T.movedToday, () => this.設日期(k, k.起日));
-        this.浮到最上(k);
-      };
     }
   }
 
@@ -5426,23 +5229,6 @@ class 看板視圖 extends TextFileView {
   }
 
   /* ---- 分類欄:圓點固定在整格正中間,指派人貼著下緣 ---- */
-  /* ⚠ 1.4 改成單純的上下排列。舊版把指派人**絕對定位**在格子下緣,
-     格子一矮(卡片只有一行的時候)那一層就壓到中間的完成圓點上。
-     上下排 + gap 就不會有這個問題,而且圓點永遠在正中間。 */
-  畫分類格(格, k, 列) {
-    /* 1.5:跟日期欄同一種三排格線 —— 圓點在正中間,上帶放分類名稱(設定)、下帶放指派人。
-       以前圓點和指派人上下疊著一起置中,圓點本身就偏上,跟日期對不齊。 */
-    const 盒 = 格.createDiv();
-    盒.addClass("tk-三排");
-    const 上 = 盒.createDiv();
-    上.addClass("tk-排上");
-    // 分類名稱 = 狀態(設定)。完成 / 封存的卡片不寫 —— 那時候主題後面是「✓ 已完成」「已封存」
-    if (this.插件.設定.顯示分類名稱 && !k.完成 && !this.是封存(k)) this.畫分類名(上, k);
-    this.畫完成點(盒.createDiv(), k);
-    const 下 = 盒.createDiv();
-    下.addClass("tk-排下");
-    if (!this.個人) this.畫指派人(下.createDiv(), k);
-  }
 
   /* 沒做完 = 分類色的空心圈,做完 = 統一的綠色打勾(不管哪一區都同一個綠,
      掃一眼就知道哪些做完了)。點圓點就是打勾。 */
@@ -5531,7 +5317,7 @@ class 看板視圖 extends TextFileView {
       const c = this.插件.人色(k.指派);
       const 標 = 格.createDiv({ text: String(k.指派) });
       // 名字太長就省略號,不要推動別人(窄螢幕它跟日期、「⋯」擠同一行)
-      st(標, "font-size:" + (this.窄 ? "0.8em" : "0.68em") + ";font-weight:600;line-height:1.2;white-space:nowrap;" +
+      st(標, "font-size:" + ("0.8em") + ";font-weight:600;line-height:1.2;white-space:nowrap;" +
         "overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;" +
         "cursor:pointer;padding:0;background:none;border:0;opacity:0.85;color:" + c + ";");
       標.title = "指派人:" + k.指派 + "(點一下改)";
@@ -5540,10 +5326,9 @@ class 看板視圖 extends TextFileView {
       const 空 = 格.createDiv();
       st(空, "cursor:pointer;color:var(--text-faint);opacity:0.35;font-size:0.72em;" +
         "padding:0 4px;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;");
-      圖(空, "plus", this.窄 ? 14 : 11);
+      圖(空, "plus", 14);
       /* 窄螢幕只留 ＋:「＋ 指派人」比一個名字寬,卡頭放不下區間日期 + 它 + 「⋯」。 */
       空.title = T.changeAssignee;
-      if (!this.窄) 空.createSpan({ text: T.assignee, cls: "tk-無人字" });
       空.onmouseenter = () => { 空.style.opacity = "1"; };
       空.onmouseleave = () => { 空.style.opacity = "0.35"; };
       空.onclick = (e) => { e.stopPropagation(); this.改指派(e, k); };
@@ -5568,7 +5353,6 @@ class 看板視圖 extends TextFileView {
     /* 題行一分為二:左邊主題膠囊 + 狀態小字,右邊整組動作。
        ⚠ 高度寫死 22px(編修時的主題輸入框也是 22px)——兩邊一樣高,
          底下的留言和內容才不會往下掉一點點。 */
-    const 窄 = this.窄;
     const 題行 = 文區.createDiv();
     題行.addClass("tk-題行");
     /* 窄螢幕:主題那一行**不准換行**,左邊(主題、狀態、循環)自己在裡面折行,
@@ -5576,7 +5360,7 @@ class 看板視圖 extends TextFileView {
     /* ⚠ 1.4.5:桌機也**不准換行**(以前是 wrap)。主題一長,右邊的時間和按鈕就被擠到下一行,
        每張卡片的「最後編輯時間」出現在不同位置。現在左邊那一塊自己在裡面折行,
        右邊的時間和按鈕永遠釘在第一行的最右邊。 */
-    st(題行, "display:flex;gap:6px;margin-bottom:" + (窄 ? 4 : 3) + "px;min-width:0;" +
+    st(題行, "display:flex;gap:6px;margin-bottom:4px;min-width:0;" +
       "min-height:" + 主題高 + "px;align-items:flex-start;flex-wrap:nowrap;");
     const 左組 = 題行.createDiv();
     左組.addClass("tk-題左");
@@ -5586,10 +5370,10 @@ class 看板視圖 extends TextFileView {
       const 題輸 = 左組.createEl("input", { type: "text" });
       題輸.value = k.主題 || "";
       題輸.placeholder = T.topic;
-      st(題輸, (窄 ? "flex:1 1 auto;" : "flex:0 1 176px;") + "min-width:88px;height:" + 主題高 + "px;min-height:0;" +
+      st(題輸, "flex:1 1 auto;min-width:88px;height:" + 主題高 + "px;min-height:0;" +
         "box-sizing:border-box;padding:0 9px;margin:0;border:0;outline:none;" +
         // 1.6.2(CR-02):字級跟閱讀時的主題膠囊一樣(窄 0.88em),以前手機一按編輯主題就小一號
-        "line-height:" + 主題高 + "px;font-size:" + (窄 ? "0.88em" : "0.84em") + ";font-weight:700;" +
+        "line-height:" + 主題高 + "px;font-size:0.88em;font-weight:700;" +
         "border-radius:" + Math.round(主題高 / 2) + "px;" +
         "background:var(--background-modifier-border);color:var(--text-normal);");
       /* ⚠ class 一定要掛:點外面結束編輯的那個監聽器靠它認出「這是編輯的一部分」(1.4.6 修)。
@@ -5609,7 +5393,7 @@ class 看板視圖 extends TextFileView {
          膠囊要在左邊那一塊裡面自己折)。單行時的高度跟以前一樣是 24px。 */
       const c = this.插件.分類色(k.分類);
       st(題籤, "padding:2px 9px;border-radius:11px;color:" + c + ";background:" + 透明(c, 0.16) + ";" +
-        "font-weight:700;font-size:" + (窄 ? "0.88em" : "0.84em") + ";line-height:" + (主題高 - 4) + "px;" +
+        "font-weight:700;font-size:0.88em;line-height:" + (主題高 - 4) + "px;" +
         "cursor:pointer;display:inline-block;box-sizing:border-box;max-width:100%;min-width:0;overflow-wrap:anywhere;");
       題籤.title = "主題「" + k.主題 + "」。點一下把同主題的卡片都篩出來";
       題籤.onclick = (e) => { e.stopPropagation(); this.帶入主題(k.主題); };
@@ -5619,7 +5403,7 @@ class 看板視圖 extends TextFileView {
        使用者得先想「我要改的是哪一個」—— 只留一顆。 */
     /* 1.5 分類名稱 = 狀態(設定「顯示分類名稱」):手機寫在主題後面,桌機寫在完成圓點上方(見 畫分類格)。
        完成的卡片那個位置換成「✓ 已完成」、封存的是「已封存」—— 同一個位置只講一種狀態。 */
-    if (!編修中 && 窄 && this.插件.設定.顯示分類名稱 && !k.完成 && !已封存) this.畫分類名(左組, k);
+    if (!編修中 && this.插件.設定.顯示分類名稱 && !k.完成 && !已封存) this.畫分類名(左組, k);
     /* 狀態小記號也換成同一套 Lucide —— emoji 在 Windows 上又大又花,跟旁邊對不齊 */
     const 狀態圖 = (名, 文, 色) => {
       const d = 左組.createDiv();
@@ -5631,7 +5415,7 @@ class 看板視圖 extends TextFileView {
     };
     if (k.完成) 狀態圖("check", T.doneTag, 完成色);
     else if (已封存) 狀態圖("archive", T.archivedTag, "var(--text-faint)");
-    if (窄 && k.循環 && !k.完成) this.畫循排(左組, k);
+    if (k.循環 && !k.完成) this.畫循排(左組, k);
     // 資訊(不是動作)掛在主題那一行的右邊:最後動過的時間、留言則數
     const 訊 = 題行.createDiv();
     訊.addClass("tk-題訊");
@@ -5651,7 +5435,7 @@ class 看板視圖 extends TextFileView {
        組的寬度一變,左邊的時間就跟著左右跑。所以永遠留三顆的寬度(手機一顆),靠右排。
        桌機:6(左邊距)+ 26 + 7 + 26 + 7 + 26 = 98。手機:6 + 34 = 40。 */
     // 不用留言(1.4.7)的時候少一顆:6 + 26 + 7 + 26 = 65
-    具盒.style.minWidth = (窄 ? 40 : (this.用留言 ? 98 : 65)) + "px";
+    具盒.style.minWidth = "40px";
     具盒.style.justifyContent = "flex-end";
     具盒.style.minHeight = 主題高 + "px";
     /* 有固定寬的那一格(時間)**靠左**:🕐 永遠在同一個 x,數字從它右邊接著排。
@@ -5673,7 +5457,8 @@ class 看板視圖 extends TextFileView {
        留言則數排在它左邊 —— 有沒有留言都不會推動時間。
        窄螢幕不顯示時間:手機上那一行只留真的要看的東西,時間收進卡頭的「⋯」。 */
     // 設定關掉編輯時間(1.4.8):連空格都不留
-    if (!窄 && this.顯示編時) {
+    // 1.6.3:只剩卡片版面;看板夠寬(不是 密)才在主題那一行顯示時間,手機照舊收在「⋯」
+    if (!this.密 && this.顯示編時) {
       if (k.編修時) 訊條("clock", k.編修時.slice(11), T.lastEdited + " " + k.編修時, "4.2em");
       else 訊條(null, null, null, "4.2em");
     }
@@ -5720,9 +5505,9 @@ class 看板視圖 extends TextFileView {
        圖示固定寬、看一眼就認得,說明留在 tooltip 裡。 */
     // 窄螢幕是手指在點:鈕放大到 34×28
     const 具樣 = (色, 寬) => "display:inline-flex;align-items:center;justify-content:center;" +
-      "flex:0 0 auto;width:" + (this.窄 ? 34 : (寬 || 26)) + "px;" +
+      "flex:0 0 auto;width:34px;" +
       // 1.5.1:窄螢幕 28 → 24,卡頭(日期那一行)才矮得下來;寬 34 還是好點
-      "height:" + (this.窄 ? 24 : 20) + "px;" +
+      "height:" + (24) + "px;" +
       "min-height:0;padding:0;margin:0;box-sizing:border-box;" +
       "font-size:0.7em;line-height:1;border-radius:10px;cursor:pointer;box-shadow:none;" +
       "white-space:nowrap;color:" + 色 + ";" +
@@ -5736,35 +5521,10 @@ class 看板視圖 extends TextFileView {
 
 
     // ---- 右上 ----
-    /* 已封存的卡片:只剩刪除(桌機)。
+    /* 已封存的卡片:封存 / 取消封存 / 刪除都在卡頭的「⋯」(1.6.3 B5 起桌機也一樣)。
        ⚠ UX 的順序是有意的 —— 封存(可回復) → 刪除(不可回復)。沒封存之前看不到刪除。
        ⚠ 封存的卡片不給編輯、不給留言:收起來的東西要改,先「取消封存」,那是一個明確的動作。 */
-    if (已封存) {
-      if (!this.窄) this.畫封存鈕(盒, k, 已封存, 具樣);          // ↩ 取消封存
-      if (!編修中 && !this.窄) {
-        // 1.6.2(U1):刪除也用「再按一次確定」(✓ + 倒數),跟封存同一個元件;刪除是紅色的(CR-02)
-        const 刪 = 膠囊(盒, "");
-        this.掛確認(刪, (b) => { st(b, 具樣("var(--color-red, #e05252)")); 圖(b, "trash-2", 13); b.title = T.deleteCard; },
-          async () => { const ok = await this.插件.寫手.刪卡片(this.file, k, this.名單); if (ok) new Notice(T.deleted); },
-          T.deleteSure, true);
-      }
-      return;
-    }
-
-    if (!this.窄) this.畫封存鈕(盒, k, 已封存, 具樣);             // 🗄 封存,在留言左邊
-    if (!this.窄 && this.用留言) {
-      const 丙 = 膠囊(盒, "");
-      st(丙, 具樣("var(--text-muted)"));
-      圖(丙, "message-square", 13);
-      丙.title = T.comment;
-      丙.onclick = async (e) => {
-        e.stopPropagation();
-        if (s.編修) await this.收掉編修();          // 編修框要被換掉了,先把字寫進去
-        s.寫留言 = (s.寫留言 === k.鍵) ? null : k.鍵;
-        s.編修 = null;
-        this.就地重畫(e, k);
-      };
-    }
+    if (已封存) return;
 
     {
       /* ⚠ 1.2:內容改成隨打隨存,所以這一顆不再是「儲存」而是「完成」——
@@ -5772,7 +5532,7 @@ class 看板視圖 extends TextFileView {
       const 乙 = 膠囊(盒, "");
       st(乙, 具樣(編修中 ? "var(--text-accent)" : "var(--text-muted)") +
         (編修中 ? "border-color:var(--text-accent);" : ""));
-      圖(乙, 編修中 ? "check" : "pencil", this.窄 ? 15 : 13);
+      圖(乙, 編修中 ? "check" : "pencil", 15);
       乙.title = 編修中 ? T.finish : T.edit;
       乙.onclick = async (e) => {
         e.stopPropagation();
@@ -5792,62 +5552,6 @@ class 看板視圖 extends TextFileView {
         this.編修就位(k.鍵, 原頂);
       };
     }
-  }
-
-  /* 1.6.2(U1)「再按一次確定」的共用元件:封存、刪除都用它(使用者要同一個樣子)。
-     第一下:按鈕換成 ✓(刪除是紅色,見最下面 CR-02),
-     底下跑一條 2.6 秒的倒數條;倒數內再按一下才真的做,條子走完 = 當作你不要了。
-     ⚠ 就地問,不跳對話框把版面推歪;「?」擠在同一顆按鈕裡,按鈕不變寬(桌機那排三顆固定寬,時間才對得齊)。
-     ⚠ 1.1 加倒數條的原因:以前「確定?」靜靜地待 2.6 秒,使用者不知道自己還有多少時間、剛剛那一下算不算。
-     還原(甲) 負責把按鈕畫回原本的樣子(第一次畫也用它)。
-     1.6.2(CR-02):「?」拿掉了(使用者:右上角的問號太怪);顏色由 危險 決定 ——
-     封存可以回復,不上色(使用者:紅色太搶眼);刪除不能回復,照舊紅色。 */
-  掛確認(甲, 還原, 做, 提示, 危險) {
-    還原(甲);
-    甲.onclick = async (e) => {
-      e.stopPropagation();
-      if (甲.__確認) { 甲.__確認 = false; await 做(); return; }
-      甲.__確認 = true;
-      甲.empty();
-      甲.style.position = "relative";
-      甲.style.overflow = "hidden";
-      甲.style.color = 危險 ? "var(--color-red, #e05252)" : "var(--text-normal)";
-      甲.style.borderColor = 危險 ? "var(--color-red, #e05252)" : "var(--text-muted)";
-      const 條 = 甲.createDiv();
-      條.addClass("tk-倒數");
-      if (!危險) 條.addClass("tk-倒數-淡");
-      const 記 = 甲.createDiv();
-      記.addClass("tk-確認記");
-      圖(記, "check", 12);
-      甲.title = 提示;
-      const 收回 = () => {
-        if (!甲.__確認) return;
-        甲.__確認 = false;
-        甲.empty();
-        還原(甲);
-      };
-      條.addEventListener("animationend", 收回);
-      setTimeout(收回, 2900);          // 保險:動畫被系統關掉時也要收回來
-    };
-  }
-
-  /* 桌機的封存 / 取消封存(主題那一行,留言左邊)。
-     封存:再按一次確定(掛確認)。取消封存(1.6.2 B6):跳出分類清單問你回哪一區,挑一區就是確認。 */
-  畫封存鈕(盒, k, 已封存, 具樣) {
-    const T = this.T;
-    const 甲 = 膠囊(盒, "");
-    const 原樣 = (b) => {
-      st(b, 具樣(已封存 ? "var(--text-accent)" : "var(--text-faint)") +
-        (已封存 ? "border-color:var(--text-accent);" : ""));
-      圖(b, 已封存 ? "archive-restore" : "archive", 13);
-      b.title = 已封存 ? T.unarchive : T.archive;
-    };
-    if (已封存) {
-      原樣(甲);
-      甲.onclick = (e) => { e.stopPropagation(); this.選區取消封存(甲, k); };
-      return;
-    }
-    this.掛確認(甲, 原樣, () => this.切封存(k, false), T.archiveSure);
   }
 
   /* ---- 留言 ---- */
@@ -6049,8 +5753,8 @@ class 看板視圖 extends TextFileView {
   /* 卡片裡的小文字鈕(留言的送出/取消、刪除確認)。
      ⚠ height 一定要寫死:手機版 Obsidian 的 button 預設 44px 高,不寫就是一塊方磚。 */
   小鈕樣(主) {
-    return "height:" + (this.窄 ? 30 : 24) + "px;min-height:0;padding:0 " + (this.窄 ? 14 : 11) + "px;" +
-      "font-size:" + (this.窄 ? "0.84em" : "0.78em") + ";line-height:1;border-radius:6px;cursor:pointer;" +
+    return "height:" + (30) + "px;min-height:0;padding:0 " + (14) + "px;" +
+      "font-size:" + ("0.84em") + ";line-height:1;border-radius:6px;cursor:pointer;" +
       "box-shadow:none;white-space:nowrap;" +
       (主 ? "font-weight:700;color:var(--text-on-accent, #fff);background:var(--interactive-accent);" +
             "border:1px solid var(--interactive-accent);"
@@ -6061,7 +5765,6 @@ class 看板視圖 extends TextFileView {
   畫內容區(文區, k, 編修中) {
     /* 1.6.1 所見即所得:閱讀時每一行的長相照抄即時預覽編輯器(見 畫預覽行)。 */
     const 符們 = k.內容符 || [];
-    const 窄 = this.窄;
     if (編修中) {
       /* ⚠ 1.3:編修框改成看得出邊界的一個框(跟留言的輸入框同一套長相)。
          以前是「透明的 textarea 直接躺在卡片上」,進了編輯模式畫面幾乎沒變,
@@ -6393,7 +6096,7 @@ class 看板視圖 extends TextFileView {
       const 列 = 盤.createDiv();
       列.setAttribute("role", "option");
       列.setAttribute("aria-selected", 是 ? "true" : "false");
-      st(列, "display:flex;align-items:center;gap:8px;padding:" + (this.窄 ? "8px 10px" : "5px 9px") + ";border-radius:6px;" +
+      st(列, "display:flex;align-items:center;gap:8px;padding:" + ("8px 10px") + ";border-radius:6px;" +
         "cursor:pointer;font-size:0.88em;line-height:1.3;color:var(--text-normal);" +
         (是 ? "background:var(--background-modifier-hover);font-weight:600;" : ""));
       const 點 = 列.createDiv();
@@ -6517,14 +6220,14 @@ class 看板視圖 extends TextFileView {
     圖鈕(循, "circle-dot", "", 14);
     循.title = k.循環 ? (循環說明(k.循環) + " ‧ " + this.T.cycleEdit) : this.T.cycleEdit;
     const 好 = 盒.createEl("button", { text: "✓" });
-    st(好, "height:" + (this.窄 ? 32 : 26) + "px;min-height:0;padding:0 12px;cursor:pointer;");
+    st(好, "height:" + (32) + "px;min-height:0;padding:0 12px;cursor:pointer;");
     /* ⚠⚠ 1.4.4:手機上這個面板會超出畫面,右邊的「✓」點不到。
        原因是兩個日期輸入框在 iPhone 上各自有 150px 以上寬,整排加起來 360 多,
        而舊版假設面板固定 320 寬去算 left。
        現在:面板最多只到畫面寬 - 16,放不下就換行;位置照**真的量出來的**寬高去夾,
        下面放不下就翻到上面。 */
     const r = e.currentTarget.getBoundingClientRect();
-    if (this.窄) {
+    {                                   // 1.6.3:只剩卡片版面,一律用手機的排法
       st(盒, 盒.style.cssText + "flex-wrap:wrap;max-width:calc(100vw - 16px);box-sizing:border-box;");
       [起, 迄].forEach(x => st(x, "flex:1 1 130px;min-width:0;height:32px;"));
       st(循, 循.style.cssText + "height:32px;min-height:0;");
@@ -6634,18 +6337,6 @@ class 看板視圖 extends TextFileView {
       this.閃一下(k, 320);
     }
     return ok;
-  }
-
-  /* ---- 🖼 輸出 ----
-     ⚠ 準則第八章:深色底是主場,但輸出成圖 / PDF 要**白底**(要列印、要傳給別人)。
-     做法:把現在篩出來的卡片重畫成一份乾淨的白底 HTML(不是截現在的畫面),
-     再交給瀏覽器 —— PNG 走 SVG foreignObject → canvas,PDF 走列印。
-     兩條路都不需要外部函式庫,也不會有跨來源污染的問題(整份沒有外部圖片)。 */
-  開輸出選單(e) {
-    const T = this.T, m = new Menu();
-    // 1.6.2(B7):只留長圖
-    m.addItem(i => i.setTitle(T.exportPng).setIcon("image").onClick(() => this.輸出()));
-    m.showAtMouseEvent(e);
   }
 
   /* 1.6.2(B7)匯出只留長圖,而且在手機上看得清楚(使用者回報:PDF 被擋、長圖太寬、字太小、沒有 Markdown)。
@@ -6981,7 +6672,10 @@ class 看板視圖 extends TextFileView {
     const 收尾 = 最後值 !== undefined && 最後值 !== null;
     if (!收尾 && (!ta || !ta.isConnected)) return;
     const 內 = 收尾 ? 最後值 : ta.value;
-    if (內 === this.上次存的) return true;
+    /* ⚠⚠ 1.6.3:先看「前一棒還在寫嗎」,**再**比「跟上次存的一樣嗎」。
+       前一棒寫的是「有新一行」的版本,但它要寫完才會把 上次存的 換過去;中間這段時間 上次存的 還是舊的原文。
+       這時候 Ctrl+Z 退回原文再按 Esc:原文 === 還沒換過去的 上次存的 → 以為沒改、不寫 → 前一棒寫完,
+       檔案裡留著使用者已經復原掉的那一行。editor-test 重載後第一次跑才會碰到(寫手比較慢)。 */
     if (this.存中) {
       /* ⚠⚠ 1.6.2:收工(按完成 / Esc)的時候,前一次存檔還沒結束(寫完之後寫手還會留一段緩衝),
          以前是排到 400ms 之後再試 —— 那時候編修框已經卸掉,排好的那一次看到框不在了就放棄,
@@ -6989,6 +6683,7 @@ class 看板視圖 extends TextFileView {
       if (收尾) { try { await this.存承; } catch (e) {} return await this.自動存(k, ta, 內); }
       clearTimeout(this.存計時); this.存計時 = setTimeout(() => this.自動存(k, ta), 400); return;
     }
+    if (內 === this.上次存的) return true;
     this.存中 = true;
     let 放 = null;
     this.存承 = new Promise(r => { 放 = r; });
@@ -7095,7 +6790,7 @@ class 看板視圖 extends TextFileView {
     // 1.5.1:不要框,就是一行 `#等回復` 小字 —— 框圈跟主題膠囊、張數徽章長得太像
     const 名 = 膠囊(容器, "#" + k.分類);
     st(名, "display:inline-block;max-width:100%;min-width:0;min-height:0;line-height:1.3;padding:0;" +
-      "box-sizing:border-box;font-size:" + (this.窄 ? "0.66em" : "0.6em") + ";font-weight:600;" +
+      "box-sizing:border-box;font-size:" + ("0.66em") + ";font-weight:600;" +
       "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;box-shadow:none;" +
       // 比主題淡 20%:主題是主角,分類名稱是旁註
       "border:0;background:none;opacity:0.8;color:" + c + ";");
