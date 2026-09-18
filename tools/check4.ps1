@@ -31,6 +31,15 @@ function RunCheck() {
   return (($r -join "`n") -replace '^=> ', '')
 }
 
+# 1.6.3: rebuild ZZ-css-fixture.md from tools/fixture-css.md every run (the vault copy got overwritten once
+# by manual testing and the check silently measured only 2 cards). Script paths are passed at runtime,
+# so this file stays ASCII.
+$fxSrc = (Join-Path $p "fixture-css.md").Replace('\', '/')
+$fxJs = (Join-Path $p "fixture.js").Replace('\', '/')
+& $o eval code="window.__fxSrc='$fxSrc'; eval(require('fs').readFileSync('$fxJs','utf8'))" 2>&1 | Out-Null
+Start-Sleep -Milliseconds 1200
+"fixture: " + ((& $o eval code="window.__fx" 2>&1) -join '')
+
 foreach ($lang in @("zh-TW", "en")) {
   SetLang $lang
 
@@ -49,8 +58,9 @@ foreach ($lang in @("zh-TW", "en")) {
     if ([double]$m.inner -gt 0) { $zoom = 500.0 / [double]$m.inner }
   } catch {}
 
-  # 390 = iPhone, 360 = the narrowest common Android phone
-  foreach ($board in @(390, 360)) {
+  # 1.6.3: one layout everywhere, so also check a mid-width desktop pane (split view / side panel open)
+  # 800 = desktop layout of the filter bar still fits; 390 = iPhone, 360 = the narrowest common Android phone
+  foreach ($board in @(800, 390, 360)) {
     $vw = [int][math]::Round(($board + $ovh) * $zoom)
     SetW $vw
     "==================== $lang @ phone board ${board}px (device viewport $vw, zoom $([math]::Round($zoom, 2))) ===================="

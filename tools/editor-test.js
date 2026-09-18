@@ -139,8 +139,9 @@ window.__ctEditorTest = 'running';
     const 編 = v.contentEl.querySelector('.tk-編框.tk-即時編 .cm-editor');
     ok('live editor mounted', !!編, v.contentEl.querySelector('.tk-編框') ? v.contentEl.querySelector('.tk-編框').innerHTML.slice(0, 200) : 'no box');
     ok('live preview rendering', !!v.contentEl.querySelector('.tk-編框 .cm-strong, .tk-編框 .cm-highlight'), '');
-    out.push('info board ' + v.contentEl.clientWidth + 'px, 窄=' + v.窄 + ', window focused=' + 有焦點);
-    if (v.窄) out.push('skip focused / activeEditor  (窄版按編輯不自動聚焦,設計如此)');
+    out.push('info board ' + v.contentEl.clientWidth + 'px, 窄=' + v.窄 + ', 觸=' + v.觸 + ', window focused=' + 有焦點);
+    // 1.6.3(B4):只有手機按編輯不自動聚焦(看 觸,不看 窄 —— 窄 現在永遠是 true)
+    if (v.觸) out.push('skip focused / activeEditor  (手機按編輯不自動聚焦,設計如此)');
     else {
       焦點ok('focused', document.activeElement && document.activeElement.closest && !!document.activeElement.closest('.tk-編框'), document.activeElement && document.activeElement.tagName);
       焦點ok('activeEditor set', app.workspace.activeEditor && app.workspace.activeEditor.editor === v.編框.編輯器?.editor || !!app.workspace.activeEditor, '');

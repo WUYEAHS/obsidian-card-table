@@ -35,7 +35,7 @@ description: 卡片看板(obsidian-card-table)的工作流程(2026-09-18 起,使
 | 5 發版 | PM | 技能 `card-table-release` | 使用者推 tag |
 | 6 回顧 | PM | 技能 `card-table-self-review`(大版本的一輪結束時;小的一輪有值得講的才寫) | |
 
-**平常的溝通像 Discord**(使用者明講):每做一件事,在 `Dev chat.md` 最下面留一兩句(發現、做了什麼、需要使用者什麼)。
+**平常的溝通像 Discord**(使用者明講):每做一件事,在 `Diologue/Dev chat.md` 最下面留一兩句(發現、做了什麼、需要使用者什麼)。
 大的決定還是在 Dialogue 用留言討論;Dev chat 只放短訊息。
 
 ## 分流留言的寫法
@@ -61,8 +61,8 @@ Bug 先證明再提案:讀程式、在 Obsidian 裡跑純函式(像 `tools/forma
 
 vault 的 `0.常用/Card table project/`:
 - `Main navigator.md`:所有文件的索引。每新增一份文件,把連結加進來。
-- `Handoff.md`:**現在做到哪裡**(版本、階段、下一步、等使用者決定的)。新對話先讀它;
+- `Procedure/Handoff.md`:**現在做到哪裡**(版本、階段、下一步、等使用者決定的)。新對話先讀它;
   對話快滿或過了一個 Gate 就更新它(只寫現況,不寫歷史),並提醒使用者開新對話(2026-09-18 使用者要的,省 token)。
-- `Dev chat.md`:平常的短訊息,最新的在最下面。
+- `Diologue/Dev chat.md`:平常的短訊息,最新的在最下面。
 - Dialogue 文件(一個版本週期一份)、`PRD/`、`CR/`、`Reviews/`、`Procedure/`。
 - `Repo mirror/`:repo 文件的唯讀鏡像,用 `.\tools\mirror-docs.ps1` 更新(改了 README、CHANGELOG、CLAUDE.md、技能之後要重跑)。

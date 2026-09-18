@@ -22,7 +22,7 @@ Obsidian 外掛,把一份 markdown 筆記讀成一張任務卡片表。
 - 流程照技能 **`card-table-procedure`**。正本是 vault 的 `Procedure/Working procedure.md`(使用者可以直接改),角色在 `Procedure/Roles.md`。
   文件順序:Dialogue → PRD(使用者簽核)→ CR(簽核後的變更)→ Review pack(每項 ✅/❌ + 證據)→ 發版 → 回顧。每一項一個編號(例:`1.6.2-B1`)。
 - 每次回覆最後附「PM 自我批評」。給使用者驗收前,用 `.claude/agents/card-table-qa` 做獨立審查 —— **只有大版本(1.x)**,修正版在主對話自己 QA(使用者 2026-09-18:太燒 token;UX critic 也拿掉了,太複雜)。
-- **平常的溝通像 Discord**(使用者明講):每做一件事,在 vault 的 `Dev chat.md` 最下面留一兩句(發現、做了什麼、需要什麼),使用者直接在底下回。
+- **平常的溝通像 Discord**(使用者明講):每做一件事,在 vault 的 `Diologue/Dev chat.md` 最下面留一兩句(交接頁是 `Procedure/Handoff.md`)(發現、做了什麼、需要什麼),使用者直接在底下回。
 - **回顧**(技能 **`card-table-self-review`**)在**大版本的一輪結束時**寫(例:1.6 → 1.7),小的一輪有值得講的才寫;寫在 vault 的 `Reviews/`。
 - repo 的文件用 `.\tools\mirror-docs.ps1` 鏡像到 vault 的 `Repo mirror/`(唯讀;改了 repo 就重跑,鏡像上的 tandem 留言會保留)。新文件的連結加進 `Main navigator.md`。
 - **產品定義**:兩種檢視模式 —— **表格模式**(= 程式裡的 table;桌機預設,手機也能切換)和**卡片模式**(= `this.窄` 畫的 div 卡片;手機、平板等觸控裝置預設)。

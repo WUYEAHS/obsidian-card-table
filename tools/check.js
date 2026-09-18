@@ -45,12 +45,12 @@ function 掃(){
 const bb=b.getBoundingClientRect();
 const 清單寬=()=>{ const x=v['區']&&v['區']['清單']; return x?Math.round(x.getBoundingClientRect().width):null; };
 // ovh = 視窗寬 - 看板寬;inner = CSS px 的視窗寬(CDP 設的是裝置 px,Obsidian 有縮放時兩者不同)
-const out={ ovh:innerWidth-Math.round(bb.width), inner:innerWidth, 寬:Math.round(bb.width), 窄:!!v['窄'],
+const out={ ovh:innerWidth-Math.round(bb.width), inner:innerWidth, 寬:Math.round(bb.width), 窄:!!v['窄'], 密:!!v['密'], 卡片:b.querySelectorAll('.tk-列').length,
   版面:S['版面寬度'], 清單寬:清單寬() };
 Object.assign(out, 掃());
 
-// 桌機:兩種版面寬度都要掃(1.4.5 新增的設定)
-if(!v['窄']){
+// 桌機:兩種版面寬度都要掃(1.4.5 新增的設定)。1.6.3 起 窄 永遠是 true(只有卡片版面),看 密(時間篩選擠不擠)
+if(!v['密']){
   const 原=S['版面寬度'];
   S['版面寬度']=(原==='寬')?'窄':'寬';
   v['畫'](); await 睡(400);

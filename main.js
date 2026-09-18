@@ -596,6 +596,8 @@ function 顯示內文(t, T) {
 }
 /* 1.6.2(B4 / B7)要交給 Obsidian 渲染的 Markdown:內容原文照樣,只把循環的 [done:: 日期] 記錄換成「✔ 本次完成 日期」。
    看板(畫md)和匯出長圖(輸出白底DOM)用同一個,兩邊才長得一樣。 */
+// 1.6.3(A5)畫出來有這些東西的內容不快取(活的:嵌入、外掛的程式碼區塊、可以摺的 callout、影音)
+const md不快取 = ".internal-embed, iframe, video, audio, [class*='block-language-'], .callout.is-collapsible";
 function 顯示md(原, T) {
   return (原 || []).map(t => { const x = 內文之(t), d = 顯示內文(x, T); return (d !== x) ? 前空白(t) + d : t; }).join("\n");
 }
@@ -2438,7 +2440,7 @@ class 看板視圖 extends TextFileView {
        窄和寬是兩種 DOM 結構,不是同一份 DOM 換 CSS。 */
     try {
       const mq = window.matchMedia(窄門檻);
-      const 變 = () => { if (this.區 && this.該窄() !== this.窄) this.畫(); };
+      const 變 = () => { if (this.區 && this.該密() !== this.密) this.畫(); };
       mq.addEventListener("change", 變);
       this.register(() => mq.removeEventListener("change", 變));
     } catch (e) {}
@@ -2452,12 +2454,12 @@ class 看板視圖 extends TextFileView {
         this.排對齊線();                  // 看板變寬變窄,置中的日期線會移到半個像素上,重新對齊
         const w = Math.round(this.contentEl.clientWidth);
         if (!this.區 || !w) return;
-        if (this.該窄() !== this.窄) {
+        if (this.該密() !== this.密) {
           上寬 = w;
           window.requestAnimationFrame(() => { try { this.畫(); } catch (x) {} });
           return;
         }
-        if (this.窄 || Math.abs(w - 上寬) < 8) return;
+        if (this.密 || Math.abs(w - 上寬) < 8) return;
         上寬 = w;
         window.requestAnimationFrame(() => { try { this.畫導覽列(this.區.導覽, this.卡片); } catch (x) {} });
       });
@@ -2775,32 +2777,45 @@ class 看板視圖 extends TextFileView {
        看板分頁卻只剩 400 多 —— 桌機的表格塞進去,最上面的期間格比分頁還寬,
        本周/本月被裁掉一半,統計列被擠成三排。分頁窄到放不下桌機版面,就直接用卡片版面。
      ⚠ clientWidth 是 0(分頁還沒顯示)的時候不算,不然每個背景分頁都會被當成窄版。 */
-  該窄() {
+  /* ⚠⚠ 1.6.3(B1,使用者:只留一種版面,用手機版來改):卡片**永遠**是卡片版面(div 卡片),this.窄 永遠是 true。
+     以前的「窄不窄」只剩一個用途 —— 時間篩選那一條要不要擠成一排(this.密,見 該密)。
+     手機才有的行為(底部留空、按編輯不自動聚焦)看 this.觸(是不是手機),不看寬度。 */
+  該窄() { return true; }
+  /* 時間篩選要不要用擠的排法(1.4.7 的判斷搬過來):視窗窄(手機)**或者分頁本身窄**。
+     ⚠ clientWidth 是 0(分頁還沒顯示)的時候不算,不然每個背景分頁都會被當成窄版。 */
+  該密() {
     const w = this.contentEl ? this.contentEl.clientWidth : 0;
     return 是窄螢幕() || (w > 0 && w < 窄分頁寬);
   }
   定窄() {
     this.窄 = this.該窄();
+    this.密 = this.該密();
+    this.觸 = !!(this.app && this.app.isMobile);
     const 根 = this.contentEl;
     根.toggleClass("tk-窄", this.窄);
-    /* ⚠ 窄螢幕底部多留 84px:手機版 Obsidian 的底部導覽列是浮在畫面上的,
+    根.toggleClass("tk-密", this.密);
+    /* ⚠ 手機底部多留 84px:手機版 Obsidian 的底部導覽列是浮在畫面上的,
        不留的話最後一張卡片永遠被它蓋住、捲也捲不出來。 */
-    根.style.padding = this.窄 ? "8px 8px 84px" : "10px 14px 0";
+    根.style.padding = this.觸 ? "8px 8px 84px" : (this.密 ? "8px 8px 24px" : "10px 14px 24px");
     /* 版面寬度(1.4.5):窄版 = 跟 Obsidian 的可讀行寬一樣,整份看板收在中間。
-       只管桌機 —— 窄螢幕本來就用滿整個畫面。寬度本身在 styles.css 的 .tk-定寬。 */
-    根.toggleClass("tk-定寬", !this.窄 && this.插件.設定.版面寬度 !== "寬");
+       只管桌機 —— 手機本來就用滿整個畫面。寬度本身在 styles.css 的 .tk-定寬。 */
+    根.toggleClass("tk-定寬", !this.觸 && !this.密 && this.插件.設定.版面寬度 !== "寬");
   }
 
   重畫清單() {
     if (!this.區) { this.畫(); return; }
-    if (this.該窄() !== this.窄) { this.畫(); return; }   // 版面換了,局部重畫會混到兩種結構
+    if (this.該密() !== this.密) { this.畫(); return; }   // 時間篩選的排法換了,整份重畫
     const 捲 = this.contentEl.scrollTop;
     this.卸渲染件();                   // 1.6.2(B4):上一輪 Markdown 渲染的子元件
     const 全 = this.卡片;
     this.插件.設分類順序(this.分類清單.filter(x => !/archive|封存/i.test(x)));
+    /* ⚠ 1.6.3(A5)先清掉清單、先畫導覽列,再畫清單。導覽列最後的 縮到放得下() 要量字寬,
+       量的時候頁面上如果已經有 200 多張卡片,每量一次瀏覽器就重排整份 —— 實測 218 張的筆記光這一段 1171ms
+       (打字搜尋每個字都卡一秒多)。頁面還小的時候量,幾毫秒就好。 */
+    this.區.清單.empty(); if (this.區.未定) this.區.未定.empty();
+    this.畫導覽列(this.區.導覽, 全);      // 數字要跟著搜尋走,不然對不上
     this.畫清單(this.區.清單, 全);
     this.畫未定區(this.區.未定, 全);
-    this.畫導覽列(this.區.導覽, 全);      // 數字要跟著搜尋走,不然對不上
     this.contentEl.scrollTop = 捲;
     this.清即時();
   }
@@ -2927,7 +2942,7 @@ class 看板視圖 extends TextFileView {
        篩選列只剩篩選,手機才排得成一排。設定跟預設(未完成 ✓ 已完成 ✓ 封存 ✗)不一樣時「⋯」變重點色,
        提醒「現在有東西被藏起來」。收起來的時候也在。 */
     // 使用者:「已完成 未完成 手機板才要收進去 電腦版不需要收進去」—— 桌機的篩選列最右邊照舊是那一格
-    if (this.窄) {
+    if (this.密) {
       const 標頭 = 導.firstElementChild;
       const 設顯 = this.插件.設定.排程顯示 || {};
       const 非預設 = !設顯.未完成 || !設顯.完成 || !!設顯.封存;
@@ -2950,14 +2965,14 @@ class 看板視圖 extends TextFileView {
     st(本體, "padding:7px;");
     const 條 = 本體.createDiv();
     // 1.5.1:窄螢幕一排到底(不換行),桌機照舊可以換行
-    st(條, "display:flex;gap:4px;flex-wrap:" + (this.窄 ? "nowrap" : "wrap") + ";align-items:stretch;flex:1 1 auto;min-width:0;");
+    st(條, "display:flex;gap:4px;flex-wrap:" + (this.密 ? "nowrap" : "wrap") + ";align-items:stretch;flex:1 1 auto;min-width:0;");
 
     this.畫期間格(條, 全);
     // 1.5:已逾期 / 週期 同一欄、上下各半。1.5.1:窄螢幕開了「全部」,也放進這一欄(三格疊)
     this.畫綜合格(條, 全);
     /* 1.5.1:「未完成 / 已完成 / 含封存」手機收進標題列的「⋯」(見上面 管顯示、開顯示選單),桌機照舊畫在最右邊。
        1.4.7 那段「擠到第二行就收成 ⋯」的判斷不需要了:手機一律收,桌機的篩選列放得下。 */
-    if (!this.窄) this.畫顯示格(條, 全, false);
+    if (!this.密) this.畫顯示格(條, 全, false);
     // 1.6:整排都畫好、寬度定了才量得準(窄螢幕的格子是照比例分的,後面的格子還沒畫之前量到的都偏寬)
     const 待 = this.__待縮 || [];
     this.__待縮 = [];
@@ -2965,7 +2980,7 @@ class 看板視圖 extends TextFileView {
   }
 
   格子樣式(亮, 色, 底) {
-    return (this.窄 ? "flex:1 1 0;width:auto;padding:6px 4px;"
+    return (this.密 ? "flex:1 1 0;width:auto;padding:6px 4px;"
                     : "flex:0 0 " + 格寬 + "px;width:" + 格寬 + "px;padding:6px 9px;") +
       "min-width:0;min-height:" + 格高 + "px;" +
       "text-align:center;box-sizing:border-box;" +
@@ -3005,7 +3020,7 @@ class 看板視圖 extends TextFileView {
        其他情況:窄螢幕 24、桌機 20。 */
     // 1.5:高箭頭手機也是 22(以前 26)。本月 / 本周也改成高箭頭之後,360px 的手機上「9/28–10/4」會被兩條 26 的箭頭夾到放不下;高度撐滿整格,點擊面積還是很大
     // 1.5.1:窄螢幕的高箭頭再縮到 18,篩選列才排得成一排(高度還是撐滿整格,點得到)
-    const 大 = 直 ? (this.窄 ? 18 : 22) : (this.窄 ? 24 : 20);
+    const 大 = 直 ? (this.密 ? 18 : 22) : (this.密 ? 24 : 20);
     const b = 膠囊(容器, "");
     b.addClass("tk-箭");
     st(b, "flex:0 0 " + 大 + "px;width:" + 大 + "px;" +
@@ -3013,7 +3028,7 @@ class 看板視圖 extends TextFileView {
       "padding:0;margin:0;" +
       "display:inline-flex;align-items:center;justify-content:center;border-radius:6px;" +
       "cursor:pointer;line-height:0;color:var(--text-muted);border:1px solid transparent;");
-    圖(b, 往右 ? "chevron-right" : "chevron-left", this.窄 ? 17 : 15);
+    圖(b, 往右 ? "chevron-right" : "chevron-left", this.密 ? 17 : 15);
     b.title = 提示;
     b.onclick = (e) => { e.stopPropagation(); 動作(); };
     return b;
@@ -3031,7 +3046,7 @@ class 看板視圖 extends TextFileView {
        本日/本周/本月都是在這一年裡面。底色只在「真的在看整年」或行事曆開著的時候才加。 */
     // 1.6:年格只有「真的在看整年」才亮(以前框永遠是重點色,使用者覺得一直有東西被選著)
     const 年選 = f.型 === "年度";
-    const 窄 = this.窄;
+    const 窄 = this.密;
 
     const 複合格 = 條.createDiv();
     複合格.addClass("tk-統計格"); 複合格.addClass("tk-期間格");
@@ -3151,7 +3166,7 @@ class 看板視圖 extends TextFileView {
       /* 1.5.1:窄螢幕只剩圖示和數字,篩選列才排得成一排。寬度 = 篩選列扣掉期間格要的 277px(273 + 間隔 4),夾在 40–56px:
          390px 的手機拿到 56;360px 的手機只剩 40 —— 再多「9/28–10/4」和「本日」就會被切(check4 抓到)。
          百分比對的是篩選列(flex 容器)的寬度。 */
-      (this.窄 ? "flex:0 0 clamp(40px, calc(100% - 277px), 56px);width:clamp(40px, calc(100% - 277px), 56px);min-width:0;"
+      (this.密 ? "flex:0 0 clamp(40px, calc(100% - 277px), 56px);width:clamp(40px, calc(100% - 277px), 56px);min-width:0;"
                : "flex:0 0 auto;") +
       "box-sizing:border-box;border:1px solid var(--background-modifier-border);" +
       "border-left:3px solid var(--text-faint);background:var(--background-primary);" +
@@ -3207,20 +3222,20 @@ class 看板視圖 extends TextFileView {
     /* ⚠ 窄螢幕:跟「全部/已逾期」「長期」擠同一列(1.4.3 之前它自己佔一整列,
        手機上統計列因此是三排)。三塊用 flex-grow 分,這塊字多所以多拿一點。 */
     st(格, "display:flex;align-items:stretch;border-radius:8px;" +
-      (this.窄 ? "flex:0.9 1 0;min-width:0;" : "flex:0 0 auto;margin-left:auto;") +     // 1.5.1:只剩圖示,窄螢幕 1.3 → 0.9
+      (this.密 ? "flex:0.9 1 0;min-width:0;" : "flex:0 0 auto;margin-left:auto;") +     // 1.5.1:只剩圖示,窄螢幕 1.3 → 0.9
       "overflow:hidden;box-sizing:border-box;max-width:100%;min-height:" + 格高 + "px;" +
       "border:1px solid var(--background-modifier-border);" +
       "border-left:3px solid var(--background-modifier-border);background:var(--background-primary);");
     const 區 = 格.createDiv();
     st(區, "display:flex;flex-direction:column;box-sizing:border-box;min-width:0;" +
       // 1.5.1:名字換成圖示,116 → 80(勾選 12 + 間隔 10 + 圖示 13 + 間隔 10 + 數字 24 + 左右 padding 16 = 85,數字那格有空白可以吃)
-      (this.窄 ? "flex:1 1 auto;width:auto;" : "flex:0 0 80px;width:80px;"));
+      (this.密 ? "flex:1 1 auto;width:auto;" : "flex:0 0 80px;width:80px;"));
     項.forEach(([k, t, c, 圖名], i) => {
       const 開 = !!設[k], 末 = i === 項.length - 1;
       const 列 = 區.createDiv();
       // 1.5.1:勾選方塊和圖示之間 6 → 10px(手機 4 → 8),兩個都是小方圓形,靠太近會看成同一顆
-      st(列, "display:flex;align-items:center;gap:" + (this.窄 ? 8 : 10) + "px;flex:1 1 0;min-height:23px;" +
-        "padding:0 " + (this.窄 ? 6 : 8) + "px;" +
+      st(列, "display:flex;align-items:center;gap:" + (this.密 ? 8 : 10) + "px;flex:1 1 0;min-height:23px;" +
+        "padding:0 " + (this.密 ? 6 : 8) + "px;" +
         "cursor:pointer;user-select:none;" +
         (末 ? "" : "border-bottom:1px solid var(--background-modifier-border);") +
         (開 ? "background:var(--background-modifier-hover);" : ""));
@@ -3253,7 +3268,7 @@ class 看板視圖 extends TextFileView {
     const T = this.T, 設 = this.插件.設定.排程顯示, s = this.狀態;
     const m = new Menu();
     /* 窄螢幕開了「全部」:放在這個選單最上面(手機的篩選列排成一排,放不下這一格)。桌機在年份左邊。 */
-    if (this.窄 && this.插件.設定.顯示全部篩選) {
+    if (this.密 && this.插件.設定.顯示全部篩選) {
       m.addItem(i => i.setTitle(T.all + "  " + this.清單池(全).length).setIcon("list")
         .setChecked((s.篩 || {}).型 === "全部")
         .onClick(() => { s.篩 = { 型: "全部" }; s.開行事曆 = false; this.畫(); }));
@@ -3287,7 +3302,7 @@ class 看板視圖 extends TextFileView {
     /* 1.4.6:每一層是一塊有框的小磚(選到 = 重點色框,沒選到 = 灰框),層與層之間留 2px。
        磚的框吃掉 4px(左右各 2 的間隔),所以桌機的標籤寬再少 4:50→46、70→66。 */
     const 標寬 = 大 ? 46 : 66;
-    const 窄 = this.窄;
+    const 窄 = this.密;
     const T = this.T;
     const 區 = 容器.createDiv();
     st(區, "display:flex;flex-direction:column;box-sizing:border-box;min-width:0;gap:2px;" +
@@ -3548,7 +3563,7 @@ class 看板視圖 extends TextFileView {
        右欄窄一點。1.4.3 以前窄螢幕是用 display:contents 把兩列攤平再用 order 重排,
        那正是審核警告的來源,而且排出來是四排。
        右欄寬 176:英文 Section 框 73 + 間隔 8 + 指派人框 96(下拉 80)。 */
-    const 窄 = this.窄;
+    const 窄 = this.密;          // 1.6.3:新增區的排法看寬度(密),卡片版面一律是 this.窄
     const 列間隔 = 8, 右欄寬 = 窄 ? 176 : 186;
     /* ⚠⚠ 1.4.8:每一列是**一條接在一起的橫條**(一個底色、一圈外框、框和框之間一條直線),
        不再是好幾個各有底色的獨立框。所以群組和列都是 gap:0、**一律不換行** ——
@@ -4383,7 +4398,7 @@ class 看板視圖 extends TextFileView {
   }
 
   畫設定面板(外塊) {
-    const T = this.T, 草 = this.設草, 窄 = this.窄;
+    const T = this.T, 草 = this.設草, 窄 = this.密;
     const 重畫 = (焦點) => { this.__設焦點 = 焦點 || null; this.畫新增區(this.區.新增, this.卡片); };
     const 淨 = (v) => String(v || "").replace(/[\r\n]+/g, " ").trim();
     const 本體 = 外塊.createDiv();
@@ -6079,8 +6094,8 @@ class 看板視圖 extends TextFileView {
               舊框排好的那一次,框卸掉就不算數了,不能等使用者再打一個字。 */
         if (草0 === undefined || 草0 === null) this.上次存的 = 初值;
         else if (草0 !== (k.內容原 || []).join("\n")) 即排存();
-        // 1.4.5:窄螢幕不自動聚焦(聚焦 = 跳鍵盤 = iOS 自己捲畫面);游標位置照設定
-        if (!窄) setTimeout(() => 即時.聚焦(this.插件.設定.編輯游標 === "後"), 0);
+        // 1.4.5:窄螢幕不自動聚焦(聚焦 = 跳鍵盤 = iOS 自己捲畫面);游標位置照設定(1.6.3 B4:看是不是手機 this.觸,不看寬度 —— 桌機一律是卡片版面了)
+        if (!this.觸) setTimeout(() => 即時.聚焦(this.插件.設定.編輯游標 === "後"), 0);
         return;
       }
       // 退路:一般的 textarea
@@ -6145,7 +6160,7 @@ class 看板視圖 extends TextFileView {
          聚焦之後再移動游標,Chromium 會把游標「揭示」到畫面裡,而且是隔幾百毫秒才捲,
          編修就位() 那時候已經收工了。最後一張卡片實測被扯了 100–150px。
          先放游標再聚焦:聚焦時沿用已經放好的位置,沒有「移動游標」這件事,也就沒有揭示。 */
-      if (!窄) setTimeout(() => {
+      if (!this.觸) setTimeout(() => {
         try {
           長高();
           // 1.5 設定:游標放在最前面(預設)或最後面
@@ -6193,8 +6208,35 @@ class 看板視圖 extends TextFileView {
     const T = this.T, 來源 = this.file ? this.file.path : "";
     const 顯 = 顯示md(原, T);
     if (!this.渲染件 && Component) { this.渲染件 = new Component(); this.渲染件.load(); }
+    /* 1.6.3(A5,QA 的 R3)照內容快取:218 張的筆記,重畫一次清單裡光渲染就花 1 秒(實測 993 / 1871ms),
+       打字搜尋每打一個字就卡一下。內容一樣的卡片直接複製上一次畫好的 DOM(方框、連結的事件照樣在下面重新掛)。
+       ⚠ 有嵌入、外掛的程式碼區塊(Dataview 之類)、可以摺的 callout 不快取 —— 那些是活的,複製只會留下死的快照。
+       ⚠ 新增 / 刪除 / 改名檔案時整個清掉:[[連結]] 會從「不存在」變成「存在」。 */
+    if (!this.md快取) {
+      this.md快取 = new Map();
+      const 清 = () => { if (this.md快取) this.md快取.clear(); };
+      this.registerEvent(this.app.vault.on("create", 清));
+      this.registerEvent(this.app.vault.on("delete", 清));
+      this.registerEvent(this.app.vault.on("rename", 清));
+    }
+    const 快鍵 = 來源 + " " + 顯;
+    const 存 = this.md快取.get(快鍵);
     try {
-      if (MarkdownRenderer && MarkdownRenderer.render) MarkdownRenderer.render(this.app, 顯, 容器, 來源, this.渲染件 || this);
+      if (存) {
+        容器.append(存.cloneNode(true));
+      } else if (MarkdownRenderer && MarkdownRenderer.render) {
+        const p = MarkdownRenderer.render(this.app, 顯, 容器, 來源, this.渲染件 || this);
+        const 記 = () => {
+          if (!容器.isConnected || 容器.querySelector(md不快取)) return;
+          const 片 = document.createDocumentFragment();
+          容器.childNodes.forEach(n => 片.appendChild(n.cloneNode(true)));
+          // 渲染完到記下來之間被勾過的方框不算:照原文(checked 屬性)放回剛畫好的樣子
+          片.querySelectorAll("input.task-list-item-checkbox").forEach(b => { const li = b.closest("li"); b.checked = !!(li && li.classList.contains("is-checked")) || b.hasAttribute("checked"); });
+          if (this.md快取.size > 600) this.md快取.clear();
+          this.md快取.set(快鍵, 片);
+        };
+        if (p && p.then) p.then(記, () => {}); else 記();
+      }
       else throw new Error("no MarkdownRenderer");
     } catch (e) {
       // 退路:拿不到 Obsidian 的渲染就照舊一行一行畫
