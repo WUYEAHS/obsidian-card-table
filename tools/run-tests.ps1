@@ -43,6 +43,9 @@ $want = (Get-Content (Join-Path $repo 'manifest.json') -Raw | ConvertFrom-Json).
 Write-Host "loaded $ver, repo $want"
 if ($ver -notmatch [regex]::Escape($want)) { Write-Host 'FAIL version mismatch'; exit 1 }
 
+$vis = obsidian eval code="document.visibilityState + ' / focused=' + document.hasFocus()"
+Write-Host "obsidian window: $vis"
+if ($vis -match 'hidden') { Write-Host 'WARNING Obsidian is minimized or covered: timers are throttled, the editor/board tests may time out. Keep it visible.' }
 $fails = 0
 $fmt = obsidian eval code="eval(require('fs').readFileSync('$rp/tools/format-test.js','utf8'))" | Out-String
 $fmtFail = ([regex]::Matches($fmt, 'FAIL')).Count
@@ -64,10 +67,14 @@ if (-not $SkipBoard) {
   if ($bFail -or $res -notmatch 'DONE') { Write-Host $res; $fails += [Math]::Max(1, $bFail) }
   obsidian eval code="eval(require('fs').readFileSync('$rp/tools/editor-test.js','utf8'))" | Out-Null
   $res = ''
-  for ($i = 0; $i -lt 20; $i++) {
+  for ($i = 0; $i -lt 40; $i++) {
     Start-Sleep 2
     $res = obsidian eval code="window.__ctEditorTest" | Out-String
     if ($res -notmatch 'running') { break }
+  }
+  if ($res -match 'running') {
+    $diag = obsidian eval code="'stuck at step: ' + window.__ctEditorStep + ' | ' + (window.__ctEditorOut || []).join(' / ')" | Out-String
+    Write-Host "editor-test did not finish: $diag"
   }
   $eFail = ([regex]::Matches($res, 'FAIL')).Count
   $eOk = ([regex]::Matches($res, '(?m)^(=> )?ok ')).Count

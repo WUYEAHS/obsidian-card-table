@@ -5,12 +5,12 @@
 
 # Card Table - Dated Tasks
 
-**A task-first card journal.** Every task is a card, and the cards form a table — time filters show today, this week or this month in one tap, typing searches titles and content, sections mark each task's status, and several people can work on the same board.
+**A task-first card table.** Inspired by the Kanban plugin's table mode view. Every task is a card, and these cards form a table. Features include unique time-filtering functions, **multi-user collaboration**, and two viewing modes optimized for desktop and mobile.
 
-Use the same board two ways, whichever suits you:
-
-- **Table mode** — one card per row; a glance tells you what is next.
-- **Immersive mode** (coming in 1.7) — open a single card full-page to read it, then edit it as if it were a note of its own.
+> [!IMPORTANT]
+> **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!
+>
+> **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
 From 1.6.1 cards are written with the same `[key:: value]` fields as the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) and [Dataview](https://github.com/blacksmithgu/obsidian-dataview) plugins, so their queries see your cards' dates and repeats too.
 

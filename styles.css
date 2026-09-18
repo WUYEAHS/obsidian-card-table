@@ -409,6 +409,10 @@
 @media (prefers-reduced-motion: reduce) {
   .tk-board .tk-倒數 { animation-duration:2.6s; }
 }
+/* 1.6.2(U1)「再按一次確定」的 ✓ 疊在倒數條上面。CR-02 拿掉了旁邊的「?」 */
+.tk-board .tk-確認記 { position:relative; z-index:1; display:inline-flex; align-items:center; line-height:1; }
+/* 1.6.2(CR-02)封存可以回復:倒數條不用紅色(複合選擇器,壓過上面同權重的 .tk-倒數) */
+.tk-board .tk-倒數.tk-倒數-淡 { background:var(--background-modifier-hover); }
 
 /* ---- 已完成 ----
    淡化 = 整列退到背景,劃掉 = 內容打一條線。設定裡可以各自關掉。
@@ -488,8 +492,10 @@
   border:1px solid var(--text-accent);
   border-radius:7px;
   background:var(--background-primary);
-  padding:6px 6px 6px 0;
-  margin:2px 0 4px;
+  /* 1.6.2(CR-02):框往上挪「上內距 + 框線」,裡面的字才會停在閱讀時的同一個高度(以前一按編輯往下掉 6.5px)。
+     框線因此落在主題和內容之間的空隙裡。 */
+  padding:3px 6px 6px 0;
+  margin:-4px 0 4px;
   box-shadow:0 0 0 2px color-mix(in srgb, var(--text-accent) 14%, transparent);
 }
 @supports not (background: color-mix(in srgb, red 10%, transparent)) {
@@ -545,6 +551,39 @@
   vertical-align:middle;
   text-indent:0;
 }
+/* 1.6.2(B4)卡片內容用 Obsidian 自己的 Markdown 渲染(main.js 的 畫md),標準是「跟 Obsidian 的閱讀模式一樣」。
+   字級、行高、左邊 5px 沿用上面的所見即所得數字(跟即時預覽編輯器同一套);段落、清單、表格的間距交給 Obsidian,
+   只把第一個和最後一個元素的外距拿掉,卡片上下不要多出一截空白。
+   ⚠ 唯一保留的差別:編修框有框線和內距(要看得出正在編輯,1.3 的規則)。 */
+.tk-board .tk-md {
+  padding-left:5px;
+  font-size:calc(var(--font-text-size, 16px) * 0.94);
+  line-height:var(--line-height-normal);
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+/* 1.6.3(A2)清單的縮排照即時預覽編輯器(使用者:bullet 閱讀和編輯左右跑掉)。
+   編輯器每一行的懸掛縮排 = 那一行符號的實際寬度:「- 」21px、「- [ ] 」31px、「1. 」27px,巢狀多一個 tab 34px
+   (字級 15.04px 量的,換成 em 才會跟著字級走)。閱讀模式 Obsidian 一律縮 24.3px,所以 bullet 偏右、待辦和巢狀偏左。
+   巢狀清單的內距 = tab − 上一層符號的寬度,子項才會落在編輯器的同一個位置。 */
+.tk-board .tk-md ul > li { margin-inline-start:1.396em; }
+.tk-board .tk-md ul > li.task-list-item { margin-inline-start:2.061em; }
+.tk-board .tk-md ol > li { margin-inline-start:1.795em; }
+.tk-board .tk-md ul > li > ul, .tk-board .tk-md ul > li > ol { padding-inline-start:0.864em; }
+.tk-board .tk-md ul > li.task-list-item > ul, .tk-board .tk-md ul > li.task-list-item > ol { padding-inline-start:0.199em; }
+.tk-board .tk-md ol > li > ul, .tk-board .tk-md ol > li > ol { padding-inline-start:0.465em; }
+.tk-board .tk-md > :first-child { margin-top:0; }
+.tk-board .tk-md > :last-child { margin-bottom:0; }
+/* 收合:露大約兩行半,下緣淡出(以前是數行數,表格、分隔線沒有「行」可以數) */
+.tk-board .tk-md.tk-md-收 {
+  max-height:calc(var(--line-height-normal) * 2.6em);
+  overflow:clip;
+  -webkit-mask-image:linear-gradient(180deg, #000 calc(100% - 1.1em), transparent);
+  mask-image:linear-gradient(180deg, #000 calc(100% - 1.1em), transparent);
+}
+/* 「查看更多」:收著的時候釘在右下角(壓在淡出的那一截上);展開的時候接在內容後面 */
+.tk-board .tk-更多.tk-更多-收 { position:absolute; right:0; bottom:0; margin:0; }
+.tk-board .tk-更多.tk-更多-開 { position:static; display:inline-block; margin:2px 0 0 5px; }
 /* 新增卡片的內容框、留言框:長得像原本的輸入框(表單底色 + 細框),點框的任何地方都是打字 */
 .tk-board .tk-即時框 {
   border:1px solid var(--background-modifier-border);

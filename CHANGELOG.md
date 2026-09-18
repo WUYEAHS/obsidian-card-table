@@ -1,5 +1,36 @@
 # Changelog
 
+> [!IMPORTANT]
+> **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!
+>
+> **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
+
+## 1.6.2
+
+**Every button does one thing.** Colours, content and exports, straightened out.
+
+### Bug fixes
+1. Picking a colour on a card moves only that card. Section colours are changed in the section panel only.
+2. Every section can be picked from a card: up to five as dots, six to ten from a list with their names.
+3. On phones, *Change section* is in the card's ⋯ menu, and the colour picker in the section panel stays open.
+4. Nested lists, blank lines and spacing are saved exactly as typed, when adding, editing and merging cards.
+5. Card content is shown the way Obsidian shows it: dividers, tables, nested lists, links and callouts.
+6. Finishing an edit right after an automatic save no longer drops the last change.
+7. Opening a card to edit and closing it without changes no longer rewrites the card.
+8. A card stays open after you finish editing it, until you change the filter or fold it.
+9. Unarchiving asks which section the card goes back to.
+
+### UX improvements
+1. "Tap again" confirmations show ✓ with a countdown, for archive and delete. Only delete is red.
+2. Editing a card keeps the title and text exactly where they were.
+3. Section names appear wherever you pick a section, including New card.
+4. Type `#section` in search to see only that section; names with spaces work too.
+5. Export makes one phone-width image with larger text and formatted content. PDF export is gone.
+6. Links inside cards open on click and show a preview on hover.
+
+### New
+1. Settings → *Report a problem* opens a GitHub issue or an email with your versions filled in. No note content is sent.
+
 ## 1.6.1
 
 > **Sorry — this is a big update, and the note format changed.** Old notes are

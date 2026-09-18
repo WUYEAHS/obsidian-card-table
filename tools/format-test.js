@@ -10,7 +10,7 @@
   const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C,
     WorkspaceLeaf: C, debounce: f => f, setIcon: () => {}, addIcon: () => {} };
   const M = new Function('require', 'module', src +
-    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行};')(
+    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 照打段, 去卡縮排};')(
     () => stub, { exports: {} });
   const out = [];
   const eq = (name, a, b) => out.push((a === b ? 'ok   ' : 'FAIL ') + name + (a === b ? '' : '\n   got: ' + JSON.stringify(a) + '\n  want: ' + JSON.stringify(b)));
@@ -79,5 +79,22 @@
   eq('locate twin B', 位 && 位.卡.起, 4);
   eq('checkbox typed variants', ['-[ ]x', '[] y', '* - [x] z'].map(M.照打行).join('|'), '- [ ] x|- [ ] y|- [x] z');
   eq('pinned title-less key', M.解析卡片('- [ ] [pin:: on] [訂] [due:: 2026-09-16]\n\t- c', 名單)[0].基鍵, '[訂] c');
+
+  // ---- 1.6.2 B3:內容照你打的存(縮排、空行、行中的空白) ----
+  const 原 = (s) => JSON.stringify(M.解析卡片(s, 名單)[0].內容原);
+  eq('raw content keeps nesting, blank line, spaces',
+    原(['- [ ] [a] [due:: 2026-09-16]', '\t- parent', '\t\t- child', '', '\t---', '\t| a   | b   |', '\t[cm:: 2026-09-17 09:00|欣明] 留', '\t[ed:: 2026-09-17 10:00]', ''].join('\n')),
+    JSON.stringify(['- parent', '\t- child', '', '---', '| a   | b   |']));
+  eq('照打段 keeps what was typed',
+    JSON.stringify(M.照打段('\n- parent\n\t- child\n\n---\n| a   | b   |   \n[] todo\n．舊符號\n\n')),
+    JSON.stringify(['- parent', '\t- child', '', '---', '| a   | b   |', '- [ ] todo', '- 舊符號']));
+  eq('base indent made of spaces', JSON.stringify(M.去卡縮排(['    \t- a', '    \t\t- b', ''])), JSON.stringify(['- a', '\t- b', '']));
+  eq('mixed indent: one level each', JSON.stringify(M.去卡縮排(['\tx', '    y'])), JSON.stringify(['x', 'y']));
+  eq('title tags join first raw line', 原('- [ ] [a] [due:: 2026-09-16] #tag\n\t- x\n\t\t- y'), JSON.stringify(['- x #tag', '\t- y']));
+  eq('titleless first line leads raw', 原('- [ ] buy milk [due:: 2026-09-16]\n\t- a\n\t\t- b'), JSON.stringify(['buy milk', '- a', '\t- b']));
+  eq('done record stays in raw', 原('- [ ] [施肥] [repeat:: every week]\n\t北區\n\t[done:: 2026-09-09]\n\t[ed:: 2026-09-16 10:00]'), JSON.stringify(['北區', '[done:: 2026-09-09]']));
+  eq('key unchanged by nesting', M.解析卡片('- [ ] [a]\n\t- p\n\t\t- c', 名單)[0].基鍵, '[a] p');
+  const 往返 = ['- [ ] [a] [due:: 2026-09-16]', '\t- p', '\t\t- c', '', '\t| x   | y |', '\t[ed:: 2026-09-17 10:00]'].join('\n');
+  eq('raw -> 照打段 is a no-op', JSON.stringify(M.照打段(M.解析卡片(往返, 名單)[0].內容原.join('\n'))), 原(往返));
   return out.join('\n');
 })()

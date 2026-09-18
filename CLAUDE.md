@@ -1,4 +1,4 @@
-# Card Table - Dated Tasks(卡片看板：任務分類日誌)—— 給 Claude 的專案筆記
+# Card Table - Dated Tasks(卡片看板 - 任務分類日誌)—— 給 Claude 的專案筆記
 
 Obsidian 外掛,把一份 markdown 筆記讀成一張任務卡片表。
 使用者說中文,回答和註解都用繁體中文。
@@ -13,6 +13,22 @@ Obsidian 外掛,把一份 markdown 筆記讀成一張任務卡片表。
 **UI/UX 技能**(使用者裝的,有需要就用,不必等他開口):
 `design-review`(畫面批評)、`better-interface`(發版前整體檢查)、`ux-flow-designer`(新流程開工前畫流程與線框)。
 格式或架構決策用 `adr-writer` / `tradeoff-analysis-writer`;測試筆記用 `obsidian-markdown`。
+
+## 工作方式(2026-09-18 起,使用者明講)
+
+⚠⚠ **每一版先討論,使用者檢查完才做**:使用者在 Dialogue 文件上確認之前,不寫產品程式、不升版、不 commit。
+- 討論在 vault 的 `0.常用/Card table project/`:使用者寫 Dialogue(第一份是 `v1.6.2 to 1.7 conversation.md`),
+  Claude 用 **tandem comments** 逐項回覆(技能 `obsidian-tandem-comments`,裝在使用者層級);正文只動最下面的「Claude REPLY」,不改使用者寫的字。
+- 流程照技能 **`card-table-procedure`**。正本是 vault 的 `Procedure/Working procedure.md`(使用者可以直接改),角色在 `Procedure/Roles.md`。
+  文件順序:Dialogue → PRD(使用者簽核)→ CR(簽核後的變更)→ Review pack(每項 ✅/❌ + 證據)→ 發版 → 回顧。每一項一個編號(例:`1.6.2-B1`)。
+- 每次回覆最後附「PM 自我批評」。給使用者驗收前,用 `.claude/agents/card-table-qa` 做獨立審查 —— **只有大版本(1.x)**,修正版在主對話自己 QA(使用者 2026-09-18:太燒 token;UX critic 也拿掉了,太複雜)。
+- **平常的溝通像 Discord**(使用者明講):每做一件事,在 vault 的 `Dev chat.md` 最下面留一兩句(發現、做了什麼、需要什麼),使用者直接在底下回。
+- **回顧**(技能 **`card-table-self-review`**)在**大版本的一輪結束時**寫(例:1.6 → 1.7),小的一輪有值得講的才寫;寫在 vault 的 `Reviews/`。
+- repo 的文件用 `.\tools\mirror-docs.ps1` 鏡像到 vault 的 `Repo mirror/`(唯讀;改了 repo 就重跑,鏡像上的 tandem 留言會保留)。新文件的連結加進 `Main navigator.md`。
+- **產品定義**:兩種檢視模式 —— **表格模式**(= 程式裡的 table;桌機預設,手機也能切換)和**卡片模式**(= `this.窄` 畫的 div 卡片;手機、平板等觸控裝置預設)。
+  對外的介紹(README、manifest)只說「桌機和手機兩種檢視模式」,不提表格 / 卡片模式的名字(使用者明講)。
+  **沉浸模式取消了**:看板專注在任務,長內容用連結放到外面的筆記。
+- **原則第 11 條「點」**(使用者明講,雙關):點的位置和時間(常用動作位置固定、步數少,像 POS)+ 點對點(卡片之間、卡片和外面的筆記找得到線索和連結)。
 
 ## 這個專案沒有 build step
 
@@ -34,6 +50,10 @@ data.json       本機設定,已被 .gitignore 排除,不要 commit
 ⚠⚠ **2026-09-17 起(使用者明講):先改 vault 裡那份,改好再複製回這個 repo。**
 使用者靠 Obsidian Sync 把外掛帶到手機,所以正在用的外掛是**實體資料夾**
 `C:\Users\新春\Documents\Cintrun3\.obsidian\plugins\obsidian-card-table\`(manifest id 仍是 `card-table`)。
+⚠⚠ **2026-09-18 發現:外掛又回到 `plugins/card-table`**(1.6.1。main.js 結尾多了一行 `/* nosourcemap */`,
+Obsidian 從社群外掛安裝或更新時會加這一行,其他部分跟 repo 一樣);`plugins/obsidian-card-table` 只剩一個舊的 data.json。
+資料夾會變,**部署前一律問 Obsidian**:`app.plugins.manifests['card-table'].dir`。run-tests 預設 vault → repo,
+第一次跑會把 `/* nosourcemap */` 帶進 repo:1.6.2 開工時先跑一次 `-FromRepo` 把 repo 那份蓋過去。
 - `main.js`、`styles.css`、`manifest.json` 都直接改那一份(`data.json` 不要碰),`obsidian plugin:reload id=card-table` 生效。
 - `.\tools\run-tests.ps1` 預設把這三個檔案 **vault → repo** 複製後再測;要反方向(例如 git checkout 之後)加 `-FromRepo`。
 - `tools/`、README、CHANGELOG、skills 這些只在 repo 裡改。commit 之前一定要先跑一次 run-tests(它會把 vault 的版本帶回來)。
@@ -114,10 +134,11 @@ Obsidian 用 manifest 的 id 找外掛,**不看資料夾名稱** —— 部署�
 | `main.js` 的 `插件版本` | semver,要跟 manifest 一致 | `1.5.2` |
 | `manifest.json` 的 `version` | semver | `1.5.2` |
 
-外掛名稱 1.5.2 起是 **Card Table - Dated Tasks**(中文「卡片看板：任務分類日誌」,指令裡簡稱「卡片看板」)。
+外掛名稱 1.5.2 起是 **Card Table - Dated Tasks**(中文「卡片看板 - 任務分類日誌」,指令裡簡稱「卡片看板」)。
+**中文名也用連字號**(使用者明講,2026-09-18):README 已改;外掛裡的字串(`board:`)在 1.6.2 一起改。
 ⚠ **英文名稱不能有冒號**:社群外掛目錄只收基本拉丁字母,標點只准 `-`、`+`、`()`。
 1.5.1 用了 `Card Table: Dated Tasks`,目錄直接把外掛從列表藏起來(「Name not allowed in the directory」),
-所以 1.5.2 馬上改成連字號。中文名只在外掛和 README 裡顯示,冒號可以留著。
+所以 1.5.2 馬上改成連字號。中文名只在外掛和 README 裡顯示;原本可以留冒號,2026-09-18 使用者決定中英一律用連字號。
 ⚠ **`id` 永遠是 `card-table`**,不要跟著名字改 —— 改了 id,已安裝的人收不到更新、設定也會不見。
 名稱和描述在 `obsidianmd/obsidian-releases` 的 `community-plugins.json` 另有一份,改名要另外發 PR。
 

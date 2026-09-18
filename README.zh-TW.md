@@ -1,15 +1,15 @@
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
-<img width="90%" alt="卡片看板：任務分類日誌" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
+<img width="90%" alt="卡片看板 - 任務分類日誌" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
 
-# Card Table - Dated Tasks 卡片看板：任務分類日誌
+# Card Table - Dated Tasks 卡片看板 - 任務分類日誌
 
-**以任務為導向的卡片日誌看板。** 每一件事就是一張卡片,卡片排成一張表格 —— 時間篩選一鍵看今天、本週、本月,打字就能搜主題和內容,分類標出任務的狀態,好幾個人也能在同一張看板上協作。
+**以任務為核心的卡片表格。** 靈感來自 Kanban 外掛的表格檢視。每一件任務都是一張卡片,這些卡片組成一張表格。特色包括獨特的時間篩選、**多人協作**,以及分別為桌機和手機最佳化的兩種檢視模式。
 
-同一張看板有兩種用法,照你的習慣切換:
-
-- **表格模式** —— 一列一張卡片,掃一眼就知道現在要做什麼。
-- **沉浸模式**(1.7 推出)—— 點開一張卡片全版閱讀,再按編輯就像在寫一篇單獨的日誌。
+> [!IMPORTANT]
+> **提醒:** 這個外掛仍在積極開發中,接下來幾個月會經常變動。使用前請先備份你的資料與環境。非常歡迎回報問題和提供回饋!
+>
+> **聲明:** 這個專案完全由使用 Claude 的 AI agent 打造。專案開發者的程式語言經驗有限。
 
 1.6.1 起,卡片用 [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) 和 [Dataview](https://github.com/blacksmithgu/obsidian-dataview) 外掛同一種 `[欄位:: 值]` 寫法,它們的查詢也看得到卡片的日期和循環。
 
@@ -36,10 +36,10 @@
 ## 安裝
 
 1. 設定 → 社群外掛 → 開啟社群外掛。
-2. 瀏覽 → 搜尋 **Card Table - Dated Tasks**(卡片看板：任務分類日誌)→ 安裝並啟用。
+2. 瀏覽 → 搜尋 **Card Table - Dated Tasks**(卡片看板 - 任務分類日誌)→ 安裝並啟用。
 
 還沒上架的話:從 [最新版本](../../releases/latest) 下載 `main.js`、`manifest.json`、`styles.css`,
-放進 `<你的 vault>/.obsidian/plugins/card-table/`,重新載入 Obsidian 再啟用 **卡片看板：任務分類日誌**。
+放進 `<你的 vault>/.obsidian/plugins/card-table/`,重新載入 Obsidian 再啟用 **卡片看板 - 任務分類日誌**。
 
 ## 開始使用
 

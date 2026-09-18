@@ -1,0 +1,26 @@
+name: Bug report / 回報問題
+description: Something in Card Table doesn't work as expected / 卡片看板有地方不對
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / 發生了什麼?
+      description: What did you expect, and what happened instead? / 你預期什麼、實際上發生什麼?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / 怎麼做會發生
+      placeholder: |
+        1.
+        2.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 環境
+      description: >-
+        Filled in by Settings → Report a problem. Please don't paste private notes.
+        / 從設定按「回報問題」會自動帶入。請不要貼私人的筆記內容。
+      render: text

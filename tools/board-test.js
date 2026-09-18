@@ -27,7 +27,7 @@ window.__ctBoardTest = 'running';
     '',
     '- [ ] 沒主題的舊卡 ＠{2026-09-16}',
     '',
-    '## 2', ''
+    '## 2', '', '## 3', '', '## 4', '', '## 5', '', '## 6', '', '## 7', ''     // 1.6.2 B1:超過 5 個分類
   ].join('\n');
   f = await app.vault.create(path, 初);
   const leaf = app.workspace.getLeaf(true);
@@ -44,6 +44,15 @@ window.__ctBoardTest = 'running';
     return 行.slice(i, j).filter(t => t.trim());
   };
   const 尾是ed = (段) => /^\t\[ed:: \d{4}-\d{2}-\d{2} \d{2}:\d{2}\]$/.test(段[段.length - 1] || '');
+  const 原段 = (文, 題) => {           // 同 卡段,但留著中間的空白行(1.6.2 B3 要看空行有沒有被吃掉)
+    const 行 = 文.split('\n');
+    const i = 行.findIndex(t => /^- \[[ xX]\]/.test(t) && t.includes(題));
+    if (i < 0) return [];
+    let j = i + 1;
+    while (j < 行.length && (/^[ \t]/.test(行[j]) || !行[j].trim())) j++;
+    while (j > i + 1 && !行[j - 1].trim()) j--;
+    return 行.slice(i, j);
+  };
   try {
     // 1. 打勾一張舊卡片 → 轉成新寫法,ed 在最後
     let k = v.卡片.find(x => x.主題 === '訂貨');
@@ -63,11 +72,19 @@ window.__ctBoardTest = 'running';
     await v.設日期(k, '2026-09-20', '2026-09-22'); await 等(400);
     段 = 卡段(await 讀(), '[巡田]');
     ok('range written as start/due', 段[0].includes('[start:: 2026-09-20] [due:: 2026-09-22]') && 段[0].includes('[repeat:: every week]'), 段[0]);
-    // 4. 改內容(含待辦、自己打的符號)
+    // 4. 改內容(含待辦、自己打的符號;1.6.2 B3:巢狀清單、空行、表格的空白照打的存)
     k = v.卡片.find(x => x.主題 === '巡田');
-    const r = await P.寫手.換內容(f, k, '看那棵\n-[ ] 帶藥\n* 自己的符號', v.名單);
+    const r = await P.寫手.換內容(f, k, '看那棵\n- parent\n\t- child\n\n| a   | b   |\n-[ ] 帶藥\n* 自己的符號', v.名單);
     ok('換內容 returns new key', typeof r === 'string' && r.startsWith('[巡田]'), r);
     await 等(400);
+    {
+      const 段4 = 原段(await 讀(), '[巡田]');
+      const i = 段4.indexOf('\t\t- child');
+      ok('B3 nested list kept', i > 0 && 段4[i - 1] === '\t- parent', 段4);
+      ok('B3 blank line + table spacing kept', 段4[i + 1] === '' && 段4[i + 2] === '\t| a   | b   |', 段4);
+      const k4 = v.卡片.find(x => x.主題 === '巡田');
+      ok('B3 parsed raw content', JSON.stringify(k4.內容原) === JSON.stringify(['看那棵', '- parent', '\t- child', '', '| a   | b   |', '- [ ] 帶藥', '* 自己的符號']), k4.內容原);
+    }
     // 5. 勾內容裡的待辦
     k = v.卡片.find(x => x.主題 === '巡田');
     await v.切內勾(k, '[ ] 帶藥', true); await 等(400);
@@ -98,8 +115,15 @@ window.__ctBoardTest = 'running';
     await v.送出新增(); await 等(500);
     段 = 卡段(await 讀(), '[只有主題]');
     ok('title-only card has no content', 段.length === 2 && 尾是ed(段), 段);
-    // 10. 融合兩張
+    // 9b. 1.6.2 B3:新增卡片的巢狀內容照打的存
+    v.狀態.新主題 = '巢狀新增'; v.狀態.新內容 = '- 一\n\t- 二';
+    if (v.內輸) v.內輸.value = '- 一\n\t- 二';
+    await v.送出新增(); await 等(500);
+    段 = 原段(await 讀(), '[巢狀新增]');
+    ok('B3 new card keeps nesting', 段[1] === '\t- 一' && 段[2] === '\t\t- 二' && 尾是ed(段), 段);
+    // 10. 融合兩張(1.6.2 B3:縮排跟著搬過去)
     await v.做融合(v.卡片.filter(x => x.主題 === '只有主題' || x.主題 === '巡田')); await 等(500);
+    ok('B3 merge keeps nesting', (await 讀()).includes('\n\t\t- child\n'), '');
     // 11. 封存
     k = v.卡片.find(x => !x.主題);
     await v.切封存(k, false); await 等(500);
@@ -109,6 +133,48 @@ window.__ctBoardTest = 'running';
     const 寫過 = ['[巡田]', '[訂貨]', '沒主題的舊卡'].map(t => 卡段(文, t));
     ok('every touched card ends with ed', 寫過.every(尾是ed), 寫過);
     ok('cards parse', v.卡片.length >= 2 && v.卡片.every(x => x.編修戳), v.卡片.map(x => [x.主題, x.編修戳]));
+    // 11b. 1.6.2 B1 / U2:選分類的清單 = 色點 + 名稱,每一區都選得到(封存區不列);搬卡片只動這一張,設定的分類顏色不動
+    {
+      const 色前 = JSON.stringify(P.設定.分類顏色 || {});
+      const 觸 = v.contentEl.querySelector('.tk-列') || v.contentEl;
+      const 盤 = v.開分類清單(觸, '1', () => {});
+      const 名們 = 盤 ? [...盤.querySelectorAll('[role=option]')].map(x => x.textContent) : [];
+      ok('B1 list shows every section by name', JSON.stringify(名們) === JSON.stringify(['1', '2', '3', '4', '5', '6', '7']), 名們);
+      if (盤 && 盤.__關) 盤.__關();
+      const kk = v.卡片.find(x => x.主題 === '巢狀新增');
+      await v.搬去分類(kk, '6'); await 等(400);
+      ok('B1 move only this card', /## 6\n+- \[ \] \[巢狀新增\]/.test(await 讀()), '');
+      ok('B1 section colours untouched', JSON.stringify(P.設定.分類顏色 || {}) === 色前, [色前, P.設定.分類顏色]);
+    }
+    // 11c. 1.6.2 B6:取消封存會問回哪一區(清單列出每一區),挑哪一區就回哪一區
+    {
+      const ka = v.卡片.find(x => !x.主題 && v.是封存(x));
+      const 觸 = v.contentEl.querySelector('.tk-列') || v.contentEl;
+      v.選區取消封存(觸, ka);
+      const 盤 = document.body.querySelector('.tk-分類挑');
+      const 選項 = 盤 ? [...盤.querySelectorAll('[role=option]')] : [];
+      ok('B6 unarchive asks for a section', 選項.length === 7, 選項.map(x => x.textContent));
+      const 三 = 選項.find(x => x.textContent === '3');
+      if (三) 三.click(); else if (盤 && 盤.__關) 盤.__關();
+      await 等(700);
+      ok('B6 unarchive goes where you picked', /## 3\n+- \[ \] (\[pin:: on\] )?沒主題的舊卡/.test(await 讀()), '');
+    }
+    // 11c2. 1.6.2 U3:搜尋打 #分類名 只剩那一區
+    {
+      v.狀態.新主題 = ''; v.狀態.新內容 = '#6'; v.狀態.搜尋 = true;
+      const 剩 = v.基底(v.卡片);
+      ok('U3 #section filters to that section', 剩.length > 0 && 剩.every(x => x.分類 === '6'), 剩.map(x => x.分類));
+      v.狀態.新內容 = ''; v.狀態.搜尋 = false;
+    }
+    // 11d. 1.6.2 B7:匯出只有長圖,720px × 2 = 1440px 寬的 PNG(測完丟垃圾桶)
+    {
+      const 圖路 = await v.輸出();
+      const 圖檔 = 圖路 && app.vault.getAbstractFileByPath(圖路);
+      let 寬 = 0;
+      if (圖檔) { const b = new Uint8Array(await app.vault.readBinary(圖檔)); 寬 = (b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19]; }
+      ok('B7 export = 1440px-wide PNG', 寬 === 1440, [圖路, 寬]);
+      if (圖檔) await app.vault.trash(圖檔, true);
+    }
     // 12. 全部轉換(同資料夾備份)
     const 前 = await 讀();
     const c = await P.寫手.轉新格式(f, v.名單);
