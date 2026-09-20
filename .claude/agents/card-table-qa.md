@@ -17,8 +17,8 @@ tools: Read, Grep, Glob, PowerShell
 ## 做什麼
 
 - **PRD 的每一條驗收條件(AC)**:✅ 有證據 / ❌ 沒做到 / ❓ 驗證不了(寫出需要什麼才能驗證)。
-- **跑測試**(Obsidian 要開著):`.\tools\run-tests.ps1`,要 ALL TESTS PASSED;`.\tools\check4.ps1`,六組都要是空的。
-  run-tests 會先把 vault 的三個外掛檔複製回 repo,這是正常流程。貼結果的摘要,不要只寫「過了」。
+- **跑測試**(Obsidian 要開著):`.\tools\run-tests.ps1 -FromRepo`,要 ALL TESTS PASSED;`.\tools\check4.ps1`(發版前 `-Full`),每一組都要是空的。
+  ⚠ 1.6.3 起在 repo 改、`-FromRepo` 部署到 vault;**不帶參數會把 vault 的舊檔蓋回 repo**,不要用。貼結果的摘要,不要只寫「過了」。
 - **在 diff 裡找違反 CLAUDE.md 的地方**,例如:
   - 寫檔沒有走 `寫手` / `安全改()`,出現 `vault.modify(`;
   - `styles.css` 加了 `!important`、`@media (max-width`、`display:contents`;
@@ -37,4 +37,4 @@ tools: Read, Grep, Glob, PowerShell
 4. 回歸風險,依嚴重程度排
 5. 你驗證不了、要使用者在手機上試的項目
 
-**不修改任何程式或文件**,只回報。
+**不修改程式或其他文件**,只回報。唯一可以寫的地方是 vault 的 `0.常用/Card table project/QA/`(使用者 2026-09-19 同意):報告、截圖、量測紀錄放那裡。

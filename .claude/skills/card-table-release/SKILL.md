@@ -38,7 +38,7 @@ README 只在使用者看得到的功能變了才改,而且要精簡(每個大�
 
 ```powershell
 .\tools\run-tests.ps1      # 部署 → 語法 → 重載 → 版本 → 格式測試 → 看板測試,要 ALL TESTS PASSED
-.\tools\check4.ps1         # 動過版面才需要;六組都要是空的
+.\tools\check4.ps1 -Full   # 動過版面才需要;發版前一定跑 -Full(中英 × 1280 / 800 / 390 / 360),每組都要是空的
 ```
 
 Mac 的跑法見技能 `card-table-format-test`。有 UI 改動的版本,發版前用 `better-interface` 整體看一次。

@@ -227,10 +227,11 @@
    ⚠ 用 background-image(漸層)不要用 background-color ——
      background-color 會被 tbody tr:hover 的規則蓋掉,滑鼠剛好停在上面就不會閃。
    ⚠ 只動 opacity / background-image,不動 layout,才不會在捲動中掉格。 */
+/* 1.6.3 C21:漸進 —— 慢慢亮起來、慢慢退掉(以前 0.14 秒就衝到最亮,像閃一下) */
 @keyframes tk-閃現 {
   0%   { opacity:0; }
-  12%  { opacity:0.22; }
-  45%  { opacity:0.22; }
+  35%  { opacity:0.18; }
+  55%  { opacity:0.18; }
   100% { opacity:0; }
 }
 
@@ -308,7 +309,8 @@
   /* 1.6.2(CR-02):框往上挪「上內距 + 框線」,裡面的字才會停在閱讀時的同一個高度(以前一按編輯往下掉 6.5px)。
      框線因此落在主題和內容之間的空隙裡。 */
   padding:3px 6px 6px 0;
-  margin:-4px 0 4px;
+  /* 左邊 -1px 抵掉自己的框線,編輯時的字才跟閱讀時一樣停在 18(R1 / 原則 10) */
+  margin:-4px 0 4px -1px;
   box-shadow:0 0 0 2px color-mix(in srgb, var(--text-accent) 14%, transparent);
 }
 @supports not (background: color-mix(in srgb, red 10%, transparent)) {
@@ -320,7 +322,7 @@
      所以都帶 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 開頭 —— 不用 !important。 */
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 { height:auto; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-editor { background:transparent; height:auto; }
-.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-scroller { padding:0 6px 0 4px; overflow:visible; min-height:0; }
+.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-scroller { padding:0 6px 0 0; overflow:visible; min-height:0; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-sizer { max-width:none; margin:0; padding:0; min-height:0; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-contentContainer { min-height:0; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-content { padding:0; min-height:1.55em; font-size:0.94em; }
@@ -365,8 +367,9 @@
    字級、行高、左邊 5px 沿用上面的所見即所得數字(跟即時預覽編輯器同一套);段落、清單、表格的間距交給 Obsidian,
    只把第一個和最後一個元素的外距拿掉,卡片上下不要多出一截空白。
    ⚠ 唯一保留的差別:編修框有框線和內距(要看得出正在編輯,1.3 的規則)。 */
+/* 1.6.3(R1 / Guide 18):卡片內容的字跟主題對齊在 18 —— 以前多 5px(那是舊的「5 = 編輯的字」那條線) */
 .tk-board .tk-md {
-  padding-left:5px;
+  padding-left:0;
   font-size:calc(var(--font-text-size, 16px) * 0.94);
   line-height:var(--line-height-normal);
   overflow-wrap:anywhere;
@@ -377,13 +380,16 @@
    (字級 15.04px 量的,換成 em 才會跟著字級走)。閱讀模式 Obsidian 一律縮 24.3px,所以 bullet 偏右、待辦和巢狀偏左。
    巢狀清單的內距 = tab − 上一層符號的寬度,子項才會落在編輯器的同一個位置。 */
 .tk-board .tk-md ul > li { margin-inline-start:1.396em; }
-.tk-board .tk-md ul > li.task-list-item { margin-inline-start:2.061em; }
+.tk-board .tk-md ul > li.task-list-item { margin-inline-start:2.141em; }
 .tk-board .tk-md ol > li { margin-inline-start:1.795em; }
 .tk-board .tk-md ul > li > ul, .tk-board .tk-md ul > li > ol { padding-inline-start:0.864em; }
 .tk-board .tk-md ul > li.task-list-item > ul, .tk-board .tk-md ul > li.task-list-item > ol { padding-inline-start:0.199em; }
 .tk-board .tk-md ol > li > ul, .tk-board .tk-md ol > li > ol { padding-inline-start:0.465em; }
 .tk-board .tk-md > :first-child { margin-top:0; }
 .tk-board .tk-md > :last-child { margin-bottom:0; }
+/* R2 / 原則 10(所見即所得,**垂直**也要):閱讀模式的段落和清單之間有 Obsidian 的預設上下外距,
+   即時預覽編輯器沒有 —— 一按編輯,底下的待辦就往上跳 16px。段落和清單之間不留外距,兩邊才一樣。 */
+.tk-board .tk-md p, .tk-board .tk-md ul, .tk-board .tk-md ol { margin-top:0; margin-bottom:0; }
 /* 收合:露大約兩行半,下緣淡出(以前是數行數,表格、分隔線沒有「行」可以數) */
 .tk-board .tk-md.tk-md-收 {
   max-height:calc(var(--line-height-normal) * 2.6em);
@@ -437,25 +443,188 @@
 .tk-board.tk-窄 .tk-卡群 {
   padding:0;
 }
+/* 1.6.3 三條線(mockup v16 定案,取代 v7 的 5 / 5–13 / 18):
+     **3px** = 編輯的字、**3–18px** = 溝(分類色條、📌、收合箭頭、塊的圖示)、**18px** = 其他的字。
+   卡片左邊不再用 border 畫色條 —— 色條是一個按得到的元素(.tk-色條 = 完成鈕)。 */
 .tk-board.tk-窄 .tk-列 {
   position:relative;
   display:block;
   min-width:0;
   margin:0;
-  padding:10px 10px 11px;
+  /* 1.6.3(mockup v16 .card):右邊 6px —— ⋯ 的右緣才跟標題列的 ⋯ 對齊 */
+  padding:7px 6px 8px 0;
   border:0;
-  border-left:3px solid transparent;
   border-radius:0;
   background-color:var(--background-primary);
-  box-shadow:inset 0 -1px 0 var(--background-modifier-border-hover, var(--background-modifier-border));
+  /* 分隔線從 18px(字的起點)畫到右邊 6px,不穿過色條那一欄(mockup 的 .sep:margin 0 6px 0 18px) */
+  background-image:linear-gradient(var(--background-modifier-border-hover, var(--background-modifier-border)), var(--background-modifier-border-hover, var(--background-modifier-border)));
+  background-size:calc(100% - 24px) 1px;
+  background-position:18px 100%;
+  background-repeat:no-repeat;
 }
 .tk-board.tk-窄 .tk-列:last-child {
   margin-bottom:0;
-  box-shadow:none;
+  background-image:none;
 }
-.tk-board.tk-窄 .tk-列.tk-todo {
-  border-left-color:var(--tk-sec, var(--background-modifier-border));
+.tk-board.tk-窄 .tk-列 > .tk-格 {
+  padding-left:18px;
 }
+/* 分類色條 = 完成鈕:平常 4px,**從 3 開始**(溝的左邊那條紅線,跟 📌 對齊 —— 使用者 09-20:
+   「色線跟 pin 有沒有對齊?回去看 mockup 的輔助線」)。滑過**只往右長**出 ✓、上面浮出分類名;
+   完成 = 綠色,再點一次復原。⚠ 左緣一律 3:滑過時左緣跟著動的話,按的位置會晃(原則 11)。 */
+.tk-board .tk-色條 {
+  position:absolute;
+  left:3px;
+  /* ⚠ 使用者 09-20:「碰到卡片色線不能動,要**碰到色線** pin 才會移出來」——
+     平常 8(滿版);**滑過卡片一個 px 都不動**;只有滑到色線自己,才往下讓 22px 出來給 📌。
+     不會抖:色條的 ::before 把「算滑到」的範圍一路含到卡片頂端(見底下),
+     色條往下讓位之後游標還在那個範圍裡,不會一直 hover → 離開 → hover。 */
+  top:8px;
+  bottom:8px;
+  width:4px;
+  border-radius:3px;
+  background:var(--tk-sec, var(--background-modifier-border));
+  color:var(--background-primary);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  z-index:1;
+  transition:width .12s ease, left .12s ease;
+}
+/* 按得到、算「滑到色線」的範圍:左邊只留 3(色條從 3 開始,再往左就跑出板子外面),
+   **上面一路含到卡片頂端** —— 平常色條在 8,所以 -8;讓位之後在 22,所以 -22。
+   這樣色條往下讓位的時候,游標還在同一個範圍裡(不會 hover → 離開 → 又回來地閃),
+   而且從色條往上移到 📌 的路上也不會斷掉。 */
+.tk-board .tk-色條::before {
+  content:"";
+  position:absolute;
+  inset:-8px -5px -6px -3px;
+}
+.tk-board .tk-色條:hover::before, .tk-board .tk-列.tk-頂列 > .tk-色條::before {
+  inset:-22px -5px -6px -3px;
+}
+.tk-board.tk-觸 .tk-色條::before {
+  inset:-22px -9px -8px -3px;
+}
+.tk-board .tk-色條 .tk-色勾 { display:none; }
+.tk-board .tk-色條:hover, .tk-board .tk-色條:focus-visible {
+  width:9px;
+  outline:none;
+}
+.tk-board .tk-色條:hover .tk-色勾, .tk-board .tk-色條:focus-visible .tk-色勾 { display:inline-flex; }
+.tk-board .tk-色條.tk-色條-完 { background:var(--color-green, #3aa76d); }
+.tk-board .tk-色條.tk-色條-復 {
+  width:9px;
+  background:var(--text-muted);
+}
+.tk-board .tk-色名 {
+  position:absolute;
+  left:12px;
+  top:-12px;
+  display:none;
+  padding:2px 6px;
+  border-radius:5px;
+  font-size:10px;
+  font-weight:700;
+  line-height:1.3;
+  white-space:nowrap;
+  pointer-events:none;
+  color:var(--tk-sec, var(--text-muted));
+  background:var(--background-secondary-alt, var(--background-secondary));
+  box-shadow:0 2px 6px rgba(0,0,0,0.25);
+}
+.tk-board .tk-色條:hover .tk-色名 { display:block; }
+/* 主題膠囊(使用者在 mockup 自己調的:圓角 8、左右內距 2、高 17)。第一顆往左 2px,字對齊 18px */
+.tk-board .tk-主題 {
+  display:inline-flex;
+  align-items:center;
+  height:17px;
+  padding:0 2px;
+  border-radius:8px;
+  font-size:0.8em;
+  font-weight:700;
+  line-height:1;
+  white-space:nowrap;
+  max-width:100%;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  cursor:pointer;
+  box-sizing:border-box;
+  color:var(--tk-題色, var(--text-normal));
+}
+/* Q8(mockup v10/v12,使用者「ok」):**淺色主題**下膠囊的字太淡(對比 1.8–2.5,看不清楚)——
+   把分類色混黑加深到 4.9–5.6。深色主題不動(那邊本來就夠)。 */
+.theme-light .tk-board .tk-主題 { color:color-mix(in srgb, var(--tk-題色, var(--text-normal)) 58%, #000); }
+@supports not (color: color-mix(in srgb, red 50%, #000)) {
+  .theme-light .tk-board .tk-主題 { color:var(--tk-題色, var(--text-normal)); }
+}
+/* 膠囊的底色從 15 開始、字從 18(內距 2 + 1px 的視覺補正):是第一個的時候往左 2px。
+   ⚠ 編修時的主題輸入框(.tk-題編)要用**同一條**規則,不然一按編輯主題就左右跳 2px(原則 10)。 */
+.tk-board .tk-題左 > .tk-主題:first-child,
+.tk-board .tk-題左 > .tk-題編:first-child { margin-left:-2px; }
+/* 1.6.3(mockup v15/v16 Q35):第二個以後的主題是**副標** —— 內文色、沒有底色、沒有膠囊 */
+.tk-board .tk-副標 {
+  display:inline-flex;
+  align-items:center;
+  height:17px;
+  font-size:0.8em;
+  font-weight:500;
+  line-height:1;
+  white-space:nowrap;
+  max-width:100%;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  cursor:pointer;
+  color:var(--text-normal);
+  box-sizing:border-box;
+}
+.tk-board .tk-題右 {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 1 auto;
+  min-width:0;
+  min-height:24px;
+}
+.tk-board .tk-題右 > .tk-date { flex:0 1 auto; min-width:0; }
+/* 1.6.3(mockup v13 #1、v12 #9):頭像 17px(跟主題膠囊等高),**顏色統一**淡灰 ——
+   使用者 09-20:「顏色太混亂」,顏色只留給分類、逾期、週期、今天。
+   ⚠ 底色寫在這裡,不要回去用 人色():使用者不能改指派人的顏色(名單在全域設定)。 */
+.tk-board .tk-頭像 {
+  width:17px;
+  height:17px;
+  flex:0 0 17px;
+  border-radius:50%;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  font-weight:700;
+  line-height:1;
+  color:var(--text-normal);
+  background:var(--background-modifier-border);
+  cursor:pointer;
+}
+/* 沒有指派人:留一個同寬的空位(Q21),主題才跟別張卡片對齊;滑過才淡淡出現 ＋ */
+.tk-board .tk-頭像空 {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:17px;
+  height:17px;
+  flex:0 0 17px;
+  color:var(--text-faint);
+  cursor:pointer;
+  opacity:0;
+  transition:opacity .12s ease;
+}
+.tk-board .tk-列:hover .tk-頭像空 { opacity:0.6; }
+.tk-board.tk-觸 .tk-頭像空 { opacity:0.35; }
+/* 📌 1.6.3 搬到溝裡(色條上面)了,規則在檔案最後面的 .tk-溝釘;
+   以前寫在這裡的 .tk-題右 .tk-釘 已經沒有元素掛得到,拿掉(死規則最難發現)。 */
 /* 卡頭:📌 ◯ 日期 ········ 指派人 ⋯ —— 底下一條分隔線,跟主題和內容分開。
    ⚠ nowrap 不能拿掉:flex 是「先斷行、後壓縮」,差 2px 就會把「⋯」整顆擠到第二行,
      有些卡片的右上角在右上、有些在左下。不准換行之後,壓縮的是日期和名字(兩個都有省略號)。 */
@@ -522,6 +691,7 @@
 .tk-board.tk-窄 .tk-列.tk-完淡 > .tk-格 {
   opacity:0.55;
 }
+/* 1.6.3:手機版要看得到色條可以點,完成的卡片色條不淡化 */
 .tk-board.tk-窄 .tk-列.tk-完淡,.tk-board.tk-窄 .tk-列.tk-完劃 {
   background-color:color-mix(in srgb, var(--color-green, #3aa76d) 7%, var(--background-primary));
 }
@@ -547,11 +717,518 @@
   background:var(--text-accent);
   opacity:0;
   border-radius:0;
-  animation:tk-閃現 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation:tk-閃現 1.4s ease-in-out forwards;
 }
 .tk-board.tk-窄 .tk-列.tk-定位 {
   box-shadow:inset 0 0 0 2px var(--text-accent);
 }
 @media (prefers-reduced-motion: reduce) {
   .tk-board.tk-窄 .tk-列.tk-閃::after { animation:none; opacity:0.16; }
+}
+
+/* ============================================================
+   1.6.3(mockup v7)時間篩選 / 塊的標題列
+   三條線:5px 編輯的字 · 5–13px 溝(收合箭頭、詳細編輯鈕)· 18px 其他的字
+   ============================================================ */
+.tk-board .tk-篩塊 {
+  border-radius:9px;
+  border:1px solid var(--background-modifier-border);
+  background:var(--background-secondary);
+  box-shadow:0 1px 3px rgba(0,0,0,0.16);
+}
+/* 1.5.1 起所有塊的標題列都是 26 高(手機和桌機一樣);mockup v16 的 .bar 也是 26 */
+.tk-board .tk-塊頭 {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  height:26px;
+  padding:0 6px 0 0;
+  box-sizing:border-box;
+  min-width:0;
+  cursor:pointer;
+  user-select:none;
+}
+.tk-board .tk-塊頭.tk-有身 { margin-bottom:2px; }
+/* 溝 = 3–18(mockup v9 Q19 起,以前 5–13),圖示填滿整條溝(14)→ 置中在 10.5。
+   ⚠ 以前有 margin-right:-4px,讓溝後面的東西接在 18;v15 Q31 起**第一個圖示在 22**
+   (18 + 標題列的 gap 4),所以那條負邊距拿掉了。 */
+.tk-board .tk-溝 {
+  width:18px;
+  flex:0 0 18px;
+  height:22px;
+  padding-left:3px;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text-muted);
+  border-radius:5px;
+  cursor:pointer;
+}
+.tk-board .tk-溝:hover { color:var(--text-normal); }
+.tk-board .tk-頭圖 {
+  display:inline-flex;
+  align-items:center;
+  line-height:0;
+  color:var(--text-muted);
+  flex:0 0 auto;
+}
+.tk-board .tk-頭圖.tk-可點 { cursor:pointer; border-radius:5px; padding:3px; margin:-3px 0; }
+.tk-board .tk-頭圖.tk-可點:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
+.tk-board .tk-頭圖.tk-亮 { color:var(--text-accent); }
+.tk-board .tk-頭字 {
+  font-size:12px;
+  font-weight:700;
+  line-height:1.4;
+  padding-top:2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+/* 「今日」的顏色 = 卡片上今天日期的顏色(C6) */
+.tk-board .tk-今色 { color:var(--text-accent); }
+.tk-board .tk-撐 { flex:1 1 auto; }
+/* ⋯ 和標題列上的小圖示鈕:26 × 22、沒有左右內距 —— 14px 的圖示置中之後,
+   右緣跟卡片上的 ⋯ 落在同一條線(M4)。 */
+.tk-board .tk-頭鈕 {
+  height:22px;
+  min-width:26px;
+  padding:0;
+  border-radius:6px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text-muted);
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.tk-board .tk-頭鈕:hover, .tk-board .tk-頭鈕.tk-亮 { background:var(--background-modifier-hover); color:var(--text-normal); }
+/* 行事曆標題列右邊的「全部」:是字不是圖示,所以有框才看得出可以按(mockup v16) */
+.tk-board .tk-頭鈕.tk-框鈕 {
+  padding:0 8px;
+  font-size:11.5px;
+  font-weight:600;
+  line-height:1.4;
+  border:1px solid var(--background-modifier-border);
+}
+.tk-board .tk-頭鈕.tk-框鈕.tk-亮 { border-color:var(--text-accent); color:var(--text-accent); }
+/* ⋯ 往左彈出(全部 · 未完成|已完成 · 封存區) */
+.tk-board .tk-彈 {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  min-width:0;
+  animation:tk-左滑 .16s ease-out;
+}
+@keyframes tk-左滑 { from { opacity:0; transform:translateX(14px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) { .tk-board .tk-彈 { animation:none; } }
+/* mockup v16 的 .seg / .sg:整顆切換 26 高(跟所有標題列一樣),裡面的鈕 22 */
+.tk-board .tk-段 {
+  display:inline-flex;
+  align-items:center;
+  height:26px;
+  padding:2px;
+  box-sizing:border-box;
+  border-radius:999px;
+  background:var(--background-modifier-hover);
+}
+.tk-board .tk-段鈕 {
+  height:22px;
+  padding:0 9px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  font-size:11.5px;
+  line-height:1;
+  white-space:nowrap;
+  color:var(--text-muted);
+  cursor:pointer;
+}
+.tk-board .tk-段鈕.tk-獨 { height:22px; background:var(--background-modifier-hover); }
+.tk-board .tk-段鈕.tk-亮 { background:var(--background-modifier-border); color:var(--text-normal); font-weight:600; }
+.tk-board .tk-段鈕.tk-封鈕.tk-亮 { color:var(--color-orange, #e08a2e); }
+/* 格子 */
+/* U20(mockup v9 #5,使用者「這排一樣從 3 開始」):篩選那一排從 **3** 開始(跟編輯的字同一條線),
+   四格 **116** 寬、已逾期 / 週期各 52。 */
+.tk-board .tk-篩條 {
+  display:flex;
+  gap:6px;
+  padding:0 6px 8px 3px;
+  align-items:stretch;
+  min-width:0;
+}
+.tk-board .tk-篩欄 { display:flex; flex-direction:column; gap:2px; flex:0 0 auto; }
+.tk-board .tk-篩格 {
+  position:relative;
+  width:116px;
+  height:25px;
+  flex:0 0 auto;
+  display:flex;
+  align-items:stretch;
+  box-sizing:border-box;
+  border-radius:9px;
+  background:var(--background-modifier-hover);
+  cursor:pointer;
+  user-select:none;
+}
+.tk-board .tk-篩格.tk-大 { height:52px; }
+.tk-board .tk-篩格.tk-小 { width:52px; }
+.tk-board .tk-篩格.tk-亮 {
+  background:color-mix(in srgb, var(--interactive-accent) 24%, transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 65%, transparent);
+}
+.tk-board .tk-篩箭 {
+  flex:0 0 16px;
+  width:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text-muted);
+  border-radius:7px;
+  z-index:1;
+}
+.tk-board .tk-篩箭:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
+.tk-board .tk-篩格.tk-亮 .tk-篩箭 { color:var(--text-accent); }
+/* U21(Q29 / mockup v16 的 .two):格子中間是上下兩排 —— 上排張數 25、下排字或圖示 25(52 − 25 − 25 = 2 的縫)。
+   箭頭不在這個盒子裡,照舊跨整格高(1.4.9:才會跟本日那一格的箭頭齊平)。
+   沒有張數的格子(月 / 週、詳細編輯的小篩)帶 .tk-篩單 → 那一排置中。 */
+.tk-board .tk-篩兩 {
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  white-space:nowrap;
+  overflow:hidden;
+}
+.tk-board .tk-篩兩.tk-篩單 { justify-content:center; }
+/* 張數:每一格上面 25px 那一排,所有張數在同一條線 */
+.tk-board .tk-篩數 {
+  height:25px;
+  flex:0 0 25px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  line-height:1;
+  color:var(--text-muted);
+  font-variant-numeric:tabular-nums;
+  pointer-events:none;
+}
+/* 年份、日期、圖示:下排那 25px 裡上下置中(line-height:1) */
+.tk-board .tk-篩中 {
+  height:25px;
+  flex:0 0 25px;
+  max-width:100%;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  overflow:hidden;
+  font-size:12.5px;
+  font-weight:600;
+  line-height:1;
+  color:var(--text-normal);
+}
+.tk-board .tk-年字 { letter-spacing:0.1em; padding-left:0.1em; }
+.tk-board .tk-週連 { margin:0 3px; color:var(--text-muted); }
+.tk-board .tk-週名 { margin-left:3px; }
+/* 手機 / 分頁很窄:格子照比例縮(先桌機,手機之後再調) */
+.tk-board.tk-密 .tk-篩條 { gap:4px; padding-right:6px; }
+.tk-board.tk-密 .tk-篩格 { width:auto; flex:1 1 0; min-width:0; }
+.tk-board.tk-密 .tk-篩欄 { flex:1.3 1 0; min-width:0; }
+.tk-board.tk-密 .tk-篩欄 .tk-篩格 { width:auto; }
+.tk-board.tk-密 .tk-篩格.tk-小 { flex:0.6 1 0; }
+.tk-board.tk-密 .tk-篩中 { font-size:11px; }
+/* ============================================================
+   1.6.3(mockup v7)新增卡片 / 詳細編輯
+   ============================================================ */
+.tk-board .tk-塊頭.tk-靜 { cursor:default; }
+.tk-board .tk-溝.tk-亮 { color:var(--text-accent); }
+/* 分類圓點(U25,使用者 09-20 連說兩次「不夠大」):**圓點 16**、點擊範圍 **26 × 26**,
+   ▾ 縮小到 7px 放在右上角(不會跟收合箭頭搞混)。
+   ⚠ 圓點自己靠左(不置中):它是標題列上溝後面的第一個東西,要落在 22 那條線上(M3);
+     詳細編輯的題排裡靠左就落在 18。▾ 要在盒子裡面 —— 凸出去的點不到,check4 也會報溢出。 */
+.tk-board .tk-點座 {
+  position:relative;
+  flex:0 0 auto;
+  width:26px;
+  height:26px;
+  display:flex;
+  align-items:center;
+  cursor:pointer;
+}
+.tk-board .tk-點 {
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  border:2px solid var(--text-muted);
+  box-sizing:border-box;
+}
+.tk-board .tk-點座 .tk-小尖 { right:1px; top:5px; }
+.tk-board .tk-小尖 {
+  position:absolute;
+  right:0;
+  top:2px;
+  line-height:0;
+  color:var(--text-muted);
+  pointer-events:none;
+}
+/* 常用主題那一排:一行,放不下的整顆藏起來(☰ 更多永遠在最前面) */
+.tk-board .tk-常用列 {
+  flex:1 1 auto;
+  min-width:0;
+  height:17px;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  align-content:flex-start;
+  gap:5px;
+  overflow:hidden;
+}
+.tk-board .tk-常用列 .tk-主題 { gap:3px; }
+.tk-board .tk-主題.tk-更多 {
+  color:var(--text-muted);
+  background:var(--background-modifier-hover);
+  padding:0 5px;
+}
+/* U27(v13 #3):「☰ 57」的數字是**張數的層級** —— 11px、灰、不粗(跟 .tk-頭數 同一種樣子) */
+.tk-board .tk-主題.tk-更多 .tk-更多數 {
+  font-size:11px;
+  font-weight:400;
+  color:var(--text-muted);
+  font-variant-numeric:tabular-nums;
+}
+.tk-board .tk-主題.tk-已釘題 { box-shadow:inset 0 0 0 1px currentColor; }
+/* U32:輸入框裡已經有 3 個主題 → 還沒選到的膠囊變淡、不能按 */
+.tk-board .tk-主題.tk-題滿 { opacity:0.35; cursor:default; }
+/* U26 / U31:常用主題的收合箭頭 —— 在「☰ 57」右邊、**沒有底色也沒有框**(狀態靠方向:收起 ⌄ / 展開 ›) */
+.tk-board .tk-題箭 {
+  flex:0 0 16px;
+  width:16px;
+  height:17px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  line-height:0;
+  color:var(--text-muted);
+  background:transparent;
+  cursor:pointer;
+}
+.tk-board .tk-題箭.tk-亮 { color:var(--text-accent); }
+.tk-board .tk-題箭:hover { color:var(--text-normal); }
+.tk-board .tk-人鈕 {
+  position:relative;
+  flex:0 0 auto;
+  height:24px;
+  padding:0 7px 0 2px;
+  display:inline-flex;
+  align-items:center;
+  cursor:pointer;
+  border-radius:6px;
+}
+.tk-board .tk-人鈕:hover { background:var(--background-modifier-hover); }
+.tk-board .tk-人鈕 .tk-頭像空 { opacity:0.7; }
+.tk-board .tk-人鈕 .tk-小尖 { right:1px; top:3px; }
+/* 本體:輸入框透明、沒有框,字從 **3px** 開始(U32,三條線的第一條 = 編輯的字)。
+   U28(v13 #2,使用者「中間偏擠,編輯跟送出稍微往下一點」):上面多 6px。
+   右邊 6px:送出鈕的右緣要跟標題列的 ⋯ 對齊(U29,標題列也是 padding-right:6)。 */
+.tk-board .tk-新身 {
+  display:flex;
+  align-items:flex-end;
+  gap:6px;
+  padding:6px 6px 8px 0;
+}
+.tk-board .tk-新入 {
+  position:relative;
+  flex:1 1 auto;
+  min-width:0;
+  /* 26 = 跟送出鈕一樣高(mockup v16:3px 上 / 26 / 9px 下)。以前 44:空的時候中間空一大塊、
+     送出鈕孤零零掛在右下角,U28 的 +6px 之後更明顯。內容長了編輯器自己會長高。 */
+  min-height:26px;
+  padding:3px 0 3px 3px;     /* U32:字從 3(三條線的第一條);編輯器自己沒有左內距,所以這裡就是那 3px(M16) */
+  cursor:text;
+  background:transparent;
+  border:0;
+}
+.tk-board .tk-詳身 .tk-新入 { min-height:128px; }
+/* 空白時的 square-pen(U34)放在游標右邊一點:游標在 3,圖示從 7 開始(mockup v16 的 1px 游標 + 3 間距) */
+.tk-board .tk-新入 .tk-即時提示 { left:7px; top:7px; }
+.tk-board .tk-新入字 {
+  width:100%;
+  min-height:20px;           /* 退路的 textarea:加上 .tk-新入 的上下 3px = 26(跟送出鈕一樣高) */
+  resize:none;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+  padding:3px 0;             /* 退路的 textarea:左內距交給 .tk-新入 的 3px(U32) */
+  font-family:var(--font-text);
+  font-size:0.92em;
+  line-height:1.5;
+}
+/* 送出:固定大小,不跟著輸入框長高。
+   U29(mockup v9 #2,使用者在送出鈕上畫了兩條線):**56 寬** —— 左緣對頭像、右緣對 ⋯。 */
+.tk-board .tk-送小 {
+  flex:0 0 auto;
+  width:56px;
+  height:26px;
+  border-radius:8px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  color:var(--text-on-accent, #fff);
+  cursor:pointer;
+  box-sizing:border-box;
+}
+.tk-board .tk-送小:hover { filter:brightness(1.1); }
+.tk-board .tk-送小.tk-送寬 { width:auto; height:28px; padding:0 12px; font-size:12px; font-weight:700; }
+/* 詳細編輯:送出自己一排、靠右(mockup v16:左邊 18、右邊 6 —— 右緣還是對 ⋯) */
+.tk-board .tk-送排 { display:flex; justify-content:flex-end; padding:0 6px 8px 18px; }
+.tk-board .tk-分隔 { height:1px; margin:0 8px 0 5px; background:var(--background-modifier-border); }
+/* 詳細編輯:小時間篩選(週、日、週期)、主題排 */
+.tk-board .tk-小篩 { display:flex; gap:6px; align-items:center; padding:0 8px 6px 18px; flex-wrap:wrap; }
+.tk-board .tk-小篩 .tk-篩格 { height:26px; }
+/* U30 / U24:「🔁 每 2 週 ▾」在詳細編輯的標題列上、日期右邊(mockup v16:高 16、內距 4、淡紫底) */
+.tk-board .tk-循鈕 {
+  position:relative;
+  flex:0 0 auto;
+  height:16px;
+  padding:0 11px 0 4px;
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  border-radius:8px;
+  font-size:11.5px;
+  font-weight:600;
+  line-height:1;
+  white-space:nowrap;
+  cursor:pointer;
+  color:var(--color-purple, #8a6ed4);
+  background:color-mix(in srgb, var(--color-purple, #8a6ed4) 16%, transparent);
+}
+@supports not (color: color-mix(in srgb, red 50%, #000)) {
+  .tk-board .tk-循鈕 { background:var(--background-modifier-hover); }
+}
+.tk-board .tk-循鈕 .tk-小尖 { right:3px; top:4px; }
+.tk-board .tk-題排 { display:flex; align-items:center; gap:4px; padding:0 8px 8px 18px; min-width:0; }
+/* ============================================================
+   1.6.3(mockup v7)封存區(取代新增卡片那一塊)
+   ============================================================ */
+.tk-board .tk-頭數 { font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums; flex:0 0 auto; padding-top:2px; }
+/* U53(Q7):空清單 —— 一個淡的 inbox 圖示,水平 + 垂直置中(mockup v16:56 高) */
+.tk-board .tk-空清單 {
+  height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text-faint);
+}
+/* U41(Q39 / Q40):面板裡的清單可以捲,捲軸**細、深灰、不要漸層**。
+   顏色走 Obsidian 的變數(視覺基準:深淺色自動跟著變,不寫死色碼)。 */
+.tk-board .tk-細捲 { scrollbar-width:thin; scrollbar-color:var(--scrollbar-thumb-bg) transparent; }
+.tk-board .tk-細捲::-webkit-scrollbar { width:6px; height:6px; }
+.tk-board .tk-細捲::-webkit-scrollbar-thumb { background:var(--scrollbar-thumb-bg); border-radius:3px; }
+.tk-board .tk-細捲::-webkit-scrollbar-track { background:transparent; }
+.tk-board .tk-封表 { display:flex; flex-direction:column; padding-bottom:4px; max-height:92px; overflow-y:auto; }
+.tk-board .tk-封空 { padding:4px 18px 8px; font-size:12px; color:var(--text-faint); }
+.tk-board .tk-封列 {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  height:30px;
+  padding:0 8px 0 0;
+  cursor:pointer;
+  font-size:13px;
+  color:var(--text-normal);
+}
+.tk-board .tk-封列:hover { background:var(--background-modifier-hover); }
+/* 選到的那一區:底色 + 底線(不另外放眼睛) */
+.tk-board .tk-封列.tk-亮 {
+  background:color-mix(in srgb, var(--color-orange, #e08a2e) 12%, transparent);
+  box-shadow:inset 0 -2px 0 var(--color-orange, #e08a2e);
+  font-weight:600;
+}
+.tk-board .tk-封點 {
+  width:10px; height:10px; border-radius:50%;
+  margin:0 -2px 0 4px;
+  flex:0 0 auto;
+  background:var(--text-faint);
+}
+.tk-board .tk-封名 { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tk-board .tk-封名.tk-淡 { color:var(--text-muted); }
+/* 預覽列(使用者 09-20:左邊按了 🗄 還沒按 ✓)—— 虛線 = 還沒生效;左邊那一列同時也是橘色的 */
+.tk-board .tk-封列.tk-封預 {
+  box-shadow:inset 0 0 0 1px transparent;
+  outline:1px dashed color-mix(in srgb, var(--color-orange, #e08a2e) 60%, transparent);
+  outline-offset:-2px;
+  color:var(--color-orange, #e08a2e);
+}
+@supports not (color: color-mix(in srgb, red 50%, #000)) {
+  .tk-board .tk-封列.tk-封預 { outline-color:var(--color-orange, #e08a2e); }
+}
+/* U39 / U40(Q42,使用者回「→ 和 ⋯ 的距離」):每一列右邊的 →(移出)和 ⋯ 是**同一組**
+   —— 中間 4px(群組內 4、群組間 ≥ 8,v16 #10),不要各自散開。
+   ⚠ 1.6.3 把「還原」搬進 ⋯ 之後,舊的 .tk-封還 / .tk-待確 / @keyframes tk-倒數 已經沒有元素掛得到,
+     一起拿掉(CLAUDE.md 的坑 #1:死掉的 CSS 規則最難發現)。 */
+.tk-board .tk-封具 { display:flex; align-items:center; gap:4px; flex:0 0 auto; }
+/* 沒有 → ⋯ 的那幾列(「以前單張封存的卡片」、預覽列)照樣佔 52 寬,張數才跟上面幾列對齊 */
+.tk-board .tk-封具.tk-空位 { visibility:hidden; flex:0 0 52px; width:52px; }
+.tk-board .tk-封鈕 {
+  flex:0 0 24px;
+  width:24px; height:22px;
+  border-radius:7px;
+  display:inline-flex; align-items:center; justify-content:center;
+  color:var(--text-muted);
+  cursor:pointer;
+}
+.tk-board .tk-封鈕:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
+.tk-board .tk-封搜 { display:flex; align-items:center; gap:6px; padding:6px 8px 8px 5px; min-width:0; }
+.tk-board .tk-封搜框 {
+  display:inline-flex; align-items:center; gap:4px;
+  flex:0 0 140px; width:140px;
+  color:var(--text-faint);
+}
+.tk-board .tk-封搜框 input {
+  flex:1 1 auto; min-width:0; width:100%;
+  height:22px; padding:0; margin:0;
+  border:0; background:transparent; box-shadow:none; outline:none;
+  font-size:12.5px; color:var(--text-normal);
+}
+/* 📌 在色條上面(溝的最上面);色條從它底下開始 */
+.tk-board .tk-釘.tk-溝釘 {
+  position:absolute;
+  /* 📌 12px、top 5;**left 3 = 跟色條同一條線**(溝的左邊,使用者 09-20:「色線跟 pin 有沒有對齊」)。
+     mockup 上是 4(色條 5),但輔助線畫的是 3 —— 以線為準,兩個一起對齊到 3。色條從 22 開始(Q45)。 */
+  left:3px;
+  top:5px;
+  width:12px;
+  height:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2;
+  opacity:0;
+}
+.tk-board .tk-釘.tk-溝釘 svg { width:12px; height:12px; }
+/* ⚠ 使用者 09-20:「要**碰到色線** pin 才會移出來」—— 不是碰到整張卡片。
+   色條在 DOM 裡排在 📌 前面(見 畫卡片),所以用相鄰選擇器;📌 自己被滑到時也要留著,不然點不到。 */
+.tk-board .tk-色條:hover ~ .tk-釘.tk-溝釘,
+.tk-board .tk-色條:focus-visible ~ .tk-釘.tk-溝釘,
+.tk-board .tk-釘.tk-溝釘:hover { opacity:0.6; }
+.tk-board .tk-列 .tk-釘.tk-溝釘.tk-已釘 { opacity:1; }
+.tk-board.tk-觸 .tk-釘.tk-溝釘 { opacity:0.35; }
+/* 色條往下讓 22px 出來給 📌:**只有滑到色條自己**(或釘住了、或手機)才讓位 —— 滑過卡片不動。
+   游標移到 📌 上面的時候,色條會離開 hover;`:has` 認得的話就讓它繼續留在 22(認不得也只是彈回去,不影響按)。 */
+.tk-board .tk-列.tk-頂列 > .tk-色條, .tk-board.tk-觸 .tk-列 > .tk-色條 { top:22px; }
+.tk-board .tk-列 > .tk-色條:hover, .tk-board .tk-列 > .tk-色條:focus-visible { top:22px; }
+.tk-board .tk-列:has(> .tk-釘.tk-溝釘:hover) > .tk-色條 { top:22px; }
+.tk-board .tk-色條 { transition:width .12s ease, top .12s ease; }
+/* 1.6.3 C20:設定「滑過卡片時高亮」(預設關)。用 background-image 疊一層,已完成 / 封存的底色照樣看得到 */
+.tk-board.tk-滑亮 .tk-列:hover {
+  background-image:linear-gradient(var(--background-modifier-hover), var(--background-modifier-hover));
 }

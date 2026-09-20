@@ -14,6 +14,13 @@ window.__ctEditorTest = 'running';
   const 有焦點 = document.hasFocus();
   const 焦點ok = (n, c, a) => 有焦點 ? ok(n, c, a) : out.push('skip ' + n + '  (Obsidian 視窗在背景,測不到焦點)');
   const 等到 = async (條件, 最多 = 5000) => { const t = Date.now(); while (Date.now() - t < 最多) { if (await 條件()) return true; await 等(200); } return !!(await 條件()); };
+  // 1.6.3:這台裝置記著的收合先打開(清單收著就找不到卡片),結束還原
+  const 收鍵 = ['card-table-filter-folded', 'card-table-add-folded', 'card-table-list-folded'];
+  const 原收 = 收鍵.map(k => app.loadLocalStorage(k));
+  // 未完成 / 已完成是所有看板共用的設定:使用者停在「已完成」時,測試卡片全都看不到。測試期間換成未完成,結束還原
+  const 原顯 = P.設定.排程顯示;
+  P.設定.排程顯示 = Object.assign({}, 原顯 || {}, { 未完成: true, 完成: false, 封存: false });
+  收鍵.forEach(k => app.saveLocalStorage(k, null));
   const path = 'ZZ-live-edit.md';
   let f = app.vault.getAbstractFileByPath(path);
   if (f) await app.vault.delete(f);
@@ -182,14 +189,14 @@ window.__ctEditorTest = 'running';
     ok('editor unloaded (no leak)', !v.編框, '');
     步('new card');
     // ---- 新增卡片的內容框 ----
-    ok('new-card box is live', !!v.contentEl.querySelector('.tk-即時框 .cm-editor') && !!v.內輸.編輯器, '');
+    ok('new-card box is live', !!v.contentEl.querySelector('.tk-新入 .cm-editor') && !!v.內輸.編輯器, '');   // 1.6.3 mockup v7:新增輸入框是 .tk-新入
     v.狀態.新主題 = '即時新增';
     { const NE = v.內輸.編輯器.editor; NE.replaceRange('**新卡片**內容', { line: 0, ch: 0 }); }   // 模擬打字(直接設 value 不會觸發「改了」,跟 textarea 一樣)
     await 等(300);
     ok('new-card box feeds search', v.狀態.新內容 === '**新卡片**內容', v.狀態.新內容);
-    await 限時(v.送出新增(), 8000, '送出新增'); await 等到(async () => (await app.vault.read(f)).includes('[即時新增]'));
+    await 限時(v.送出新增(), 8000, '送出新增'); await 等到(async () => (await app.vault.read(f)).includes('#即時新增'));
     文 = await app.vault.read(f);
-    ok('new card written from live box', 文.includes('[即時新增]') && 文.includes('\t**新卡片**內容'), 文);
+    ok('new card written from live box', 文.includes('#即時新增') && 文.includes('\t**新卡片**內容'), 文);
     ok('new-card box cleared', v.內輸 && v.內輸.value === '', v.內輸 && v.內輸.value);
     步('comment');
     // ---- 寫留言 ----
@@ -212,6 +219,8 @@ window.__ctEditorTest = 'running';
     leaf.detach();
     await app.vault.trash(f, true);
     P.存設定 = 原存;
+    P.設定.排程顯示 = 原顯;
+    收鍵.forEach((k, i) => app.saveLocalStorage(k, 原收[i] || null));
   }
   out.push('DONE');
   return out.join('\n');

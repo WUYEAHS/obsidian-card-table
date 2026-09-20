@@ -10,9 +10,16 @@
 #   So we measure that overhead once (check.js reports it as "ovh") and set the
 #   viewport to target + overhead. The narrow layout switches on the VIEWPORT
 #   (max-width: 700px), and 390 + overhead is still well under 700.
+#
+# 1.6.3 (user, 2026-09-19): too many runs while iterating. Default = quick: zh-TW + en at desktop 1280 only.
+# -Full = every width (800 / 390 / 360 too). Run -Full before a release (card-table-release).
+param([switch]$Full)
 $o = Join-Path $env:LOCALAPPDATA "Programs\Obsidian\Obsidian.com"
 $p = $PSScriptRoot
-$check = [System.IO.File]::ReadAllText((Join-Path $p "check.js"))
+# 1.6.3: check.js is read by Obsidian from disk. Passing the whole script inline on the command line
+# crashed the CLI's JSON pipe once the script got longer ("A JavaScript error occurred in the main process").
+$checkPath = (Join-Path $p "check.js").Replace('\', '/')
+$check = "eval(require('fs').readFileSync('$checkPath','utf8'))"
 
 function SetLang($lang) {
   $js = "(async()=>{const p=app.plugins.plugins['card-table']; p[String.fromCharCode(35373,23450)]" +
@@ -46,6 +53,7 @@ foreach ($lang in @("zh-TW", "en")) {
   SetW 1280
   "==================== $lang @ desktop 1280px ===================="
   RunCheck
+  if (-not $Full) { continue }
 
   # measure the chrome around the board once per language.
   # CDP widths are DEVICE px; Obsidian's zoom (e.g. 120%) makes CSS px smaller,

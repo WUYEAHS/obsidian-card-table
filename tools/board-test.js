@@ -7,6 +7,8 @@
 window.__ctBoardTest = 'running';
 (async () => {
   const P = app.plugins.plugins['card-table'];
+  // 1.6.3(ADR 1.6.3-01):寫過的卡片主題是 #訂貨,舊的是 [訂貨];找卡片兩種都認
+  const 有題 = (t, 題) => t.includes(題) || (/^\[.*\]$/.test(題) && new RegExp('(^|\\s)#' + 題.slice(1, -1).replace(/\s+/g, '-') + '(\\s|$)').test(t));
   const 原存 = P.存設定;
   const 原設 = JSON.parse(JSON.stringify(P.設定));
   P.存設定 = async () => {};
@@ -37,7 +39,7 @@ window.__ctBoardTest = 'running';
   const 讀 = () => app.vault.read(f);
   const 卡段 = (文, 題) => {           // 某張卡片的所有行(到下一張卡片或標題為止)
     const 行 = 文.split('\n');
-    const i = 行.findIndex(t => /^- \[[ xX]\]/.test(t) && t.includes(題));
+    const i = 行.findIndex(t => /^- \[[ xX]\]/.test(t) && 有題(t, 題));
     if (i < 0) return [];
     let j = i + 1;
     while (j < 行.length && (/^[ \t]/.test(行[j]) || !行[j].trim())) j++;
@@ -46,7 +48,7 @@ window.__ctBoardTest = 'running';
   const 尾是ed = (段) => /^\t\[ed:: \d{4}-\d{2}-\d{2} \d{2}:\d{2}\]$/.test(段[段.length - 1] || '');
   const 原段 = (文, 題) => {           // 同 卡段,但留著中間的空白行(1.6.2 B3 要看空行有沒有被吃掉)
     const 行 = 文.split('\n');
-    const i = 行.findIndex(t => /^- \[[ xX]\]/.test(t) && t.includes(題));
+    const i = 行.findIndex(t => /^- \[[ xX]\]/.test(t) && 有題(t, 題));
     if (i < 0) return [];
     let j = i + 1;
     while (j < 行.length && (/^[ \t]/.test(行[j]) || !行[j].trim())) j++;
@@ -58,7 +60,7 @@ window.__ctBoardTest = 'running';
     let k = v.卡片.find(x => x.主題 === '訂貨');
     await v.切完成(k); await 等(400);
     let 段 = 卡段(await 讀(), '[訂貨]');
-    ok('done converts first line', /^- \[x\] (\[pin:: on\] )?\[訂貨\] \[start:: 2026-09-16\] \[due:: 2026-09-18\] #/.test(段[0]), 段[0]);
+    ok('done converts first line', /^- \[x\] (\[pin:: on\] )?#訂貨 \[start:: 2026-09-16\] \[due:: 2026-09-18\] @/.test(段[0]), 段[0]);
     ok('legacy content moved to line 2', 段[1] === '\t- 每樣兩箱', 段[1]);
     ok('untouched legacy lines kept', 段.includes('\t．打給廠商了'), 段);
     ok('ed is last line', 尾是ed(段), 段);
@@ -143,7 +145,7 @@ window.__ctBoardTest = 'running';
       if (盤 && 盤.__關) 盤.__關();
       const kk = v.卡片.find(x => x.主題 === '巢狀新增');
       await v.搬去分類(kk, '6'); await 等(400);
-      ok('B1 move only this card', /## 6\n+- \[ \] \[巢狀新增\]/.test(await 讀()), '');
+      ok('B1 move only this card', /## 6\n+- \[ \] #巢狀新增/.test(await 讀()), '');
       ok('B1 section colours untouched', JSON.stringify(P.設定.分類顏色 || {}) === 色前, [色前, P.設定.分類顏色]);
     }
     // 11c. 1.6.2 B6:取消封存會問回哪一區(清單列出每一區),挑哪一區就回哪一區
@@ -159,12 +161,15 @@ window.__ctBoardTest = 'running';
       await 等(700);
       ok('B6 unarchive goes where you picked', /## 3\n+- \[ \] (\[pin:: on\] )?沒主題的舊卡/.test(await 讀()), '');
     }
-    // 11c2. 1.6.2 U3:搜尋打 #分類名 只剩那一區
+    // 11c2. 1.6.3(ADR 1.6.3-01)搜尋打 #主題 只剩有那個主題的卡片(打一半也算)、@名字 只剩指派給他的
     {
-      v.狀態.新主題 = ''; v.狀態.新內容 = '#6'; v.狀態.搜尋 = true;
-      const 剩 = v.基底(v.卡片);
-      ok('U3 #section filters to that section', 剩.length > 0 && 剩.every(x => x.分類 === '6'), 剩.map(x => x.分類));
-      v.狀態.新內容 = ''; v.狀態.搜尋 = false;
+      v.狀態.新主題 = ''; v.狀態.新內容 = '#巢狀'; v.狀態.搜尋 = true; v.__搜拆 = null;
+      let 剩 = v.基底(v.卡片);
+      ok('ADR #topic search', 剩.length > 0 && 剩.every(x => (x.主題們 || []).some(t => t.indexOf('巢狀') === 0)), 剩.map(x => x.主題));
+      v.狀態.新內容 = '@' + 人; v.__搜拆 = null;
+      剩 = v.基底(v.卡片);
+      ok('ADR @name search', 剩.length > 0 && 剩.every(x => x.指派 === 人), 剩.map(x => x.指派));
+      v.狀態.新內容 = ''; v.狀態.搜尋 = false; v.__搜拆 = null;
     }
     // 11d. 1.6.2 B7:匯出只有長圖,720px × 2 = 1440px 寬的 PNG(測完丟垃圾桶)
     {
@@ -185,6 +190,38 @@ window.__ctBoardTest = 'running';
     const c2 = await P.寫手.轉新格式(f, v.名單);
     ok('convert twice = 0', c2 && c2.張 === 0, c2);
     if (備) await app.vault.trash(備, true);
+
+    /* 13. 1.6.3(U43–U46)封存區的移出 / 整批刪除 —— 兩個都會寫檔,所以在這裡真的跑一遍。
+       ⚠ 移出是「先建新檔 → 再刪原文」,所以要檢查三件事:新檔有那些卡片、原文那一段不見了、看板上那一區消失。 */
+    {
+      await P.寫手.改分類們(f, { 新增: ['Archive/移出測試'], 刪: [], 改名: [] });
+      await P.寫手.新增卡片(f, 'Archive/移出測試', '- [ ] #移出甲 [due:: 2026-09-16]', ['\t內容甲']);
+      await P.寫手.新增卡片(f, 'Archive/移出測試', '- [ ] #移出乙 [due:: 2026-09-16]', ['\t內容乙']);
+      let 文 = await 讀();
+      ok('U43 archive section written', /## Archive\/移出測試/.test(文) && /#移出甲/.test(文) && /#移出乙/.test(文), 文);
+      const r = await P.寫手.移出分區(f, 'Archive/移出測試', '移出測試-card table-archive', '');
+      const 新檔 = r && r.檔 && app.vault.getAbstractFileByPath(r.檔);
+      const 新文 = 新檔 ? await app.vault.read(新檔) : '';
+      ok('U43 moved-out file has the cards', !!新檔 && /#移出甲/.test(新文) && /#移出乙/.test(新文) && r.張 === 2, [r, 新文]);
+      ok('U43 moved-out file next to note', !!新檔 && 新檔.parent.path === f.parent.path, 新檔 && 新檔.path);
+      文 = await 讀();
+      ok('U45 section gone from the note', !/移出測試/.test(文) && !/#移出甲/.test(文), 文);
+      if (新檔) await app.vault.trash(新檔, true);
+
+      // 整批刪除:不留檔
+      await P.寫手.改分類們(f, { 新增: ['Archive/刪除測試'], 刪: [], 改名: [] });
+      await P.寫手.新增卡片(f, 'Archive/刪除測試', '- [ ] #刪除甲 [due:: 2026-09-16]', ['\t內容甲']);
+      const n = await P.寫手.刪分區(f, 'Archive/刪除測試');
+      文 = await 讀();
+      ok('U46 delete-all removes section, keeps no file', n === 1 && !/刪除測試/.test(文) && !/#刪除甲/.test(文), [n, 文]);
+      // 不存在的區:什麼都不寫
+      const 前文 = await 讀();
+      const 無 = await P.寫手.刪分區(f, 'Archive/根本沒有');
+      ok('U46 missing section writes nothing', 無 === false && (await 讀()) === 前文, 無);
+      const 無2 = await P.寫手.移出分區(f, 'Archive/根本沒有', 'x-card table-archive', '');
+      ok('U43 missing section: no file, no write', 無2 === false && (await 讀()) === 前文 &&
+        !app.vault.getAbstractFileByPath((f.parent.path === '/' ? '' : f.parent.path + '/') + 'x-card table-archive.md'), 無2);
+    }
     out.push('--- 最後的檔案 ---\n' + 後);
   } catch (e) {
     out.push('FAIL exception ' + e.stack);

@@ -9,6 +9,8 @@ description: 卡片看板(obsidian-card-table)的工作流程(2026-09-18 起,使
 - Windows:`C:\Users\新春\Documents\Cintrun3\0.常用\Card table project\Procedure\Working procedure.md`
 - Mac:`/Users/wujiajun/Documents/Cintrun3/0.常用/Card table project/Procedure/Working procedure.md`
 - 角色:同一個資料夾的 `Roles.md`;範本:`Procedure/Templates/`。
+- **開工順序(2026-09-20 使用者明講)**:`Handoff.md` → `Roles.md` → `Working procedure.md`。
+  **Handoff 只留最新一版**,最上面是「大方向」(這一版在做什麼、三段進度)+ 進度表;舊的搬到 `0.Procedure/Handoff archive/`(檔名帶日期和那一輪做了什麼)。
 
 找不到正本就問使用者,不要照記憶做。正本跟這份不一樣時以正本為準,並提醒使用者要不要更新這份。
 

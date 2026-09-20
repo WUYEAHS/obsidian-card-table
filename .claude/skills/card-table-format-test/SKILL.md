@@ -64,4 +64,25 @@ description: 卡片看板(obsidian-card-table)的格式與寫入測試流程。�
 
 ## 版面相關
 
-改到寬度、字級、flex 時,另外跑 `.\tools\check4.ps1`(六組都要是空的;需要 vault 裡的 `ZZ-css-fixture.md`)。
+改到寬度、字級、flex 時,另外跑 `.\tools\measure.ps1`(對齊,容許 1px)和 `.\tools\check4.ps1`(切字 / 溢出,每一組都要是空的)。
+
+**⚠ 順序固定:`run-tests.ps1 -FromRepo` → `measure.ps1` → `check4.ps1`,而且中間不要插別的事。**
+`run-tests` 會重載外掛 = **乾淨狀態**;自己手動 eval 過看板(開過設定模式、封存區、編修框)之後再量,
+會量到上一次留下來的畫面,報出一堆假的失敗(2026-09-20 踩過,白跑三次)。
+被污染了就再跑一次 `run-tests`,或 `.\tools\probe.ps1 reset`。
+
+## 想知道畫面上發生什麼事:`tools/probe.ps1`(不要現寫 eval)
+
+每次為了「那顆鈕在哪 / 編修框掛起來沒 / 是哪個元素溢出」現寫一份 eval 很浪費 token,常用的問法固定在腳本裡:
+
+```powershell
+.\tools\probe.ps1 state              # 篩選、設定模式、詳細、行事曆、封存看、編修、畫了哪幾塊
+.\tools\probe.ps1 head               # 每一塊標題列的子元素:class、圖示、左緣、寬高
+.\tools\probe.ps1 card "某段內容"    # 那張卡片的色條、📌、主題膠囊、✎ ⋯ 的位置
+.\tools\probe.ps1 edit "某段內容"    # 按編輯,回報編修框 / 即時編輯器掛起來沒(結尾會收掉)
+.\tools\probe.ps1 overflow           # 裝不下自己的元素(check4 報 a>b 時用這個找是誰)
+.\tools\probe.ps1 sel ".tk-封列"     # 符合的元素的 rect + 常看的 computed style
+.\tools\probe.ps1 reset              # 回到平常的樣子 —— **探完一定要跑這個**
+```
+
+基準線跟 `measure.js` 一樣(塊的左邊框內側),所以數字可以直接跟 M 那幾項對。新的問法就往 `probe.js` 加一個指令。

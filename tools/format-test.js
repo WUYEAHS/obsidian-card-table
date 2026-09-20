@@ -10,49 +10,50 @@
   const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C,
     WorkspaceLeaf: C, debounce: f => f, setIcon: () => {}, addIcon: () => {} };
   const M = new Function('require', 'module', src +
-    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 照打段, 去卡縮排};')(
+    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限};')(
     () => stub, { exports: {} });
   const out = [];
   const eq = (name, a, b) => out.push((a === b ? 'ok   ' : 'FAIL ') + name + (a === b ? '' : '\n   got: ' + JSON.stringify(a) + '\n  want: ' + JSON.stringify(b)));
   const 名單 = ['欣明', 'Alex'];
+  M.解析卡片('', 名單);          // 跟外掛一樣:看板解析過一次,預設名單就有了(1.6.3)
   const 去戳 = (s) => s.replace(/\[ed:: \d{4}-\d{2}-\d{2} \d{2}:\d{2}\]/g, '[ed:: T]');
   // 蓋卡 on a lines array → joined text
   const 蓋 = (lines) => { const a = lines.slice(); M.蓋卡(a, 0, a.length - 1); return 去戳(a.join('\n')); };
 
   // ---- 新寫法 ----
-  const N = '- [ ] [pin:: on] [訂貨] [start:: 2026-09-01] [due:: 2026-09-30] [repeat:: every 2 weeks] #欣明';
+  const N = '- [ ] [pin:: on] #訂貨 [start:: 2026-09-01] [due:: 2026-09-30] [repeat:: every 2 weeks] @欣明';
   const P = M.拆首行(N, 名單);
   eq('parse title', P.題, '訂貨');
   eq('parse range', P.起 + '|' + P.迄, '2026-09-01|2026-09-30');
   eq('parse pin/assignee/repeat', [P.頂, P.人, JSON.stringify(P.循)].join('|'), 'true|欣明|{"型":"週","隔":2}');
   eq('compose roundtrip', M.組首行(P), N);
-  eq('single day -> due', M.組首行(M.拆首行('- [ ] [a] [due:: 2026-09-16]')), '- [ ] [a] [due:: 2026-09-16]');
-  eq('start only -> due', M.組首行(M.拆首行('- [ ] [a] [start:: 2026-09-16]')), '- [ ] [a] [due:: 2026-09-16]');
+  eq('single day -> due', M.組首行(M.拆首行('- [ ] [a] [due:: 2026-09-16]')), '- [ ] #a [due:: 2026-09-16]');
+  eq('start only -> due', M.組首行(M.拆首行('- [ ] [a] [start:: 2026-09-16]')), '- [ ] #a [due:: 2026-09-16]');
   eq('paren fields + unknown kept', M.組首行(M.拆首行('- [x] [a] (due:: 2026-09-16) [completion:: 2026-09-17] [priority:: high]')),
-    '- [x] [a] [due:: 2026-09-16] [completion:: 2026-09-17] [priority:: high]');
+    '- [x] #a [due:: 2026-09-16] [completion:: 2026-09-17] [priority:: high]');
   eq('pin off', M.拆首行('- [ ] [pin:: off] [a]').頂, false);
   eq('field is not title', M.拆首行('- [ ] [due:: 2026-09-16] 買牛奶').題, null);
 
   // ---- 舊寫法轉換(蓋卡) ----
   eq('legacy 1.6.0 convert', 蓋(['- [ ] [訂貨] ．每樣兩箱 ＠{2026-09-11 ~ 2026-09-14} #欣明 📌 ✎{2026-09-10 09:12}', '\t．打給廠商了']),
-    '- [ ] [pin:: on] [訂貨] [start:: 2026-09-11] [due:: 2026-09-14] #欣明\n\t- 每樣兩箱\n\t．打給廠商了\n\t[ed:: T]');
+    '- [ ] [pin:: on] #訂貨 [start:: 2026-09-11] [due:: 2026-09-14] @欣明\n\t- 每樣兩箱\n\t．打給廠商了\n\t[ed:: T]');
   eq('legacy repeat', 蓋(['- [x] [巡田] 🔁 every 2 weeks ．再看一次 #long-term ＠{2026-09-08}']),
-    '- [x] [巡田] [due:: 2026-09-08] [repeat:: every 2 weeks] #long-term\n\t- 再看一次\n\t[ed:: T]');
+    '- [x] #巡田 #long-term [due:: 2026-09-08] [repeat:: every 2 weeks]\n\t- 再看一次\n\t[ed:: T]');
   eq('1.6.1-dev convert', 蓋(['- [ ] [主題] Ed{26-09-16 01:31} @{2026-09-16} ~ @{2026-09-23} #欣明 Pin{} Re{every week}', '\t- 內容', '\t- Cm{26-09-16 09:00|欣明} 留']),
-    '- [ ] [pin:: on] [主題] [start:: 2026-09-16] [due:: 2026-09-23] [repeat:: every week] #欣明\n\t- 內容\n\t- Cm{26-09-16 09:00|欣明} 留\n\t[ed:: T]');
+    '- [ ] [pin:: on] #主題 [start:: 2026-09-16] [due:: 2026-09-23] [repeat:: every week] @欣明\n\t- 內容\n\t- Cm{26-09-16 09:00|欣明} 留\n\t[ed:: T]');
   eq('titleless stays', 蓋(['- [ ] Buy milk @{2026-09-16}']), '- [ ] Buy milk [due:: 2026-09-16]\n\t[ed:: T]');
   eq('ed moves to end, trailing blank kept', 蓋(['- [ ] [a] [due:: 2026-09-16]', '\t- [ed:: 2026-01-01 00:00]', '\t- x', '']),
-    '- [ ] [a] [due:: 2026-09-16]\n\t- x\n\t[ed:: T]\n');
+    '- [ ] #a [due:: 2026-09-16]\n\t- x\n\t[ed:: T]\n');
   eq('mid tag kept', 蓋(['- [ ] 打給 #bob 問報價 ＠{2026-09-16}']), '- [ ] 打給 #bob 問報價 [due:: 2026-09-16]\n\t[ed:: T]');
   eq('date change legacy keeps content', 蓋([M.換日期('- [ ] [訂貨] ．每樣兩箱 ＠{2026-09-11} #欣明', '2026-10-01', null)]),
-    '- [ ] [訂貨] [due:: 2026-10-01] #欣明\n\t- 每樣兩箱\n\t[ed:: T]');
+    '- [ ] #訂貨 [due:: 2026-10-01] @欣明\n\t- 每樣兩箱\n\t[ed:: T]');
   eq('unpin', M.改零件(N, 名單, p => { p.頂 = false; }), N.replace('[pin:: on] ', ''));
 
   // ---- 解析:新舊一致 ----
   const legacyDoc = ['## 1', '', '- [ ] [訂貨] ．每樣兩箱,週五前要到 ＠{2026-09-11 ~ 2026-09-14} #欣明 📌 ✎{2026-09-10 09:12}',
     '\t．打給廠商了', '\t．💬{2026-09-11 14:20|欣明} 報價回來了'].join('\n');
   const conv = M.轉整份(legacyDoc, 名單);
-  eq('convert text', conv.文, ['## 1', '', '- [ ] [pin:: on] [訂貨] [start:: 2026-09-11] [due:: 2026-09-14] #欣明',
+  eq('convert text', conv.文, ['## 1', '', '- [ ] [pin:: on] #訂貨 [start:: 2026-09-11] [due:: 2026-09-14] @欣明',
     '\t- 每樣兩箱,週五前要到', '\t- 打給廠商了', '\t[cm:: 2026-09-11 14:20|欣明] 報價回來了', '\t[ed:: 2026-09-10 09:12]'].join('\n'));
   eq('convert idempotent', M.轉整份(conv.文, 名單).張, 0);
   const f = (k) => JSON.stringify([k.基鍵, k.主題, k.起日, k.迄日, k.置頂, k.指派, k.循環, k.內容行, k.留言, k.編修戳]);
@@ -90,11 +91,60 @@
     JSON.stringify(['- parent', '\t- child', '', '---', '| a   | b   |', '- [ ] todo', '- 舊符號']));
   eq('base indent made of spaces', JSON.stringify(M.去卡縮排(['    \t- a', '    \t\t- b', ''])), JSON.stringify(['- a', '\t- b', '']));
   eq('mixed indent: one level each', JSON.stringify(M.去卡縮排(['\tx', '    y'])), JSON.stringify(['x', 'y']));
-  eq('title tags join first raw line', 原('- [ ] [a] [due:: 2026-09-16] #tag\n\t- x\n\t\t- y'), JSON.stringify(['- x #tag', '\t- y']));
+  eq('trailing tag is a topic (1.6.3)', 原('- [ ] [a] [due:: 2026-09-16] #tag\n\t- x\n\t\t- y'), JSON.stringify(['- x', '\t- y']));
   eq('titleless first line leads raw', 原('- [ ] buy milk [due:: 2026-09-16]\n\t- a\n\t\t- b'), JSON.stringify(['buy milk', '- a', '\t- b']));
   eq('done record stays in raw', 原('- [ ] [施肥] [repeat:: every week]\n\t北區\n\t[done:: 2026-09-09]\n\t[ed:: 2026-09-16 10:00]'), JSON.stringify(['北區', '[done:: 2026-09-09]']));
   eq('key unchanged by nesting', M.解析卡片('- [ ] [a]\n\t- p\n\t\t- c', 名單)[0].基鍵, '[a] p');
   const 往返 = ['- [ ] [a] [due:: 2026-09-16]', '\t- p', '\t\t- c', '', '\t| x   | y |', '\t[ed:: 2026-09-17 10:00]'].join('\n');
   eq('raw -> 照打段 is a no-op', JSON.stringify(M.照打段(M.解析卡片(往返, 名單)[0].內容原.join('\n'))), 原(往返));
+
+  // ---- 1.6.3(ADR 1.6.3-01)#主題(最多 3 個)、@指派人 ----
+  const A = M.拆首行('- [ ] #UX-review #訂貨 [due:: 2026-09-16] @Alex', 名單);
+  eq('adr parse topics', A.題 + '|' + A.題們.length + '|' + A.人, 'UX-review 訂貨|2|Alex');
+  eq('adr roundtrip', M.組首行(A), '- [ ] #UX-review #訂貨 [due:: 2026-09-16] @Alex');
+  eq('adr legacy spaced title', M.組首行(M.拆首行('- [ ] [UX review] [due:: 2026-09-16]')), '- [ ] #UX-review [due:: 2026-09-16]');
+  eq('adr key same old/new', M.解析卡片('- [ ] [UX review]\n\t- c', 名單)[0].基鍵, M.解析卡片('- [ ] #UX-review\n\t- c', 名單)[0].基鍵);
+  const 四 = M.拆首行('- [ ] #a #b #c #d', 名單);
+  eq('adr max 3 topics', 四.題們.join(',') + '|' + 四.標籤.join(','), 'a,b,c|#d');
+  eq('adr 4th tag kept', M.組首行(四), '- [ ] #a #b #c #d');
+  eq('adr leading tag + content', 蓋(['- [ ] #訂貨 買牛奶']), '- [ ] #訂貨\n\t買牛奶\n\t[ed:: T]');
+  eq('adr email is not assignee', M.拆首行('- [ ] 寄給 a@b.com', 名單).人, null);
+  eq('adr email untouched', 蓋(['- [ ] 寄給 a@b.com']), '- [ ] 寄給 a@b.com\n\t[ed:: T]');
+  eq('adr kanban time not assignee', M.拆首行('- [ ] x @@{10:00}', 名單).人, null);
+  const K = M.拆首行('- [ ] #a @Kelly-Wu', ['Kelly Wu']);
+  eq('adr name with space maps to list', K.人 + '|' + M.組首行(K), 'Kelly Wu|- [ ] #a @Kelly-Wu');
+  eq('adr legacy #name is assignee', JSON.stringify([M.拆首行('- [ ] 買牛奶 #欣明', 名單).人, M.拆首行('- [ ] 買牛奶 #欣明', 名單).題]), '["欣明",null]');
+  eq('adr number tag is not topic', M.拆首行('- [ ] 房號 #123', 名單).題, null);
+  eq('adr mid tag not topic', M.拆首行('- [ ] 打給 #bob 問報價', 名單).題, null);
+  const 新檔 = ['## 1', '- [ ] #a #b [due:: 2026-09-16] @欣明', '\t- x', '\t[ed:: 2026-09-17 10:00]'].join('\n');
+  eq('adr convert new doc no-op', M.轉整份(新檔, 名單).張, 0);
+  const kA = M.解析卡片(新檔, 名單)[0];
+  eq('adr card fields', JSON.stringify([kA.主題, kA.主題們, kA.指派, kA.內容行]), JSON.stringify(['a b', ['a', 'b'], '欣明', ['x']]));
+
+  // ---- 1.6.3(U43–U46)封存區的移出 / 整批刪除:抓分區 ----
+  const 份 = ['# 標頭', '', '## 1', '- [ ] #a', '\t內容', '', '## Archive/2025 秋季', '- [ ] #b', '\t- x', '- [x] #c', '',
+    '## 2', '- [ ] #d', ''].join('\n');
+  const 切 = M.抓分區(份, 'Archive/2025 秋季');
+  eq('cut section text', 切.段, '## Archive/2025 秋季\n- [ ] #b\n\t- x\n- [x] #c\n');
+  eq('cut section count', 切.張, 2);
+  eq('cut section rest', 切.剩, ['# 標頭', '', '## 1', '- [ ] #a', '\t內容', '', '## 2', '- [ ] #d', ''].join('\n'));
+  eq('cut section missing', M.抓分區(份, 'Archive/沒有這一區'), null);
+  eq('cut section empty name', M.抓分區(份, ''), null);
+  // 同名的標題出現兩次 → 兩段都算
+  const 兩份 = ['## Archive/x', '- [ ] #a', '## 1', '- [ ] #b', '## Archive/x', '- [ ] #c'].join('\n');
+  const 切2 = M.抓分區(兩份, 'Archive/x');
+  eq('cut section twice', 切2.張 + '|' + 切2.剩, '2|## 1\n- [ ] #b');
+  // 縮排的 - [ ] 不算一張卡片(跟 解析卡片 同一條規則)
+  eq('cut section indented not a card', M.抓分區(['## Archive/y', '- [ ] #a', '\t- [ ] 子待辦'].join('\n'), 'Archive/y').張, 1);
+  eq('safe filename', M.淨檔名('2025/秋季: <專案>?-card table-archive'), '2025-秋季- -專案-card table-archive');
+  eq('safe filename fallback', M.淨檔名('///'), 'archive');
+  // C22 / U16(使用者 09-20:「# 不超過 6 個中文字」):膠囊上最多 6 個中文字寬 = 12
+  eq('topic width 6 zh', M.截寬('一二三四五六七八', 12), '一二三四五六…');
+  eq('topic width keeps short', M.截寬('一二三四五六', 12), '一二三四五六');
+  eq('topic width en', M.截寬('abcdefghijklmno', 12), 'abcdefghijkl…');
+  // C22(使用者 09-20:「要限制使用者不能打超過六個字」)新打的主題:截掉、不補「…」
+  eq('topic limit zh', M.題限('一二三四五六七八'), '一二三四五六');
+  eq('topic limit en', M.題限('abcdefghijklmno'), 'abcdefghijkl');
+  eq('topic limit short', M.題限('訂貨'), '訂貨');
   return out.join('\n');
 })()
