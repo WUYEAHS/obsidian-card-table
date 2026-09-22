@@ -854,7 +854,7 @@
    四格 **116** 寬、已逾期 / 週期各 52。 */
 .tk-board .tk-篩條 {
   display:flex;
-  gap:6px;
+  gap:4px;   /* U05(1.6.3 final):同一排的格子是同一組,4px;6 是沒有意義的中間值 */
   padding:0 6px 8px 3px;
   align-items:stretch;
   min-width:0;
@@ -938,7 +938,7 @@
 .tk-board .tk-週連 { margin:0 3px; color:var(--text-muted); }
 .tk-board .tk-週名 { margin-left:3px; }
 /* 手機 / 分頁很窄:格子照比例縮(先桌機,手機之後再調) */
-.tk-board.tk-密 .tk-篩條 { gap:4px; padding-right:6px; }
+.tk-board.tk-密 .tk-篩條 { padding-right:6px; }
 .tk-board.tk-密 .tk-篩格 { width:auto; flex:1 1 0; min-width:0; }
 .tk-board.tk-密 .tk-篩欄 { flex:1.3 1 0; min-width:0; }
 .tk-board.tk-密 .tk-篩欄 .tk-篩格 { width:auto; }

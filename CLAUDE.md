@@ -3,6 +3,13 @@
 Obsidian 外掛,把一份 markdown 筆記讀成一張任務卡片表。
 使用者說中文,回答和註解都用繁體中文。
 
+⚠ **這個專案全程開 `ponytail`(使用者明講,2026-09-22)**:懶惰資深工程師模式 —— 先問「這個需要存在嗎」(YAGNI)、
+先找現成的(這個 repo 裡的函式 / 工具腳本 / Obsidian API)、能一行就一行、刪比加好、說明比程式短。
+技能在 `.claude/skills/ponytail/`(還有 audit / debt / gain / help / review 五個),來源 <https://github.com/dietrichgebert/ponytail>(MIT)。
+預設 **full**;`/ponytail lite|ultra` 換強度,「stop ponytail」關掉。
+**但不准懶的地方**:寫手和格式的讀寫路徑、輸入驗證、會吃資料的流程 —— 照樣照下面的規矩走,測試照樣跑完。
+懶的是「寫多少程式」,不是「讀多少程式」:改之前該讀的那一段還是要讀完。
+
 ## 方向與原則
 
 **統一原則**在專案技能 `card-table-principles`(`.claude/skills/`):新功能、改版面、改格式之前先用它對照;跟原則衝突的,先跟使用者討論再做。

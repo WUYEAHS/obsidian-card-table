@@ -307,6 +307,45 @@ try {
     (少中.length ? '中文少了 ' + 少中.join(', ') : '') + (少英.length ? ' 英文少了 ' + 少英.join(', ') : '') || (中.length + ' 個鍵'));
 } catch (e) { 記('M15', '中英字典的鍵一樣(R6)', false, '讀不到字典:' + e.message); }
 
+// ---------- M24 群組內 4 / 群組間 ≥ 8,沒有 5/6/7(U05) ----------
+{
+  const 合格 = (g) => g != null && (近(g, 4) || g >= 8 - 容);
+  const 掃 = (容器, 名, 壞) => {
+    if (!容器) return;
+    const 子 = [...容器.children].filter(看得見);
+    const 組 = [];   // 依 top 分同一橫排(誤差 3px 內算同一排)
+    子.forEach(e => {
+      const r = e.getBoundingClientRect();
+      let g = 組.find(g => Math.abs(g.top - r.top) <= 3);
+      if (!g) { g = { top: r.top, 件: [] }; 組.push(g); }
+      g.件.push(r);
+    });
+    組.forEach(g => {
+      g.件.sort((a, b) => a.left - b.left);
+      for (let i = 1; i < g.件.length; i++) {
+        const 隙 = 圓(g.件[i].left - g.件[i - 1].right);
+        if (!合格(隙)) 壞.push(名 + ' ' + 圓(g.件[i - 1].right) + '→' + 圓(g.件[i].left) + '(' + 隙 + 'px)');
+      }
+    });
+  };
+  const 壞 = [];
+  // ① 卡片工具 ✎/⋯ 所在那一整排(.tk-題行)
+  if (列) 掃(列.querySelector('.tk-題行'), '①卡片題行', 壞);
+  // ③ 四種標題列
+  塊們().forEach((塊, i) => { const 頭 = 塊.children[0]; if (頭) 掃(頭, '③' + 塊名(塊) + i + '標題列', 壞); });
+  // ④ 時間篩選四格之間
+  { const 篩塊 = b.querySelector('.tk-篩塊'), 條 = 篩塊 && 篩塊.querySelector('.tk-篩條'); 掃(條, '④時間篩選', 壞); }
+  // ② 封存列 →/⋯ · ⑥ 設定面板左右兩欄(都要在設定模式打開才畫得出來)
+  {
+    v.狀態.設定模式 = true; v.設草 = v.建設草(); v.畫(); await 睡(400);
+    掃(b.querySelector('.tk-新塊 .tk-封列 .tk-封具:not(.tk-空位)'), '②封存列', 壞);
+    const 面板 = b.querySelector('.tk-設定面板');
+    if (面板) { 掃(面板.children[0], '⑥設定左欄', 壞); 掃(面板.children[1], '⑥設定右欄', 壞); }
+    v.狀態.設定模式 = false; v.設草 = null; v.畫(); await 睡(300);
+  }
+  記('M24', '群組內 4 / 群組間 ≥ 8,沒有 5/6/7(U05)', 壞.length === 0, 壞.length ? 壞.join(' / ') : '掃過的都合格');
+}
+
 // ---------- 還原 ----------
 v.狀態.篩 = 原篩; S['排程顯示'] = 原顯示;
 v.狀態['設定模式'] = 原模.設; v['設草'] = 原模.草; v.狀態['詳細'] = 原模.詳;

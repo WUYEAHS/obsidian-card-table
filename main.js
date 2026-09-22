@@ -2950,8 +2950,8 @@ class 看板視圖 extends TextFileView {
     if (this.是封存(k)) return false;             // 平常的清單不放封存的卡片(要看就進封存區)
     const 剛 = this.剛動過 && this.剛動過[k.鍵];
     if (剛 && Date.now() - 剛.時 < 反悔毫秒) return true;
-    const 看完 = !!設.完成 && !設.未完成;
-    return 看完 ? !!k.完成 : !k.完成;
+    // CR-1.6.3-01:未完成 / 已完成是各自獨立的複選,不再二選一 —— 兩個都開就都顯示
+    return k.完成 ? !!設.完成 : !!設.未完成;
   }
   // 有寫日期(或是 🔁 循環卡)的才進得了主清單;兩者都沒有的走底下那張「未寫日期」表(1.5 起長期不算)
   合日期(k) { return !!k.起日 || !!k.循環; }
@@ -3191,7 +3191,8 @@ class 看板視圖 extends TextFileView {
      找新塊:重畫之後塊是新的 DOM,由呼叫的人告訴我去哪裡找。
      ⚠ 動畫中再按一次不理它,不然舊的塊還在滑、狀態已經被翻兩次。系統要求減少動態就直接重畫。 */
   收合滑動(塊, 收, 重畫, 找新塊) {
-    if (this.__收合中) return;
+    // U49:鎖掛在這一塊自己身上,不是整個看板 —— 不然 A 塊收合動畫還沒完,B 塊的收合鈕會被一起擋住
+    if (塊 && 塊.__收合中) return;
     const 頭 = 塊 && 塊.firstElementChild;
     if (!要動畫() || !塊 || !塊.isConnected || !頭) { 重畫(); return; }
     const 頭高 = 頭.offsetHeight;
@@ -3199,14 +3200,14 @@ class 看板視圖 extends TextFileView {
       const 高 = 塊.clientHeight;
       if (高 - 頭高 < 10) { 重畫(); return; }
       const 秒 = Math.min(0.3, 0.16 + (高 - 頭高) / 1600);
-      this.__收合中 = true;
+      塊.__收合中 = true;
       塊.style.transition = "";
       塊.style.height = 高 + "px";
       void 塊.offsetHeight;
       塊.style.transition = "height " + 秒.toFixed(3) + "s cubic-bezier(.4,0,.2,1)";
       塊.style.height = 頭高 + "px";
       [...塊.children].slice(1).forEach(c => { c.style.transition = "opacity .14s ease"; c.style.opacity = "0"; });
-      setTimeout(() => { this.__收合中 = false; 重畫(); }, 秒 * 1000 + 20);
+      setTimeout(() => { 塊.__收合中 = false; 重畫(); }, 秒 * 1000 + 20);
       return;
     }
     重畫();
@@ -3292,13 +3293,14 @@ class 看板視圖 extends TextFileView {
          所以這個 ⋯ 裡只剩未完成 / 已完成(Q25:只剩兩顆,⋯ 照樣留著)。 */
       const 段 = 彈.createDiv();
       段.addClass("tk-段");
-      const 看完 = !!設.完成 && !設.未完成;
-      const 設看 = async (完) => {
-        設.未完成 = !完; 設.完成 = 完; 設.封存 = false;
+      // CR-1.6.3-01(使用者):未完成 / 已完成各自獨立的勾選,不是二選一;兩個都關掉就退回未完成(不然看不到東西)
+      const 切 = async (k) => {
+        設[k] = !設[k];
+        if (!設.未完成 && !設.完成) 設.未完成 = true;
         await this.插件.存設定(); this.畫();
       };
-      鈕(段, T.showTodo + " " + this.顯示數(全, "未完成"), ["circle"], !看完, () => 設看(false));
-      鈕(段, T.showDone + " " + this.顯示數(全, "完成"), ["circle-check", "check-circle"], 看完, () => 設看(true));
+      鈕(段, T.showTodo + " " + this.顯示數(全, "未完成"), ["circle"], !!設.未完成, () => 切("未完成"));
+      鈕(段, T.showDone + " " + this.顯示數(全, "完成"), ["circle-check", "check-circle"], !!設.完成, () => 切("完成"));
     }
     const 更 = 頭.createDiv();
     更.addClass("tk-頭鈕");
@@ -5793,9 +5795,10 @@ class 看板視圖 extends TextFileView {
       鈕.鎖住("…");
       const ok = await this.設日期(k, this.今);
       if (ok === false) return;
-      if (this.插件.設定.跳轉_設回今日) this.回到今天();
+      const 要跳 = this.插件.設定.跳轉_設回今日;
+      if (要跳) this.回到今天();
       this.記剛動過(k, this.T.movedToday, () => {});
-      this.浮到最上(k);
+      if (要跳) this.浮到最上(k);
     };
   }
 
@@ -7182,18 +7185,21 @@ class 看板視圖 extends TextFileView {
       if (人 && !析.人) 存我是誰(人);
       // ADR 1.6.3-01:新的 @名字 自動加進指派人名單
       if (析.人 && this.名單.indexOf(析.人) < 0) this.插件.設定.指派人 = this.名單.concat([析.人]);
+      const 新鍵 = 鍵由行們(首行, 尾行, this.名單);
       /* 新卡片一定要看得到:排序切回「最近編輯」(新的就在第一列),
-         篩選切到看得到它的那一段,再捲過去。 */
-      this.插件.設定.排序 = "編修";
-      if (d.週期) s.篩 = { 型: "週期" };
-      else if (d.起) {
-        const 區 = this.現在區間();
-        if (!區 || d.起 < 區[0] || d.起 > 區[1]) this.回到今天();
+         篩選切到看得到它的那一段,再捲過去。U55:這整組都算「跳轉」,關掉設定要整組都不動,
+         不能只關捲動、排序和篩選照樣切(2026-09-22 修)。 */
+      const 要跳 = this.插件.設定.跳轉_新增 !== false;
+      if (要跳) {
+        this.插件.設定.排序 = "編修";
+        if (d.週期) s.篩 = { 型: "週期" };
+        else if (d.起) {
+          const 區 = this.現在區間();
+          if (!區 || d.起 < 區[0] || d.起 > 區[1]) this.回到今天();
+        }
+        this.要看的卡 = 新鍵;
       }
       await this.插件.存設定();
-      const 新鍵 = 鍵由行們(首行, 尾行, this.名單);
-      const 要跳 = this.插件.設定.跳轉_新增 !== false;
-      if (要跳) this.要看的卡 = 新鍵;
       this.畫();
       if (要跳) this.捲到卡(新鍵);
       /* ⚠⚠ preventScroll 不能省。題輸在看板的最上面,focus() 預設會**把它捲進畫面**,
@@ -7435,12 +7441,11 @@ class 看板視圖 extends TextFileView {
     return ok;
   }
   /* 打勾 / 取消打勾。
-     ⚠ 打完勾之後那張卡片常常會從現在的篩選裡消失(例如關掉「已完成」),
+     ⚠ 打完勾之後那張卡片可能會從現在的篩選裡消失(例如關掉「已完成」),
        使用者會以為卡片不見了。所以:
          ① 告訴他搬到哪裡去了(已搬到 完成區 / 未完成區 / 已封存)
-         ② **自動把篩選調到看得到它的地方**(該勾的顯示開關自動勾起來)
-         ③ 那張卡片會浮到最上面(排序預設就是「最近編修的最上面」,打勾會蓋時戳)
-         ④ 三秒內圓點變成「↺」,按了就退回去 */
+         ② 設定開的話,浮到最上面捲過去(排序預設就是「最近編修的最上面」,打勾會蓋時戳)
+         ③ 三秒內圓點變成「↺」,按了就退回去 */
   async 切完成(k) {
     const T = this.T, 設 = this.插件.設定.排程顯示;
     const 變完成 = !k.完成;
@@ -7451,7 +7456,7 @@ class 看板視圖 extends TextFileView {
       if (取消釘) p.頂 = false;
     }), this.名單);
     if (!ok) return;
-    // ② 1.6.3:未完成 / 已完成是二選一,不再自動切過去(不然打一個勾整份清單就換掉了);
+    // ② CR-1.6.3-01:未完成 / 已完成是各自獨立的複選,不自動切開關(打一個勾不該動到使用者自己選的顯示範圍);
     //    那張卡片 2 秒內留在畫面上、色條是 ↺(見 合顯示)
     const 要跳 = 變完成 ? this.插件.設定.跳轉_未完成到完成 : this.插件.設定.跳轉_完成到未完成;
     this.記剛動過(k, 變完成 ? T.movedDone : T.movedTodo, () => this.切完成(k));
