@@ -5,6 +5,18 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.6.4
+
+**Cleanup release.** Two bugs fixed, ~490 lines of dead code removed, no new settings or format changes.
+
+### Bug fixes
+1. Adding a card while several cards are pinned no longer leaves the board stuck mid-scroll — it now lands on the new card and flashes it, every time.
+2. A card ID left behind by Canvas (`^ct-…`, appended after `[ed:: …]`) is now recognized when parsing and kept as-is on every rewrite (title, checkbox, content, date, archive). Cards without one are unaffected; nothing writes a new ID yet.
+3. The topic capsule no longer shifts 2px to the right while editing — reading and editing now line up exactly (an inline style was overriding the alignment rule).
+
+### Internal
+1. Removed ~490 lines of dead code left over from the pre-1.6.3 table layout, plus unused dictionary keys, an unused import, and superseded helper functions. No behavior change.
+
 ## 1.6.3
 
 **One card layout.** The table view is gone — desktop and phone now share the same card layout, desktop is just wider. Titles and assignees moved to `#Title` / `@name`.
