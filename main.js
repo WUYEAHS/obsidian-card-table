@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260918v1";
-const 插件版本 = "1.6.2";
+const 看板版本 = "260922v1";
+const 插件版本 = "1.6.3";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -8258,6 +8258,9 @@ function 回報網址(資訊) { return 專案網址 + "/issues/new?template=bug_
 /* 1.6.2(D1)CHANGELOG 只有一份(使用者明講):更新介紹視窗直接顯示 CHANGELOG.md 裡這一版的那一段(英文 / 繁中)。
    ⚠ 發版時由 card-table-release 技能從 CHANGELOG.md 複製過來,**不要在這裡另外寫**。最上面是釘選的 Reminder / Notice。 */
 const 更新說明 = {
+  "1.6.3": {
+    "en": "> [!important]\n> **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!\n>\n> **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.\n\n**One card layout.** The table view is gone — desktop and phone now share the same card layout, desktop is just wider. Titles and assignees moved to `#Title` / `@name`.\n\n### Format\n1. Titles are now `#Title` tags on the first line (up to 3); assignees are now `@name`, and a new name is added to the people list automatically. Old `[Title]` and old `#name` (when it was on the people list) are still read; a card switches to the new syntax only when it is changed.\n\n### Bug fixes\n1. Collapsing one block (a section table, the time-filter bar) no longer blocks the collapse/expand button on every other block while its animation is still playing.\n2. Turning off \"jump after adding a card\" or \"jump after set to today\" now actually stops every side effect of the jump (sort order, filter, scroll) — it used to still resort and refilter the list even with the setting off.\n3. \"Not done\" and \"Done\" in the time-filter bar are independent checkboxes again: turning both on shows both kinds of cards at once, instead of one silently winning.\n\n### UX improvements\n1. Card layout lines up to three fixed guides (3 / 18 / 22px) and a 26px block header, on every block.\n2. Archive moved into the section settings panel: a section can be moved out to its own note or bulk-deleted, with a filename suffix and folder you can set.\n3. Spacing between related controls (card tools, the archive row, block headers, time-filter tiles) is consistently 4px within a group and at least 8px between groups.\n4. Every popup on the board is now one of three kinds: an in-place expansion, a menu, or a hover tooltip (confirmation dialogs for destructive actions are the one deliberate exception)."
+  },
   "1.6.2": {
     "en": "> [!important]\n> **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!\n>\n> **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.\n\n**Every button does one thing.** Colours, content and exports, straightened out.\n\n### Bug fixes\n1. Picking a colour on a card moves only that card. Section colours are changed in the section panel only.\n2. Every section can be picked from a card: up to five as dots, six to ten from a list with their names.\n3. On phones, *Change section* is in the card's ⋯ menu, and the colour picker in the section panel stays open.\n4. Nested lists, blank lines and spacing are saved exactly as typed, when adding, editing and merging cards.\n5. Card content is shown the way Obsidian shows it: dividers, tables, nested lists, links and callouts.\n6. Finishing an edit right after an automatic save no longer drops the last change.\n7. Opening a card to edit and closing it without changes no longer rewrites the card.\n8. A card stays open after you finish editing it, until you change the filter or fold it.\n9. Unarchiving asks which section the card goes back to.\n\n### UX improvements\n1. \"Tap again\" confirmations show ✓ with a countdown, for archive and delete. Only delete is red.\n2. Editing a card keeps the title and text exactly where they were.\n3. Section names appear wherever you pick a section, including New card.\n4. Type `#section` in search to see only that section; names with spaces work too.\n5. Export makes one phone-width image with larger text and formatted content. PDF export is gone.\n6. Links inside cards open on click and show a preview on hover.\n\n### New\n1. Settings → *Report a problem* opens a GitHub issue or an email with your versions filled in. No note content is sent."
   }
@@ -8310,6 +8313,13 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.6.3",
+    ["看板收斂成一種卡片版面,桌機和手機一樣,表格模式拿掉了;主題和指派人改成 #主題 @人,Tasks / Dataview 讀得到,舊寫法照讀。",
+     "介面照對齊、間距、彈出樣式的規則全面整理;封存區搬進分類設定,可以整區移出成獨立筆記或整批刪除。",
+     "修掉幾個動畫和「動作後跳轉」設定關掉卻沒真的關掉的小 bug;未完成/已完成改成可以同時看。"],
+    ["The board is now one card layout — desktop and phone the same, desktop just wider; the table view is gone. Titles and assignees moved to #Title / @name, still readable by Tasks and Dataview; old notes keep working.",
+     "Alignment, spacing and popup styles were cleaned up across the board; archive moved into section settings, with move-out-to-a-note and bulk-delete.",
+     "Fixed a few animation and jump-setting bugs where turning a setting off didn't fully turn it off; Not done / Done can now both be shown at once."]],
   ["1.6.2",
     ["卡片換色只動這一張;分類多也選得到;內容照 Obsidian 的樣子顯示,巢狀清單和空行一字不差。",
      "封存和刪除「再按一次確定」;取消封存會問回哪一區;匯出只剩一張手機寬的長圖。設定裡可以回報問題。"],

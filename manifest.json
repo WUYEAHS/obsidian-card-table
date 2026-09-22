@@ -1,7 +1,7 @@
 {
   "id": "card-table",
   "name": "Card Table - Dated Tasks",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "minAppVersion": "1.6.0",
   "description": "A task-first card table inspired by Kanban's table view: every task is a card, with unique time filters, multi-user collaboration, and the same card layout on desktop and mobile.",
   "author": "jiajiunwu",

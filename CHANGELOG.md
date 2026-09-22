@@ -5,6 +5,24 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.6.3
+
+**One card layout.** The table view is gone — desktop and phone now share the same card layout, desktop is just wider. Titles and assignees moved to `#Title` / `@name`.
+
+### Format
+1. Titles are now `#Title` tags on the first line (up to 3); assignees are now `@name`, and a new name is added to the people list automatically. Old `[Title]` and old `#name` (when it was on the people list) are still read; a card switches to the new syntax only when it is changed.
+
+### Bug fixes
+1. Collapsing one block (a section table, the time-filter bar) no longer blocks the collapse/expand button on every other block while its animation is still playing.
+2. Turning off "jump after adding a card" or "jump after set to today" now actually stops every side effect of the jump (sort order, filter, scroll) — it used to still resort and refilter the list even with the setting off.
+3. "Not done" and "Done" in the time-filter bar are independent checkboxes again: turning both on shows both kinds of cards at once, instead of one silently winning.
+
+### UX improvements
+1. Card layout lines up to three fixed guides (3 / 18 / 22px) and a 26px block header, on every block.
+2. Archive moved into the section settings panel: a section can be moved out to its own note or bulk-deleted, with a filename suffix and folder you can set.
+3. Spacing between related controls (card tools, the archive row, block headers, time-filter tiles) is consistently 4px within a group and at least 8px between groups.
+4. Every popup on the board is now one of three kinds: an in-place expansion, a menu, or a hover tooltip (confirmation dialogs for destructive actions are the one deliberate exception).
+
 ## 1.6.2
 
 **Every button does one thing.** Colours, content and exports, straightened out.

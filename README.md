@@ -30,6 +30,8 @@ If Card Table saves you time, you can [buy me a coffee on Ko-fi](https://ko-fi.c
 > - **Update every device to 1.6.1**: Card Table 1.6.0 and older cannot read the new syntax.
 > - The full old-vs-new table is in [The text format](#the-text-format).
 >
+> **1.6.3 changed titles and assignees too**: titles are now `#Title` tags (up to 3) and assignees are `@name`. Same rules apply — old notes still work, and a card switches when it is changed. Update every device to 1.6.3.
+>
 > If anything goes wrong with the conversion or the plugin, please email me at [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com), or open a [GitHub issue](../../issues).
 
 
@@ -125,11 +127,11 @@ Grouped the same way as in the plugin; **What's new** at the top lists what ever
 | Group | What you can set |
 | --- | --- |
 | General | Language, who uses this device, solo mode |
-| Time filters | Range on open, how weeks are counted, an All tile |
-| Cards | Board width, how done cards look, section names, last edited time, comments and where they go |
+| Time filters | Range on open, how weeks are counted |
+| Cards | How done cards look, section names, last edited time, comments and where they go |
 | Adding and editing | Submit key (see [Keyboard](#keyboard)), cursor and card position when editing, unpin when done |
 | Jump after an action | Whether each action scrolls to the card |
-| Note format | Convert every old card to the new format (backs up first) |
+| Note format | File name suffix and folder for cards moved out of the archive; convert every old card to the new format (backs up first) |
 
 ## The text format
 
@@ -138,13 +140,13 @@ That is the whole storage format — everything the table shows comes from lines
 ```markdown
 ## 1
 
-- [ ] [pin:: on] [Orders] [start:: 2026-09-11] [due:: 2026-09-14] #Alex
+- [ ] [pin:: on] #Orders [start:: 2026-09-11] [due:: 2026-09-14] @Alex
 	Two boxes each, needs to arrive before Friday
 	- [ ] Call the supplier
 	[cm:: 2026-09-11 14:20|Alex] Quote came back, 8% up on last time
 	[ed:: 2026-09-11 14:20]
 
-- [x] [Field] [due:: 2026-09-08] [repeat:: every 2 weeks]
+- [x] #Field [due:: 2026-09-08] [repeat:: every 2 weeks]
 	Check the greening suspect tree again
 	[done:: 2026-08-25]
 	[ed:: 2026-09-08 08:30]
@@ -154,15 +156,15 @@ The first line is the card: pin, title, dates, repeat, assignee. Below it come t
 
 ### Old and new syntax
 
-| Meaning | From 1.6.1 | 1.6.0 and older (still read) | Where |
+| Meaning | From 1.6.3 | Older syntax (all still read) | Where |
 | --- | --- | --- | --- |
 | One card, not done / done | `- [ ]` / `- [x]` | Same | Start of the first line |
 | Pinned | `[pin:: on]` | `📌` | First line, before the title |
-| Title | `[Title]` | Same | First line |
-| One day | `[due:: 2026-09-11]` | `＠{2026-09-11}` | First line, after the title |
+| Title(s) | `#Title` — up to 3, anywhere on the first line; a space in a title becomes `-` (`#UX-review`) | 1.6.1–1.6.2: `[Title]`; 1.6.0 and older: same, on the first line | First line |
+| One day | `[due:: 2026-09-11]` | `＠{2026-09-11}` | First line |
 | A range | `[start:: 2026-09-11] [due:: 2026-09-14]` | `＠{2026-09-11 ~ 2026-09-14}` | First line |
 | Repeat | `[repeat:: every 2 weeks]` (`every 3 days`, `every month`…) | `🔁 every 2 weeks`, `🔁 每2週` | First line, after the dates |
-| Assignee | `#Alex` (must be on the people list) | Same | End of the first line |
+| Assignee | `@Alex` — any `@name` (a new name is added to the people list automatically) | 1.6.1–1.6.2: `#Alex` (had to be on the people list); 1.6.0 and older: same | First line |
 | Content | From the second line, as you type it | Could also follow the title on the first line | Second line on |
 | Content bullets | Only if you type them: `- `, `* `, `1. ` | `．` (optional) | Start of a content line |
 | To-do inside a card | `- [ ] something` (`-[ ]` and `[]` are tidied to this) | — | Content line |
