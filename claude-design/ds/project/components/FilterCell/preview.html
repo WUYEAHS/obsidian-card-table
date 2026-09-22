@@ -1,0 +1,65 @@
+<!-- @dsCard group="塊" height=230 subtitle="時間篩選那一排:四格 116、小格 52,上排張數、下排字" -->
+<div class="ct-stage ct-stage--secondary" id="root">
+  <div class="ct-block ct-rails" style="position:relative">
+    <div class="ct-rail22"></div>
+    <div class="ct-bar">
+      <span class="ct-gutter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg></span>
+      <span class="ct-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+      <span class="ct-bar-title ct-bar-title--today">今日 09-20(日)</span>
+      <span class="ct-spring"></span>
+      <span class="ct-bar-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+    </div>
+
+    <div class="ct-filterrow">
+      <!-- 年 -->
+      <div class="ct-cell-filter ct-cell-filter--tall">
+        <span class="ct-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span class="ct-twoline"><span class="ct-tally">412</span><span class="ct-cellmid ct-year">2026</span></span>
+        <span class="ct-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/></svg></span>
+      </div>
+
+      <!-- 月 / 週 -->
+      <div class="ct-filtercol">
+        <div class="ct-cell-filter">
+          <span class="ct-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg></span>
+          <span class="ct-twoline ct-twoline--single"><span class="ct-cellmid">9 月</span></span>
+          <span class="ct-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+        <div class="ct-cell-filter is-on">
+          <span class="ct-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg></span>
+          <span class="ct-twoline ct-twoline--single"><span class="ct-cellmid">9/14 <span class="ct-dash">–</span> 9/20</span></span>
+          <span class="ct-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+      </div>
+
+      <!-- 日 -->
+      <div class="ct-cell-filter ct-cell-filter--tall">
+        <span class="ct-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg></span>
+        <span class="ct-twoline"><span class="ct-tally">6</span><span class="ct-cellmid">9/20<span class="ct-dash"> </span>(日)</span></span>
+        <span class="ct-arrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/></svg></span>
+      </div>
+
+      <!-- 已逾期 -->
+      <div class="ct-cell-filter ct-cell-filter--tall ct-cell-filter--small">
+        <span class="ct-twoline">
+          <span class="ct-tally ct-tally--overdue">9</span>
+          <span class="ct-cellmid" style="color:var(--signal-overdue)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13" r="8"/><path d="M12 9v4M12 17h.01"/></svg></span>
+        </span>
+      </div>
+
+      <!-- 週期 -->
+      <div class="ct-cell-filter ct-cell-filter--tall ct-cell-filter--small">
+        <span class="ct-twoline">
+          <span class="ct-tally ct-tally--repeat">4</span>
+          <span class="ct-cellmid" style="color:var(--signal-repeat)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 2v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/><circle cx="12" cy="13" r="1.4" fill="currentColor"/></svg></span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ct-note">
+    這一排從 <b>3</b> 開始(跟編輯的字同一條線)。年 / 月 / 週 / 日 <b>116 寬</b>,最長的「11/23 – 11/29」不用縮字;
+    已逾期 / 週期 <b>52</b>。兩排格子:上排張數 25、下排字或圖示 25,箭頭跨整格高 —— 所有張數因此在同一條橫線上。
+    <b>格子本身不上色</b>,選到的那格亮一點(<b>accent-interactive 的 24%</b> + 65% 的內框線)。
+  </div>
+</div>

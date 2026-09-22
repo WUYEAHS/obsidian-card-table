@@ -1,0 +1,55 @@
+<!-- @dsCard group="控制" height=250 subtitle="封存區的列:選到、預覽、→ 和 ⋯ 一組" -->
+<div class="ct-stage ct-stage--secondary" id="root">
+  <div class="ct-block ct-rails" style="position:relative">
+    <div class="ct-rail22"></div>
+    <div class="ct-bar">
+      <span class="ct-gutter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg></span>
+      <span class="ct-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="4" width="20" height="5" rx="1"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M10 13h4"/></svg></span>
+      <span class="ct-count">38</span>
+      <span class="ct-spring"></span>
+      <span class="ct-bar-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+    </div>
+
+    <div style="padding-bottom:4px">
+      <div class="ct-arcrow is-on">
+        <span class="ct-arcdot" style="background: var(--category-orange)"></span>
+        <span class="ct-arcname" style="padding-left:4px">2026 上半年</span>
+        <span class="ct-count">21</span>
+        <span class="ct-arctools">
+          <span class="ct-arcbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span>
+          <span class="ct-arcbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+        </span>
+      </div>
+
+      <div class="ct-arcrow">
+        <span class="ct-arcdot"></span>
+        <span class="ct-arcname" style="padding-left:4px">舊客戶</span>
+        <span class="ct-count">11</span>
+        <span class="ct-arctools">
+          <span class="ct-arcbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span>
+          <span class="ct-arcbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+        </span>
+      </div>
+
+      <div class="ct-arcrow ct-arcrow--preview">
+        <span class="ct-arcdot" style="background: var(--signal-today)"></span>
+        <span class="ct-arcname" style="padding-left:4px">研究(預覽)</span>
+        <span class="ct-count" style="color: var(--signal-today)">4</span>
+        <span class="ct-arctools" style="visibility:hidden; flex:0 0 52px"></span>
+      </div>
+
+      <div class="ct-arcrow">
+        <span class="ct-arcdot"></span>
+        <span class="ct-arcname ct-arcname" style="padding-left:4px; color: var(--ink-muted)">以前單張封存的卡片</span>
+        <span class="ct-count">2</span>
+        <span class="ct-arctools" style="visibility:hidden; flex:0 0 52px"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ct-note">
+    列高 <b>30</b>、字 <b>13</b>。選到的那一區用 <b>signal-today 的 12%</b> 當底 + 一條 2px 底線,<b>不另外放眼睛</b>。
+    虛線那一列是<b>草稿的預覽</b>:設定面板左半按了 🗄、還沒按 ✓ —— 按下去之前就看得到會搬走哪些卡片。
+    右邊的 <b>→ 和 ⋯ 是同一組,中間只隔 4</b>;沒有這兩顆的列照樣佔 52 寬,張數才跟上面幾列對齊。
+  </div>
+</div>

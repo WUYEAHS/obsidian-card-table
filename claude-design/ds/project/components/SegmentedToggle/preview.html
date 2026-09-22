@@ -1,0 +1,44 @@
+<!-- @dsCard group="控制" height=190 subtitle="⋯ 往左彈出,樣子跟沒收起來時一樣" -->
+<div class="ct-stage ct-stage--secondary" id="root">
+
+  <div class="ct-note" style="margin:0 0 8px"><b>收著</b> —— 只剩一顆 ⋯</div>
+  <div class="ct-block" style="margin-bottom:14px">
+    <div class="ct-bar">
+      <span class="ct-gutter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg></span>
+      <span class="ct-bar-title ct-bar-title--today">今日 09-20(日)</span>
+      <span class="ct-spring"></span>
+      <span class="ct-bar-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+    </div>
+    <div style="height:6px"></div>
+  </div>
+
+  <div class="ct-note" style="margin:0 0 8px"><b>按了 ⋯</b> —— 往左彈出同一排,26 高,跟標題列齊平</div>
+  <div class="ct-block" style="margin-bottom:14px">
+    <div class="ct-bar">
+      <span class="ct-gutter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg></span>
+      <span class="ct-bar-title ct-bar-title--today">今日 09-20(日)</span>
+      <span class="ct-spring"></span>
+      <span class="ct-seg">
+        <span class="ct-seg-btn is-on">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/></svg>未完成
+        </span>
+        <span class="ct-seg-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5L15.5 10"/></svg>已完成
+        </span>
+      </span>
+      <span class="ct-seg" style="background:none; padding:0">
+        <span class="ct-seg-btn ct-seg-btn--archive is-on" style="background:var(--hover)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="4" width="20" height="5" rx="1"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M10 13h4"/></svg>封存區
+        </span>
+      </span>
+      <span class="ct-bar-btn is-on"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+    </div>
+    <div style="height:6px"></div>
+  </div>
+
+  <div class="ct-note">
+    整顆切換 <b>26 高</b>(跟標題列一樣)、裡面的鈕 <b>22</b>、圓角 999。
+    選到的用 <b>border</b> 當底 + 600 字重 —— <b>不再加一顆圖示</b>(封存區以前有個眼睛,拿掉了)。
+    單選就是單選:未完成 / 已完成二選一,封存區一次只看一區。
+  </div>
+</div>

@@ -1,0 +1,69 @@
+<!-- @dsCard group="卡片" height=260 subtitle="分類色條 = 完成鈕:平常 4,滑到只往右長" -->
+<div class="ct-stage" id="root">
+  <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:nowrap">
+
+    <div style="flex:1 1 0; min-width:0">
+      <div class="ct-note" style="margin:0 0 8px"><b>平常</b> · 4 寬,左緣 3,上下各留 8</div>
+      <div class="ct-rails" style="position:relative">
+        <div class="ct-card" style="--cat: var(--category-orange)">
+          <div class="ct-rail"></div>
+          <div class="ct-pin"></div>
+          <div class="ct-cell">
+            <div class="ct-titlerow"><div class="ct-titlerow-left">
+              <span class="ct-avatar">明</span>
+              <span class="ct-topic" style="background: color-mix(in srgb, var(--category-orange) 18%, transparent)">報價單</span>
+            </div></div>
+            <div class="ct-body">滑過整張卡片,色條一個 px 都不動</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1 1 0; min-width:0">
+      <div class="ct-note" style="margin:0 0 8px"><b>滑到色條自己</b> · 長到 9、長出 ✓、讓 22 給 📌</div>
+      <div class="ct-rails" style="position:relative">
+        <div class="ct-card" style="--cat: var(--category-orange)">
+          <div class="ct-rail ct-rail--open ct-rail--pinned">
+            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M20 6 9 17l-5-5"/></svg>
+            <span class="ct-rail-name">出貨</span>
+          </div>
+          <div class="ct-pin" style="opacity:.6"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></div>
+          <div class="ct-cell">
+            <div class="ct-titlerow"><div class="ct-titlerow-left">
+              <span class="ct-avatar">明</span>
+              <span class="ct-topic" style="background: color-mix(in srgb, var(--category-orange) 18%, transparent)">報價單</span>
+            </div></div>
+            <div class="ct-body">右邊的字被推開,不是被蓋住</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1 1 0; min-width:0">
+      <div class="ct-note" style="margin:0 0 8px"><b>按下去</b> · 變綠,再點一次復原</div>
+      <div class="ct-rails" style="position:relative">
+        <div class="ct-card ct-card--done ct-card--strike" style="--cat: var(--category-orange)">
+          <div class="ct-rail ct-rail--done ct-rail--open">
+            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <div class="ct-cell">
+            <div class="ct-titlerow"><div class="ct-titlerow-left">
+              <span class="ct-avatar">明</span>
+              <span class="ct-topic" style="background: color-mix(in srgb, var(--category-orange) 18%, transparent)">報價單</span>
+            </div></div>
+            <div class="ct-body">色條不跟著淡掉 —— 手機上要看得到它可以點</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="ct-note">
+    色盤:<span style="color:var(--category-red)">■</span> <span style="color:var(--category-orange)">■</span>
+    <span style="color:var(--category-yellow)">■</span> <span style="color:var(--category-blue)">■</span>
+    <span style="color:var(--category-purple)">■</span> 是自動配色的順序;
+    <span style="color:var(--category-green)">■</span> 綠只能手動選(跟「完成」的綠撞色),
+    <span style="color:var(--category-grey)">■</span> 灰 = 沒有分類。
+  </div>
+</div>

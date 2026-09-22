@@ -1,0 +1,467 @@
+/* Card Table — 預覽用的樣式表
+   從 repo 的 styles.css 抽出來,把 Obsidian 的 CSS 變數換成這套系統的 token。
+   ⚠ 寫回外掛的時候要換回 var(--text-muted) 這類 Obsidian 變數(原則 4)。
+   這裡沒有 !important、沒有 display:contents、沒有 @media (max-width) —— 原本那份也沒有。 */
+
+.ct-stage {
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--surface-primary);
+  padding: 16px;
+}
+.ct-stage * { box-sizing: border-box; }
+.ct-stage--secondary { background: var(--surface-secondary); }
+
+/* 量給自己看的標籤:每個預覽右邊那一行小字 */
+.ct-note {
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+.ct-note b { color: var(--ink-muted); font-weight: 600; }
+
+/* ---- 塊 ---- */
+.ct-block {
+  border-radius: var(--radius-block);
+  border: 1px solid var(--border);
+  background: var(--surface-secondary);
+  box-shadow: var(--block);
+  overflow: clip;
+}
+.ct-block--plain { background: var(--surface-primary); box-shadow: none; }
+
+/* ---- 標題列 ---- */
+.ct-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-tight);
+  height: var(--bar-height);
+  padding: 0 var(--inset-right) 0 0;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+}
+/* 溝 = 3–18,圖示填滿 14,置中在 10.5 */
+.ct-gutter {
+  width: var(--gutter-width);
+  flex: 0 0 var(--gutter-width);
+  height: 22px;
+  padding-left: var(--rail-edit);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.ct-bar-icon { display: inline-flex; align-items: center; line-height: 0; color: var(--ink-muted); flex: 0 0 auto; }
+.ct-bar-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  padding-top: 2px;            /* 標頭補正:中文字在行框裡偏上 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.ct-bar-title--today { color: var(--accent); }
+.ct-count { font-size: 11px; color: var(--ink-muted); font-variant-numeric: tabular-nums; flex: 0 0 auto; padding-top: 2px; }
+.ct-spring { flex: 1 1 auto; }
+.ct-bar-btn {
+  height: var(--control-height);
+  min-width: var(--more-button-w);
+  padding: 0;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.ct-bar-btn:hover, .ct-bar-btn.is-on { background: var(--hover); color: var(--ink); }
+.ct-bar-btn--framed {
+  padding: 0 8px;
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  border: 1px solid var(--border);
+}
+.ct-bar-btn--framed.is-on { border-color: var(--accent); color: var(--accent); }
+
+/* ---- 切換鈕 ---- */
+.ct-seg {
+  display: inline-flex;
+  align-items: center;
+  height: var(--bar-height);
+  padding: 2px;
+  border-radius: var(--radius-full);
+  background: var(--hover);
+}
+.ct-seg-btn {
+  height: var(--control-height);
+  padding: 0 9px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-tight);
+  font-size: 11.5px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.ct-seg-btn.is-on { background: var(--border); color: var(--ink); font-weight: 600; }
+.ct-seg-btn--archive.is-on { color: var(--signal-today); }
+
+/* ---- 卡片 ---- */
+.ct-card {
+  position: relative;
+  display: block;
+  min-width: 0;
+  padding: var(--card-pad-top) var(--inset-right) var(--card-pad-bottom) 0;
+  background-color: var(--surface-primary);
+  /* 分隔線從 18 畫到右邊 6,不穿過色條那一欄 */
+  background-image: linear-gradient(var(--border-strong), var(--border-strong));
+  background-size: calc(100% - 24px) 1px;
+  background-position: var(--rail-text) 100%;
+  background-repeat: no-repeat;
+}
+.ct-card:last-child { background-image: none; }
+.ct-card > .ct-cell { padding-left: var(--rail-text); }
+.ct-card--done { background-color: color-mix(in srgb, var(--signal-done) 7%, var(--surface-primary)); }
+.ct-card--done > .ct-cell { opacity: 0.55; }
+.ct-card--archived { background-color: color-mix(in srgb, var(--ink-faint) 12%, var(--surface-primary)); }
+.ct-card--archived > .ct-cell { filter: grayscale(1); opacity: 0.5; }
+.ct-card--located { box-shadow: var(--row-marker); }
+
+/* 分類色條 = 完成鈕。左緣固定 3,滑過只往右長 */
+.ct-rail {
+  position: absolute;
+  left: var(--rail-edit);
+  top: 8px;
+  bottom: 8px;
+  width: var(--rail-width);
+  border-radius: 3px;
+  background: var(--cat, var(--border));
+  color: var(--surface-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
+  transition: width .12s ease, top .12s ease;
+}
+.ct-rail--open { width: var(--rail-width-open); }
+.ct-rail--done { background: var(--signal-done); }
+.ct-rail--pinned { top: var(--pin-slot); }
+.ct-rail-name {
+  position: absolute;
+  left: 12px;
+  top: -12px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--cat, var(--ink-muted));
+  background: var(--surface-alt);
+  box-shadow: var(--popover);
+}
+.ct-pin {
+  position: absolute;
+  left: var(--rail-edit);
+  top: 5px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  color: var(--ink-faint);
+  opacity: 0.35;
+}
+.ct-pin.is-pinned { color: var(--accent); opacity: 1; }
+
+/* 題行 */
+.ct-titlerow { display: flex; align-items: center; gap: var(--gap-row); min-width: 0; min-height: 24px; }
+.ct-titlerow-left { display: flex; align-items: center; gap: var(--gap-row); flex: 1 1 auto; min-width: 0; }
+.ct-titlerow-left > .ct-topic:first-child { margin-left: -2px; }
+.ct-tools { display: flex; align-items: center; flex: 0 0 auto; opacity: 0.5; }
+.ct-tools:hover { opacity: 1; }
+.ct-tool { height: var(--control-height); display: inline-flex; align-items: center; justify-content: center; color: var(--ink-muted); cursor: pointer; }
+.ct-tool--edit { width: var(--edit-button-w); }
+.ct-tool--more { width: var(--more-button-w); }
+
+/* 主題膠囊 / 副標 / 頭像 */
+.ct-topic {
+  display: inline-flex;
+  align-items: center;
+  height: var(--pill-height);
+  padding: 0 2px;
+  border-radius: var(--radius-pill);
+  font-size: 12.8px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  color: var(--cat, var(--ink));
+}
+/* R5:淺色主題下,膠囊的字混黑到 58%,對比才 ≥ 3:1。深色不動。 */
+[data-theme="light"] .ct-topic { color: color-mix(in srgb, var(--cat, var(--ink)) 58%, #000); }
+.ct-sub {
+  display: inline-flex;
+  align-items: center;
+  height: var(--pill-height);
+  font-size: 12.8px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink);
+  cursor: pointer;
+}
+.ct-avatar {
+  width: var(--avatar);
+  height: var(--avatar);
+  flex: 0 0 var(--avatar);
+  border-radius: var(--radius-circle);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--border);
+  cursor: pointer;
+}
+.ct-avatar--empty { background: none; color: var(--ink-faint); opacity: 0.6; }
+
+.ct-date { font-size: 12px; color: var(--ink-muted); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ct-date--overdue { color: var(--signal-overdue); }
+.ct-date--today { color: var(--signal-today); }
+
+/* 卡片內容:閱讀和編輯同一組數字 */
+.ct-body {
+  padding-left: 0;
+  font-size: 15.04px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  margin-top: 4px;
+}
+.ct-body p, .ct-body ul, .ct-body ol { margin-top: 0; margin-bottom: 0; }
+.ct-card--strike .ct-body, .ct-card--strike .ct-topic { text-decoration: line-through; }
+
+/* 編修框:唯一允許跟閱讀不一樣的地方 */
+.ct-editbox {
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--surface-primary);
+  padding: 3px 6px 6px 0;
+  margin: -4px 0 4px -1px;
+  box-shadow: var(--focus-ring);
+}
+
+/* ---- 時間篩選格 ---- */
+.ct-filterrow { display: flex; gap: var(--gap-row); padding: 0 var(--inset-right) 8px var(--rail-edit); align-items: stretch; min-width: 0; }
+.ct-filtercol { display: flex; flex-direction: column; gap: 2px; flex: 0 0 auto; }
+.ct-cell-filter {
+  position: relative;
+  width: var(--filter-cell-w);
+  height: var(--filter-cell-h);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--radius-block);
+  background: var(--hover);
+  cursor: pointer;
+  user-select: none;
+}
+.ct-cell-filter--tall { height: var(--filter-cell-tall); }
+.ct-cell-filter--small { width: var(--filter-cell-small); }
+.ct-cell-filter.is-on {
+  background: color-mix(in srgb, var(--accent-interactive) 24%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-interactive) 65%, transparent);
+}
+.ct-arrow {
+  flex: 0 0 16px;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  border-radius: var(--radius-lg);
+  z-index: 1;
+}
+.ct-cell-filter.is-on .ct-arrow { color: var(--accent); }
+.ct-twoline {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ct-twoline--single { justify-content: center; }
+.ct-tally {
+  height: 25px;
+  flex: 0 0 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ct-tally--overdue { color: var(--signal-overdue); }
+.ct-tally--repeat { color: var(--signal-repeat); }
+.ct-cellmid {
+  height: 25px;
+  flex: 0 0 25px;
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+}
+.ct-year { letter-spacing: 0.1em; padding-left: 0.1em; }
+.ct-dash { margin: 0 3px; color: var(--ink-muted); }
+
+/* ---- 新增卡片 ---- */
+.ct-composer { display: flex; align-items: flex-end; gap: var(--gap-row); padding: 6px var(--inset-right) 8px 0; }
+.ct-input {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--bar-height);
+  padding: 3px 0 3px var(--rail-edit);   /* 字從 3 —— 編輯欄位透明、沒有框 */
+  cursor: text;
+  background: transparent;
+  border: 0;
+  font-size: 15.04px;
+  line-height: 1.5;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.ct-input-hint { color: var(--ink-faint); display: inline-flex; align-items: center; gap: 3px; }
+.ct-caret { width: 1px; height: 15px; background: var(--ink); }
+.ct-send {
+  flex: 0 0 auto;
+  width: var(--submit-width);
+  height: var(--bar-height);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-row);
+  color: var(--on-accent);
+  background: var(--accent-interactive);
+  cursor: pointer;
+}
+.ct-dotseat { position: relative; flex: 0 0 auto; width: var(--dot-hit); height: var(--dot-hit); display: flex; align-items: center; cursor: pointer; }
+.ct-dot { width: var(--dot); height: var(--dot); border-radius: var(--radius-circle); border: 2px solid var(--ink-muted); }
+.ct-dot--cat { border-color: var(--cat); }
+.ct-caretdown { position: absolute; right: 1px; top: 5px; line-height: 0; color: var(--ink-muted); }
+.ct-repeatbtn {
+  height: 16px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: var(--radius-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--signal-repeat);
+  background: color-mix(in srgb, var(--signal-repeat) 16%, transparent);
+}
+
+/* ---- 封存區 ---- */
+.ct-arcrow {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-row);
+  height: 30px;
+  padding: 0 var(--gap-group) 0 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink);
+}
+.ct-arcrow:hover { background: var(--hover); }
+.ct-arcrow.is-on {
+  background: color-mix(in srgb, var(--signal-today) 12%, transparent);
+  box-shadow: inset 0 -2px 0 var(--signal-today);
+  font-weight: 600;
+}
+.ct-arcrow--preview {
+  outline: 1px dashed color-mix(in srgb, var(--signal-today) 60%, transparent);
+  outline-offset: -2px;
+  color: var(--signal-today);
+}
+.ct-arcdot { width: 10px; height: 10px; border-radius: var(--radius-circle); margin: 0 -2px 0 4px; flex: 0 0 auto; background: var(--ink-faint); }
+.ct-arcname { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-arctools { display: flex; align-items: center; gap: var(--gap-tight); flex: 0 0 auto; }
+.ct-arcbtn {
+  flex: 0 0 24px;
+  width: 24px;
+  height: var(--control-height);
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.ct-arcbtn:hover { background: var(--hover); color: var(--ink); }
+
+/* ---- 對齊輔助線(只有預覽用,外掛裡沒有) ---- */
+.ct-rails { position: relative; }
+.ct-rails::before,
+.ct-rails::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  pointer-events: none;
+  z-index: 5;
+}
+.ct-rails::before { left: 3px; background: color-mix(in srgb, var(--signal-overdue) 55%, transparent); }
+.ct-rails::after { left: 18px; background: color-mix(in srgb, var(--signal-month) 55%, transparent); }
+.ct-rail22 {
+  position: absolute;
+  left: 22px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--signal-repeat) 55%, transparent);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Lucide:線寬統一 1.75 */
+.ct-stage svg { stroke-width: 1.75; }

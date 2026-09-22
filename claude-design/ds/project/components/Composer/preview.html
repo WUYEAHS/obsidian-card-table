@@ -1,0 +1,64 @@
+<!-- @dsCard group="控制" height=300 subtitle="新增卡片:輸入框透明、送出鈕 56 × 26" -->
+<div class="ct-stage ct-stage--secondary" id="root">
+
+  <div class="ct-block ct-rails" style="position:relative; margin-bottom:14px">
+    <div class="ct-rail22"></div>
+    <div class="ct-bar">
+      <span class="ct-gutter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg></span>
+      <span class="ct-dotseat" style="--cat: var(--category-orange)">
+        <span class="ct-dot ct-dot--cat"></span>
+        <span class="ct-caretdown"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg></span>
+      </span>
+      <span class="ct-topic" style="background: color-mix(in srgb, var(--category-orange) 18%, transparent); --cat: var(--category-orange)">報價單</span>
+      <span class="ct-topic" style="background: color-mix(in srgb, var(--category-blue) 18%, transparent); --cat: var(--category-blue)">月結</span>
+      <span class="ct-topic" style="color: var(--ink-muted); background: var(--hover); padding: 0 5px">
+        ☰ <span style="font-size:11px; font-weight:400">57</span>
+      </span>
+      <span class="ct-spring"></span>
+      <span class="ct-bar-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+    </div>
+
+    <div class="ct-composer">
+      <span class="ct-input">
+        <span class="ct-caret"></span>
+        <span class="ct-input-hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 0 1 3 3L7.4 18.6a2 2 0 0 1-.9.5l-2.9.9a.5.5 0 0 1-.6-.6l.8-2.9a2 2 0 0 1 .5-.9z"/></svg>
+          …
+        </span>
+      </span>
+      <span class="ct-send">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h15"/><path d="m13 6 6 6-6 6"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="ct-block ct-rails" style="position:relative">
+    <div class="ct-rail22"></div>
+    <div class="ct-bar">
+      <span class="ct-gutter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg></span>
+      <span class="ct-dotseat" style="--cat: var(--category-purple)">
+        <span class="ct-dot ct-dot--cat"></span>
+        <span class="ct-caretdown"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg></span>
+      </span>
+      <span class="ct-date">09-24(四)</span>
+      <span class="ct-repeatbtn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 2v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/><circle cx="12" cy="13" r="1.4" fill="currentColor"/></svg>每 2 週</span>
+      <span class="ct-spring"></span>
+      <span class="ct-bar-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+    </div>
+    <div style="padding: 6px 6px 0 0">
+      <div class="ct-input" style="display:block; min-height:74px; padding-left:3px">跟客戶確認尺寸,回來改圖</div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; padding: 0 6px 8px 18px">
+      <span class="ct-send">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h15"/><path d="m13 6 6 6-6 6"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="ct-note">
+    <b>輸入框透明、沒有框</b>,字從 <b>3</b> 開始 —— 看起來直接打在塊上。空白時用 <b>pen-line</b> + 一個淡的「…」,
+    不寫 placeholder。送出鈕 <b>56 × 26</b>:左緣對頭像、右緣對標題列的 ⋯,<b>固定大小不跟著輸入框長高</b>。
+    底色一律 <b>accent-interactive</b>,不跟分類或指派人變色(R4)。
+    詳細編輯時送出鈕自己一排、靠右。
+  </div>
+</div>
