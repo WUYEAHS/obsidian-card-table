@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260922v1";
-const 插件版本 = "1.6.3";
+const 看板版本 = "260922v2";
+const 插件版本 = "1.6.4";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -7796,6 +7796,9 @@ function 回報網址(資訊) { return 專案網址 + "/issues/new?template=bug_
 /* 1.6.2(D1)CHANGELOG 只有一份(使用者明講):更新介紹視窗直接顯示 CHANGELOG.md 裡這一版的那一段(英文 / 繁中)。
    ⚠ 發版時由 card-table-release 技能從 CHANGELOG.md 複製過來,**不要在這裡另外寫**。最上面是釘選的 Reminder / Notice。 */
 const 更新說明 = {
+  "1.6.4": {
+    "en": "> [!important]\n> **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!\n>\n> **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.\n\n**Cleanup release.** Two bugs fixed, ~490 lines of dead code removed, no new settings or format changes.\n\n### Bug fixes\n1. Adding a card while several cards are pinned no longer leaves the board stuck mid-scroll — it now lands on the new card and flashes it, every time.\n2. A card ID left behind by Canvas (`^ct-…`, appended after `[ed:: …]`) is now recognized when parsing and kept as-is on every rewrite (title, checkbox, content, date, archive). Cards without one are unaffected; nothing writes a new ID yet.\n3. The topic capsule no longer shifts 2px to the right while editing — reading and editing now line up exactly (an inline style was overriding the alignment rule).\n\n### Internal\n1. Removed ~490 lines of dead code left over from the pre-1.6.3 table layout, plus unused dictionary keys, an unused import, and superseded helper functions. No behavior change."
+  },
   "1.6.3": {
     "en": "> [!important]\n> **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!\n>\n> **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.\n\n**One card layout.** The table view is gone — desktop and phone now share the same card layout, desktop is just wider. Titles and assignees moved to `#Title` / `@name`.\n\n### Format\n1. Titles are now `#Title` tags on the first line (up to 3); assignees are now `@name`, and a new name is added to the people list automatically. Old `[Title]` and old `#name` (when it was on the people list) are still read; a card switches to the new syntax only when it is changed.\n\n### Bug fixes\n1. Collapsing one block (a section table, the time-filter bar) no longer blocks the collapse/expand button on every other block while its animation is still playing.\n2. Turning off \"jump after adding a card\" or \"jump after set to today\" now actually stops every side effect of the jump (sort order, filter, scroll) — it used to still resort and refilter the list even with the setting off.\n3. \"Not done\" and \"Done\" in the time-filter bar are independent checkboxes again: turning both on shows both kinds of cards at once, instead of one silently winning.\n\n### UX improvements\n1. Card layout lines up to three fixed guides (3 / 18 / 22px) and a 26px block header, on every block.\n2. Archive moved into the section settings panel: a section can be moved out to its own note or bulk-deleted, with a filename suffix and folder you can set.\n3. Spacing between related controls (card tools, the archive row, block headers, time-filter tiles) is consistently 4px within a group and at least 8px between groups.\n4. Every popup on the board is now one of three kinds: an in-place expansion, a menu, or a hover tooltip (confirmation dialogs for destructive actions are the one deliberate exception)."
   },
@@ -7851,6 +7854,11 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.6.4",
+    ["清掃版:新增卡片在置頂多的時候不會再卡在捲到一半;Canvas 留下的卡片 ID 現在讀得懂、改卡片時原樣留著。",
+     "主題編輯時字不再往右跳 2px;順手清掉約 490 行舊版面留下的死程式碼,沒有新設定、沒有格式變動。"],
+    ["Cleanup release: adding a card no longer gets stuck mid-scroll when several cards are pinned; a card ID left by Canvas is now recognized and kept as-is when the card is edited.",
+     "The topic no longer shifts while editing; also removed ~490 lines of dead code from the old table layout — no new settings, no format changes."]],
   ["1.6.3",
     ["看板收斂成一種卡片版面,桌機和手機一樣,表格模式拿掉了;主題和指派人改成 #主題 @人,Tasks / Dataview 讀得到,舊寫法照讀。",
      "介面照對齊、間距、彈出樣式的規則全面整理;封存區搬進分類設定,可以整區移出成獨立筆記或整批刪除。",
