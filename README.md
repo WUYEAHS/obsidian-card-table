@@ -68,11 +68,13 @@ then reload Obsidian and enable **Card Table - Dated Tasks**.
 
 ### Time filters
 - **Linked tiles** — year, month, week and day follow one date; step any of them and the others follow.
+- **Always says where you are** — today's date sits in its own row at the top (click to jump back), and the filter header shows the period you are actually looking at, with the count.
 - **Overdue and repeat** — one tap each, next to the date tiles.
 - **Calendar** — pick a day or a range when the tiles are not enough. Weeks can start on Monday, Sunday, today or the 1st.
 
 ### Search
 - **Type to filter** — the New card title and content boxes filter the table as you type.
+- **One section at a time** — the section menu can show only that section, pinned cards included; a capsule in the header says which one, with an × to clear it.
 - **Frequent titles** — reuse a title in one tap; a used title brings back its last section.
 
 ### Cards

@@ -43,6 +43,12 @@ $want = (Get-Content (Join-Path $repo 'manifest.json') -Raw | ConvertFrom-Json).
 Write-Host "loaded $ver, repo $want"
 if ($ver -notmatch [regex]::Escape($want)) { Write-Host 'FAIL version mismatch'; exit 1 }
 
+# 1.6.5: bring Obsidian to the front BEFORE measuring. A covered window throttles timers and
+# board/editor tests fail for no reason (cost us ~5 wasted runs in 1.6.5). Do not remove.
+try {
+  $ob = Get-Process obsidian -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle }
+  if ($ob) { (New-Object -ComObject WScript.Shell).AppActivate($ob[0].Id) | Out-Null; Start-Sleep -Milliseconds 900 }
+} catch {}
 $vis = obsidian eval code="document.visibilityState + ' / focused=' + document.hasFocus()"
 Write-Host "obsidian window: $vis"
 if ($vis -match 'hidden') { Write-Host 'WARNING Obsidian is minimized or covered: timers are throttled, the editor/board tests may time out. Keep it visible.' }

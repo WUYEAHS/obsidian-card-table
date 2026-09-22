@@ -774,6 +774,31 @@
 .tk-board .tk-頭圖.tk-可點 { cursor:pointer; border-radius:5px; padding:3px; margin:-3px 0; }
 .tk-board .tk-頭圖.tk-可點:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
 .tk-board .tk-頭圖.tk-亮 { color:var(--text-accent); }
+/* 1.6.5-U5:最上面那一列 —— 今日日期置中,比其他標題列重一級(13px vs 12px、正常字色)。
+   高度跟所有標題列一樣 26;底色跟控制區同一層,不另外加深。 */
+.tk-board .tk-今列 {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:26px;
+  box-sizing:border-box;
+  border-radius:9px;
+  border:1px solid var(--background-modifier-border);
+  background:var(--background-secondary);
+  box-shadow:0 1px 3px rgba(0,0,0,0.16);
+  cursor:pointer;
+  user-select:none;
+}
+.tk-board .tk-今字 {
+  font-size:13px;
+  font-weight:700;
+  line-height:1.4;
+  padding-top:2px;
+  letter-spacing:0.02em;
+  color:var(--text-normal);
+  white-space:nowrap;
+}
+.tk-board .tk-今列:hover .tk-今字 { color:var(--text-accent); }
 .tk-board .tk-頭字 {
   font-size:12px;
   font-weight:700;
@@ -817,10 +842,12 @@
   align-items:center;
   gap:4px;
   min-width:0;
-  animation:tk-左滑 .16s ease-out;
 }
+/* 1.6.5-B2:動畫只有**剛打開**那一次(.tk-彈進)。以前寫在 .tk-彈 上,
+   每按一次已完成 / 未完成都會整份重畫 → 動畫重播,看起來像一直跳。 */
+.tk-board .tk-彈.tk-彈進 { animation:tk-左滑 .16s ease-out; }
 @keyframes tk-左滑 { from { opacity:0; transform:translateX(14px); } to { opacity:1; transform:none; } }
-@media (prefers-reduced-motion: reduce) { .tk-board .tk-彈 { animation:none; } }
+@media (prefers-reduced-motion: reduce) { .tk-board .tk-彈.tk-彈進 { animation:none; } }
 /* mockup v16 的 .seg / .sg:整顆切換 26 高(跟所有標題列一樣),裡面的鈕 22 */
 .tk-board .tk-段 {
   display:inline-flex;
@@ -846,6 +873,28 @@
 }
 .tk-board .tk-段鈕.tk-獨 { height:22px; background:var(--background-modifier-hover); }
 .tk-board .tk-段鈕.tk-亮 { background:var(--background-modifier-border); color:var(--text-normal); font-weight:600; }
+/* 1.6.5-B2(使用者 09-22:「最左邊包裹著右邊」「點入跟關掉顯示不清楚 請調整增加邊框」):
+   [ 全部 [ 已完成 | 未完成 ] ] —— 「全部」在最左邊,右邊兩顆再包一層。
+   選中 = 1px 邊框 + 亮底(沒選 = 完全沒有框),兩種狀態一眼分得出來。 */
+.tk-board .tk-三態 { gap:3px; }
+.tk-board .tk-段內 {
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+  height:22px;
+  padding:0 2px;
+  box-sizing:border-box;
+  border-radius:999px;
+  background:var(--background-primary);
+}
+.tk-board .tk-三態 .tk-段鈕 { border:1px solid transparent; box-sizing:border-box; }
+.tk-board .tk-三態 .tk-段鈕.tk-亮 { border-color:var(--background-modifier-border-hover, var(--text-faint)); }
+.tk-board .tk-三態 .tk-段鈕.tk-全鈕.tk-亮 { color:var(--text-accent); }
+/* 左邊那顆:tally-2 圖示 + **灰色**的「全部/未完成」(使用者 09-22)。數字等寬,切換時不會左右跳 */
+.tk-board .tk-三態 .tk-全鈕 span {
+  color:var(--text-muted);
+  font-variant-numeric:tabular-nums;
+}
 .tk-board .tk-段鈕.tk-封鈕.tk-亮 { color:var(--color-orange, #e08a2e); }
 /* 格子 */
 /* U20(mockup v9 #5,使用者「這排一樣從 3 開始」):篩選那一排從 **3** 開始(跟編輯的字同一條線),
@@ -889,6 +938,9 @@
 }
 .tk-board .tk-篩箭:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
 .tk-board .tk-篩格.tk-亮 .tk-篩箭 { color:var(--text-accent); }
+/* 1.6.5-U3:全部模式時年格寫「全部」,前後年沒有意義 —— 箭頭變淡、不反白 */
+.tk-board .tk-篩格 .tk-篩箭.tk-箭關 { color:var(--text-faint); opacity:0.45; }
+.tk-board .tk-篩格 .tk-篩箭.tk-箭關:hover { background:transparent; color:var(--text-faint); }
 /* U21(Q29 / mockup v16 的 .two):格子中間是上下兩排 —— 上排張數 25、下排字或圖示 25(52 − 25 − 25 = 2 的縫)。
    箭頭不在這個盒子裡,照舊跨整格高(1.4.9:才會跟本日那一格的箭頭齊平)。
    沒有張數的格子(月 / 週、詳細編輯的小篩)帶 .tk-篩單 → 那一排置中。 */
@@ -968,6 +1020,29 @@
   box-sizing:border-box;
 }
 .tk-board .tk-點座 .tk-小尖 { right:1px; top:5px; }
+/* 1.6.5-U2(使用者 09-22:「圓點增加按鈕框 旁邊要有X 代表回到不篩選」):
+   正在用這一區篩選的時候,圓點座有一個框;旁邊一顆 × 回到不篩選。 */
+.tk-board .tk-點座.tk-點篩 {
+  border:1px solid var(--background-modifier-border);
+  border-radius:6px;
+  background:var(--background-modifier-hover);
+}
+.tk-board .tk-點叉 {
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  margin-left:2px;
+  border-radius:4px;
+  color:var(--text-muted);
+  cursor:pointer;
+}
+.tk-board .tk-點叉:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
+/* 1.6.5 第三輪:分類選單每一列右邊的「只看這一區」—— 平常淡,滑到才亮(它不是主要動作) */
+.tk-分類挑 .tk-去篩 { color:var(--text-faint); cursor:pointer; }
+.tk-分類挑 .tk-去篩:hover { color:var(--text-accent); background:var(--background-modifier-hover); }
 .tk-board .tk-小尖 {
   position:absolute;
   right:0;
@@ -1200,9 +1275,11 @@
 /* 📌 在色條上面(溝的最上面);色條從它底下開始 */
 .tk-board .tk-釘.tk-溝釘 {
   position:absolute;
-  /* 📌 12px、top 5;**left 3 = 跟色條同一條線**(溝的左邊,使用者 09-20:「色線跟 pin 有沒有對齊」)。
-     mockup 上是 4(色條 5),但輔助線畫的是 3 —— 以線為準,兩個一起對齊到 3。色條從 22 開始(Q45)。 */
-  left:3px;
+  /* 📌 12px、top 5。色條在 3(溝的左邊,使用者 09-20:「色線跟 pin 有沒有對齊」)。
+     ⚠ 1.6.5(使用者 09-22:「卡片 pin 圖案全部往左 1pt」):📌 的盒子放到 **2** ——
+       Lucide 的 pin 在 12px 的框裡左邊自己留了一點白,盒子對齊 3 時**看起來**比色條偏右。
+       盒子往左 1px 是視覺補正,量測(M5c)的基準跟著改成 2。 */
+  left:2px;
   top:5px;
   width:12px;
   height:12px;

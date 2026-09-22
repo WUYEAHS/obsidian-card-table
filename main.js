@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260922v2";
-const 插件版本 = "1.6.4";
+const 看板版本 = "260923v1";
+const 插件版本 = "1.6.5";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -121,7 +121,7 @@ const 字典 = {
     writeFail: "沒有寫進檔案（可能同步正在忙）。字還在框裡,按「送出」再試一次",
     movedDone: "✓ 已搬到「已完成」", movedTodo: "↩ 已搬回「未完成」",
     movedArchive: "🗄 已搬到「封存」", movedBack: "↩ 已搬回「N」",
-    findTopic: "查主題…", noTopics: "沒有主題",
+    findTopic: "查主題…", noTopics: "沒有主題", addTopic: "新增「N」",
     lang: "語言", langDesc: "看板上的文字要用哪一種語言", langAuto: "跟著 Obsidian",
     langZh: "繁體中文", langEn: "English",
     scanNow: "重新檢查,該用看板開的就換過去", scanned: "✓ 已重新檢查",
@@ -210,6 +210,7 @@ const 字典 = {
     weekMonthStart: "每月 1 號起,每七天一段",
     backDiscard: "返回(放棄這次的修改)", discardAsk: "這次的修改還沒儲存,確定要放棄嗎?", discard: "放棄修改",
     sectionNamePh: "分類名稱", addSection: "新增分類", deleteSection: "刪除這個分類",
+    filterSection: "只看「N」這一區",
     sectionLimit: "分類最少 1 個、最多 10 個", sectionNameEmpty: "分類名稱不能空白",
     sectionReserved: "分類名稱不能有「封存」或 archive,那是封存區專用的",
     moveCardsTo: "裡面有 N 張卡片,要搬到哪一個分類?", willDelete: "刪除「N」", undoDelete: "不刪了",
@@ -283,7 +284,7 @@ const 字典 = {
     writeFail: "Not written to the file (sync may be busy). Your text is still here — press Send again",
     movedDone: "✓ Moved to Done", movedTodo: "↩ Moved back to To do",
     movedArchive: "🗄 Moved to Archive", movedBack: "↩ Moved back to N",
-    findTopic: "Find a title…", noTopics: "No titles",
+    findTopic: "Find a title…", noTopics: "No titles", addTopic: "Add “N”",
     lang: "Language", langDesc: "Which language the board uses", langAuto: "Follow Obsidian",
     langZh: "繁體中文", langEn: "English",
     scanNow: "Re-check frontmatter and switch matching notes", scanned: "✓ Re-checked",
@@ -372,6 +373,7 @@ const 字典 = {
     weekMonthStart: "From the 1st of each month, seven days at a time",
     backDiscard: "Back (discard these changes)", discardAsk: "You have unsaved changes. Discard them?", discard: "Discard",
     sectionNamePh: "Section name", addSection: "Add section", deleteSection: "Delete this section",
+    filterSection: "Show only “N”",
     sectionLimit: "Keep between 1 and 10 sections", sectionNameEmpty: "A section needs a name",
     sectionReserved: "Section names cannot contain “archive”, that name belongs to the archive section",
     moveCardsTo: "N cards inside. Move them to:", willDelete: "Delete “N”", undoDelete: "Keep it",
@@ -2908,6 +2910,12 @@ class 看板視圖 extends TextFileView {
     const s = this.狀態;
     this.__搜拆 = null;
     return 全.filter(k => {
+      /* 1.6.5-U2(使用者 09-22:「換顏色即是篩選特定區域」):只看某一個分類。
+         ⚠ 放在**基底**、不是 過濾() —— 置頂卡片在 過濾() 裡不受日期篩選影響,
+           但使用者明講「pin 如果不是該 section 也會被篩掉」,所以要在更前面篩。
+         ⚠ 不能用「搜尋框打 #分類名」那一招(1.6.2-U3):1.6.3 的 ADR 之後
+           `#xxx` 在輸入框裡是**主題**的意思,比對的是 k.主題們,跟分類無關。 */
+      if (s.區篩 && k.分類 !== s.區篩) return false;
       if (s.指派 && k.指派 !== s.指派) return false;
       if (s.搜尋) { k.__分 = this.搜尋分數(k); if (k.__分 < 0) return false; }
       else k.__分 = 0;
@@ -2938,21 +2946,26 @@ class 看板視圖 extends TextFileView {
   合日期(k) { return !!k.起日 || !!k.循環; }
   清單池(全) { return this.基底(全).filter(k => this.合顯示(k) && this.合日期(k)); }
   活的(全) { return this.清單池(全); }
-  過濾(全) {
+  /* 現在這個時間篩選收不收這張卡片。
+     ⚠ 1.6.5 第三輪(使用者 09-22:「這個數字也要受 time filter 影響」):抽出來給 顯示數() 共用 ——
+       以前 顯示數() 用的是 合日期()(「有沒有日期」),所以 ⋯ 上面那兩個數字寫的是**整份筆記**的張數,
+       跟畫面上看到的對不起來。 */
+  合篩日(k) {
     const s = this.狀態, f = s.篩 || {};
+    if (this.看封存區) return true;             // 1.6.3:封存區不看日期篩選(整區都列出來)
+    // ⚠ 置頂 = 「我要一直看到它」,所以不受日期篩選影響,永遠在清單裡、永遠在最上面。
+    //   (搜尋和指派人篩選還是會作用 —— 那是你主動在找東西。)
+    if (k.置頂 && f.型 !== "週期") return true;
+    if (f.型 === "全部") return true;
+    if (f.型 === "逾期") return this.是逾期(k);
+    if (f.型 === "週期") return !!k.循環;
     const 區 = this.現在區間();
-    return this.清單池(全).filter(k => {
-      if (this.看封存區) return true;             // 1.6.3:封存區不看日期篩選(整區都列出來)
-      // ⚠ 置頂 = 「我要一直看到它」,所以不受日期篩選影響,永遠在清單裡、永遠在最上面。
-      //   (搜尋和指派人篩選還是會作用 —— 那是你主動在找東西。)
-      if (k.置頂 && f.型 !== "週期") return true;
-      if (f.型 === "全部") return true;
-      if (f.型 === "逾期") return this.是逾期(k);
-      if (f.型 === "週期") return !!k.循環;
-      if (!區) return true;
-      if (!k.起日) return false;
-      return !(k.迄日 < 區[0] || k.起日 > 區[1]);
-    }).sort((a, b) => this.比大小(a, b));
+    if (!區) return true;
+    if (!k.起日) return false;
+    return !(k.迄日 < 區[0] || k.起日 > 區[1]);
+  }
+  過濾(全) {
+    return this.清單池(全).filter(k => this.合篩日(k)).sort((a, b) => this.比大小(a, b));
   }
   /* 排序:置頂永遠在最上面,做完的沉到最下面,剩下的照選的模式。
        編修(預設)= 最近新增或編修的排最上面。時間取自卡片最後一行的 `[ed:: …]`(舊的 `✎{}` / `Ed{}`),
@@ -3009,6 +3022,7 @@ class 看板視圖 extends TextFileView {
       "overflow-anchor:none;overscroll-behavior:contain;");
     this.區 = {
       衝突: 根.createDiv(),
+      今頭: 根.createDiv(),          // 1.6.5-U5:最上面那一列,只寫今日日期
       導覽: 根.createDiv(),
       新增: 根.createDiv(),
       清單: 根.createDiv(),
@@ -3020,6 +3034,7 @@ class 看板視圖 extends TextFileView {
     /* 1.5.1:時間篩選 → (行事曆)→ 新增卡片 這兩三塊是同一組控制區,彼此只隔 4px;
        底下的卡片表之間維持 styles.css 的 8px。 */
     this.區.導覽.style.marginBottom = "4px";
+    this.區.今頭.style.marginBottom = "4px";
   }
 
   畫() {
@@ -3036,6 +3051,7 @@ class 看板視圖 extends TextFileView {
     // 顏色照檔案裡標題的先後,不是照畫到的順序
     this.插件.設分類順序(this.分類清單.filter(x => !/archive|封存/i.test(x)));
     this.畫衝突提示(this.區.衝突);
+    this.畫今日列(this.區.今頭);
     this.畫導覽列(this.區.導覽, 全);
     this.畫新增區(this.區.新增, 全);
     this.畫清單(this.區.清單, 全);
@@ -3212,6 +3228,24 @@ class 看板視圖 extends TextFileView {
      ・週的標籤永遠是 M/D – M/D;週跨年時年格寫「26–27」。
      ・只有 ⌄ 會收合;標題列其他地方點了回到今天(C9)。
      長相在 styles.css 的 .tk-篩…;規則見技能 card-table-ui-rules。 */
+  /* 1.6.5-U5(使用者 09-22:「新增一行 header(最上面)把今日日期放在上面中間 要比其他 header 都粗一點
+     點了就跟點今日篩選 效果一樣」):看板最上面一列,只有今日日期、置中、比其他標題列重一級。
+     ⚠ 高度照 26 的規矩(所有標題列一樣高);今日日期從時間篩選那一列搬過來,兩處不重複(U4)。 */
+  畫今日列(根) {
+    const T = this.T;
+    根.empty();
+    const 列 = 根.createDiv();
+    /* ⚠ 不掛 .tk-塊:那個 class 的意思是「一個有標題列的區塊」(measure / probe 都靠它找標題列),
+       這一列本身就是一行字,沒有標題列。框線、圓角、底色在 .tk-今列 自己寫。 */
+    列.addClass("tk-今列");
+    列.setAttribute("role", "button"); 列.setAttribute("tabindex", "0");
+    列.setAttribute("aria-label", T.backToToday);
+    const 回 = () => { this.回到今天(); this.畫(); };
+    列.createDiv({ text: 日期範圍字(this.今) }).addClass("tk-今字");
+    列.onclick = 回;
+    列.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 回(); } };
+  }
+
   畫導覽列(根, 全) {
     const T = this.T, s = this.狀態;
     根.empty();
@@ -3242,11 +3276,15 @@ class 看板視圖 extends TextFileView {
     圖備(曆, ["calendar", "calendar-days"], 14);
     曆.onclick = (e) => { e.stopPropagation(); this.切行事曆(); };
     曆.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); this.切行事曆(); } };
-    const 今 = 頭.createDiv({ text: T.today + " " + 日期範圍字(this.今) });
-    今.addClass("tk-頭字"); 今.addClass("tk-今色");
-    今.setAttribute("aria-label", T.backToToday);
+    /* 1.6.5-U4(使用者 09-22:「第一 header 改成篩選的日期 不要固定顯示今日日期」):
+       這一列寫的是**正在篩的期間**(跟清單表同一個 篩選標題()),右邊寫這個範圍裡有幾張;
+       今日日期搬到最上面那一列(U5)。點標題列照舊回到今天。 */
+    const 期 = 頭.createDiv({ text: this.篩選標題() });
+    期.addClass("tk-頭字"); 期.addClass("tk-今色");
+    期.setAttribute("aria-label", T.backToToday);
     頭.onclick = () => { this.回到今天(); this.畫(); };
     頭.createDiv().addClass("tk-撐");
+    頭.createDiv({ text: (this.過濾(全).length + " " + T.cards).trim() }).addClass("tk-頭數");
     this.畫顯示彈出(頭, 全);
     if (收) return;
     const 條 = 塊.createDiv();
@@ -3271,20 +3309,40 @@ class 看板視圖 extends TextFileView {
     if (s.顯示彈出) {
       const 彈 = 頭.createDiv();
       彈.addClass("tk-彈");
+      /* 1.6.5-B2(使用者 09-22:「重複點擊後彈跳視窗重複跳動」):
+         左滑動畫**只有剛打開的那一次**播。以前每按一次已完成 / 未完成都 畫() 整份重畫,
+         彈出整塊被重建 → 動畫重播,看起來就是一直跳(跟 1.6.3 U49「動畫只播一次」同一條規矩)。 */
+      if (s.彈剛開) { 彈.addClass("tk-彈進"); s.彈剛開 = false; }
       /* 1.6.3(mockup v9 #1、Q13):「全部」搬到**行事曆標題列的右邊**(見 畫新增區內)——
          它是「所有日期」,跟未完成 / 已完成不是同一件事,擺在一起會被當成同一組。
          1.6.3(mockup v9 #3):行事曆鈕搬到時間篩選標題列的「今日」左邊。
          所以這個 ⋯ 裡只剩未完成 / 已完成(Q25:只剩兩顆,⋯ 照樣留著)。 */
+      /* 1.6.5-B2(使用者 09-22):三個選項 **單選** —— 全部 / 已完成 / 未完成,
+         版面是「全部」在最左邊**包住**右邊兩顆;選了「全部」右邊兩顆一起亮(兩種都看得到)。
+         ⚠ 資料還是原本的兩個旗標(設.未完成 / 設.完成),沒有新欄位 ——
+           全部 = 兩個都開、已完成 = 只開完成、未完成 = 只開未完成,舊設定照讀。
+         這也順便解決 CR-1.6.3-01 的「兩個都關掉」:單選不可能兩個都關。 */
       const 段 = 彈.createDiv();
-      段.addClass("tk-段");
-      // CR-1.6.3-01(使用者):未完成 / 已完成各自獨立的勾選,不是二選一;兩個都關掉就退回未完成(不然看不到東西)
-      const 切 = async (k) => {
-        設[k] = !設[k];
-        if (!設.未完成 && !設.完成) 設.未完成 = true;
+      段.addClass("tk-段"); 段.addClass("tk-三態");
+      const 全開 = !!設.未完成 && !!設.完成;
+      const 設態 = async (態) => {
+        設.未完成 = (態 === "全部" || 態 === "未完成");
+        設.完成 = (態 === "全部" || 態 === "完成");
         await this.插件.存設定(); this.畫();
       };
-      鈕(段, T.showTodo + " " + this.顯示數(全, "未完成"), ["circle"], !!設.未完成, () => 切("未完成"));
-      鈕(段, T.showDone + " " + this.顯示數(全, "完成"), ["circle-check", "check-circle"], !!設.完成, () => 切("完成"));
+      /* 1.6.5 第二輪(使用者 09-22):
+         ・左邊那顆不寫「全部」兩個字,改成 **tally-2 圖示 + 灰字「全部張數/未完成張數」**;
+         ・已完成 / 未完成兩顆**不寫張數**(數字只留一處,不然三個數字互相干擾)。
+         ⚠ 這兩個數字本來就是**日期篩選之後**的(顯示數() 走 基底 + 合日期),不是整份筆記的總數。 */
+      const 全鈕 = 鈕(段, this.顯示數(全, "全部") + "/" + this.顯示數(全, "未完成"),
+        ["tally-2", "tally", "equal"], 全開, () => 設態("全部"), "tk-全鈕");
+      全鈕.setAttribute("aria-label", T.all);
+      const 內 = 段.createDiv();
+      內.addClass("tk-段內");
+      鈕(內, T.showDone, ["circle-check", "check-circle"],
+        全開 || (!!設.完成 && !設.未完成), () => 設態("完成"));
+      鈕(內, T.showTodo, ["circle"],
+        全開 || (!!設.未完成 && !設.完成), () => 設態("未完成"));
     }
     const 更 = 頭.createDiv();
     更.addClass("tk-頭鈕");
@@ -3292,7 +3350,7 @@ class 看板視圖 extends TextFileView {
     更.setAttribute("role", "button"); 更.setAttribute("tabindex", "0");
     更.setAttribute("aria-label", [T.showTodo, T.showDone].join(" / "));
     圖(更, "ellipsis", 14);
-    更.onclick = (e) => { e.stopPropagation(); s.顯示彈出 = !s.顯示彈出; this.畫(); };
+    更.onclick = (e) => { e.stopPropagation(); s.顯示彈出 = !s.顯示彈出; s.彈剛開 = s.顯示彈出; this.畫(); };
   }
 
   /* 行事曆開關(以前是年格底下的小鈕,1.6.3 搬到時間篩選標題列的「今日」前面) */
@@ -3352,17 +3410,32 @@ class 看板視圖 extends TextFileView {
     // 年
     {
       const 年選 = f.型 === "年度";
-      const g = 格(條, ["tk-大"], 年選);
+      /* 1.6.5-U3(使用者 09-22「按全部之後 日曆右邊要顯示 全部」→ Q11 A 案):
+         「全部」是一個篩選狀態,但它的按鈕只畫在行事曆的標題列上,行事曆一收就看不見了。
+         現在改成:全部模式時**年格中間寫「全部」並亮起**、箭頭變灰不能點 —— 位置固定,隨時看得到。 */
+      const 全選 = f.型 === "全部";
+      const g = 格(條, ["tk-大"], 年選 || 全選);
       const 週段 = this.層區間("週");
-      const 跨 = 週段.起.slice(0, 4) !== 週段.迄.slice(0, 4);
-      箭(g, false, "看前一年", () => this.移游標("年", -1));
+      const 跨週 = 週段.起.slice(0, 4) !== 週段.迄.slice(0, 4);
+      /* 1.6.5-B1:行事曆選了**跨年的區間**時,年格也要跟著跨(例「26–27」),
+         不然年格寫著一個年份、實際篩的卻是兩年。 */
+      const 區 = this.現在區間();
+      const 跨區 = !!(區 && 區[0] && 區[1] && 區[0].slice(0, 4) !== 區[1].slice(0, 4));
+      const 左箭 = 箭(g, false, "看前一年", () => { if (!全選) this.移游標("年", -1); });
       數(g, this.清單池(全).filter(k => String(k.起日 || "").slice(0, 4) === s.統計年).length);
       const c = 中(g);
-      const 字 = c.createSpan({ text: 跨 ? 週段.起.slice(2, 4) + "–" + 週段.迄.slice(2, 4) : s.統計年 });
+      const 年文 = 全選 ? T.all
+        : 跨區 ? 區[0].slice(2, 4) + "–" + 區[1].slice(2, 4)
+        : 跨週 ? 週段.起.slice(2, 4) + "–" + 週段.迄.slice(2, 4)
+        : s.統計年;
+      const 字 = c.createSpan({ text: 年文 });
       字.addClass("tk-年字");
-      箭(g, true, "看後一年", () => this.移游標("年", 1));
-      g.setAttribute("aria-label", s.統計年 + " · " + T.tileHint);
+      const 右箭 = 箭(g, true, "看後一年", () => { if (!全選) this.移游標("年", 1); });
+      if (全選) { 左箭.addClass("tk-箭關"); 右箭.addClass("tk-箭關"); }
+      g.setAttribute("aria-label", (全選 ? T.all : s.統計年) + " · " + T.tileHint);
       g.onclick = () => {
+        // 全部模式再點一下 = 回到今日(跟其他格「選著再點一次回今天」同一個規矩)
+        if (全選) { this.設游標(this.今); s.顯示月 = this.今.slice(0, 7); s.篩 = { 型: "今日" }; s.開行事曆 = false; this.畫(); return; }
         if (年選 && s.統計年 !== this.今.slice(0, 4)) { this.設游標(this.今); s.顯示月 = this.今.slice(0, 7); }
         s.篩 = { 型: "年度" }; s.開行事曆 = false; this.畫();
       };
@@ -3439,9 +3512,11 @@ class 看板視圖 extends TextFileView {
   }
 
   顯示數(全, k) {
-    const 池 = this.基底(全).filter(x => this.合日期(x));
+    // 1.6.5 第三輪:跟著時間篩選走(合篩日),不再是整份筆記的總數
+    const 池 = this.基底(全).filter(x => this.合日期(x) && this.合篩日(x));
     if (k === "封存") return 池.filter(x => this.是封存(x)).length;
     const 非封存 = 池.filter(x => !this.是封存(x));
+    if (k === "全部") return 非封存.length;            // 1.6.5-B2:「全部」那一顆寫 全部/未完成 兩個數字
     return k === "完成" ? 非封存.filter(x => x.完成).length : 非封存.filter(x => !x.完成).length;
   }
 
@@ -3598,7 +3673,6 @@ class 看板視圖 extends TextFileView {
      ・這一塊不收合了(溝被詳細編輯鈕用掉);設定模式、行事曆模式溝裡是那個模式的圖示。 */
   畫新增區內(根, 全) {
     根.empty();
-    document.body.querySelectorAll(".tk-主題建議").forEach(x => { try { x.remove(); } catch (e) {} });
     const T = this.T, s = this.狀態;
     this.題輸 = null;
     // 1.6.3(mockup v12 Q26):封存區不再是自己一塊,搬進設定面板的右半邊(見 畫設定面板 → 畫封存半)
@@ -3714,7 +3788,23 @@ class 看板視圖 extends TextFileView {
     };
     this.套新分類色 = 上色;
     上色();
-    點座.onclick = (e) => { e.stopPropagation(); this.開分類清單(點座, s.新分類, (n) => { s.新分類 = n; this.畫(); }); };
+    /* 1.6.5-U2(使用者 09-22:「換顏色即是篩選特定區域」):
+       換分類 = 同時只看那一區(`狀態.區篩`,篩在 基底()),清單標題列會寫一顆「#分類名」膠囊。
+       置頂卡片不在那一區也會一起被篩掉(使用者確認)。預設不篩選:只有真的點過才會設。 */
+    點座.onclick = (e) => { e.stopPropagation(); this.開分類清單(點座, s.新分類,
+      (n) => { s.新分類 = n; this.畫(); },                      // 點名字 = 只換要放到哪一區
+      false,
+      (n) => { s.新分類 = n; s.區篩 = n; this.畫(); }); };       // 按 ⊞→ = 順便只看那一區
+    const 區篩中 = s.區篩 === s.新分類 && !!s.區篩;
+    if (區篩中) {
+      點座.addClass("tk-點篩");
+      const 叉 = 題排.createDiv();
+      叉.addClass("tk-點叉");
+      叉.setAttribute("role", "button"); 叉.setAttribute("tabindex", "0");
+      叉.setAttribute("aria-label", T.clearSearch);
+      圖(叉, "x", 12);
+      叉.onclick = (e) => { e.stopPropagation(); s.區篩 = null; this.畫(); };
+    }
 
     // ---- ☰ 更多 + 常用主題 ----
     const 常 = 題排.createDiv();
@@ -4296,7 +4386,25 @@ class 看板視圖 extends TextFileView {
       單.empty();
       const q = String(查.value || "").trim().toLowerCase();
       const 出 = 全主題.filter(t => !q || t.toLowerCase().indexOf(q) >= 0);
-      if (!出.length) { st(單.createDiv({ text: T.noTopics }), "font-size:0.76em;color:var(--text-faint);"); return; }
+      /* 1.6.5-U8(使用者 09-22:「所有主題 查主題 要能夠新增項目」):
+         打的字不是現有的主題 → 最上面一列「+ 新增「xxx」」,點了帶進輸入框。
+         這一步**不寫檔** —— 主題要等卡片送出才真的寫進筆記。 */
+      const 原字 = String(查.value || "").trim();
+      if (原字 && !全主題.some(t => t.toLowerCase() === q)) {
+        const 新列 = 單.createDiv();
+        st(新列, "display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px;cursor:pointer;" +
+          "color:var(--text-accent);");
+        新列.onmouseenter = () => { 新列.style.background = "var(--background-modifier-hover)"; };
+        新列.onmouseleave = () => { 新列.style.background = ""; };
+        圖備(新列, ["plus", "plus-circle"], 12);
+        st(新列.createDiv({ text: T.addTopic.replace("N", 截寬(原字, 12)) }),
+          "flex:1 1 auto;min-width:0;font-size:0.84em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;");
+        新列.onclick = () => { 關(); this.帶入主題(原字); };
+      }
+      if (!出.length) {
+        if (!原字) st(單.createDiv({ text: T.noTopics }), "font-size:0.76em;color:var(--text-faint);");
+        return;
+      }
       出.forEach(t => {
         const 行 = 單.createDiv();
         st(行, "display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px;cursor:pointer;");
@@ -4317,7 +4425,20 @@ class 看板視圖 extends TextFileView {
       });
     };
     查.oninput = 畫單;
-    查.onkeydown = (e2) => { if (e2.key === "Escape") { e2.preventDefault(); 關(); } };
+    /* 1.6.5-U8 第二輪(使用者 09-22:「要增加 按 enter 就會新增主題」):
+       在查主題框按 Enter —— 打的字不是現有主題就當場新增(等於按那一列「+ 新增」);
+       是現有主題(或只打到一半、剛好有一個完全相符的)就直接用它。 */
+    查.onkeydown = (e2) => {
+      if (e2.isComposing || e2.keyCode === 229) return;
+      if (e2.key === "Escape") { e2.preventDefault(); 關(); return; }
+      if (是Enter鍵(e2)) {
+        const v = String(查.value || "").trim();
+        if (!v) return;
+        e2.preventDefault();
+        const 同 = 全主題.find(t => t.toLowerCase() === v.toLowerCase());
+        關(); this.帶入主題(同 || v);
+      }
+    };
     畫單();
     const 關 = () => {
       try { 盒.remove(); } catch (x) {}
@@ -4385,88 +4506,6 @@ class 看板視圖 extends TextFileView {
     this.__記題 = t; this.__記後 = 區;
     if (區 !== s.新分類) { s.新分類 = 區; 上色(); }
   }
-  // 所有用過的主題:這份筆記釘選的在前,其他照最近動過
-  主題清單(全) {
-    const 新 = Object.create(null);
-    全.forEach(k => {
-      if (!k.主題) return;
-      const t = String(k.編修戳 || "");
-      if (!(k.主題 in 新) || t > 新[k.主題]) 新[k.主題] = t;
-    });
-    const 釘 = this.釘選主題們.filter(t => t in 新);
-    return 釘.concat(Object.keys(新).filter(t => 釘.indexOf(t) < 0).sort((a, b) => 新[b].localeCompare(新[a])));
-  }
-  /* 1.6:主題框的下拉建議 —— 打字就列出用過、而且含這幾個字的主題;框是空的時候按 ↓ 列出全部。
-     ↑↓ 選、Enter / Tab 帶入、Esc 關掉。⚠ 沒有選中任何一個的時候,Enter 照舊是「跳到內容框」,不攔。
-     ⚠ 用 stopImmediatePropagation:capture 跟框自己的 onkeydown 在同一個元素上,只擋冒泡擋不住它
-       (Esc 會連搜尋一起清掉)。 */
-  掛主題建議(框, 全) {
-    let 面板 = null, 候選 = [], 選中 = -1;
-    const 主題們 = this.主題清單(全);
-    const 關 = () => {
-      if (面板) { try { 面板.remove(); } catch (e) {} 面板 = null; }
-      候選 = []; 選中 = -1;
-    };
-    const 擋 = (e) => { e.preventDefault(); e.stopImmediatePropagation(); };
-    const 帶 = (i) => { const t = 候選[i]; 關(); if (t) this.帶入主題(t); };
-    const 畫 = () => {
-      if (!框.isConnected) { 關(); return; }
-      if (!面板) {
-        面板 = document.body.createDiv();
-        面板.addClass("tk-可捲"); 面板.addClass("tk-主題建議");
-        st(面板, "position:fixed;z-index:10000;max-height:230px;overflow-y:auto;box-sizing:border-box;" +
-          "padding:4px;border-radius:8px;background:var(--background-primary);" +
-          "border:1px solid var(--background-modifier-border);box-shadow:0 6px 22px rgba(0,0,0,0.34);");
-      }
-      const r = 框.getBoundingClientRect();
-      const 寬 = Math.max(200, Math.round(r.width));
-      面板.style.width = 寬 + "px";
-      面板.style.left = Math.max(6, Math.min(r.left, window.innerWidth - 寬 - 6)) + "px";
-      面板.style.top = Math.min(r.bottom + 4, window.innerHeight - 240) + "px";
-      面板.empty();
-      候選.forEach((t, i) => {
-        const 行 = 面板.createDiv();
-        st(行, "display:flex;align-items:center;gap:7px;padding:3px 7px;border-radius:5px;cursor:pointer;font-size:0.84em;" +
-          (i === 選中 ? "background:var(--background-modifier-hover);" : ""));
-        st(行.createDiv(), "flex:0 0 8px;width:8px;height:8px;border-radius:50%;" +
-          "background:" + this.插件.分類色(this.主題分類(全, t)) + ";");
-        st(行.createDiv({ text: t }), "flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
-          (i === 選中 ? "font-weight:700;" : ""));
-        if (this.釘選主題們.indexOf(t) >= 0) {
-          const 釘 = 行.createDiv();
-          st(釘, "display:inline-flex;line-height:0;color:var(--text-faint);");
-          圖(釘, "pin", 11);
-        }
-        行.onmousedown = (e) => { e.preventDefault(); 帶(i); };
-      });
-    };
-    const 查 = (全部) => {
-      const q = String(框.value || "").trim().toLowerCase();
-      候選 = 主題們.filter(t => {
-        if (全部) return true;
-        const x = t.toLowerCase();
-        return !!q && x.indexOf(q) >= 0 && x !== q;       // 已經打得一模一樣就不必再列它
-      }).slice(0, 40);
-      選中 = -1;
-      if (!候選.length) { 關(); return; }
-      畫();
-    };
-    框.addEventListener("input", () => 查(false));
-    框.addEventListener("blur", () => setTimeout(關, 140));
-    框.addEventListener("keydown", (e) => {
-      if (e.isComposing || e.keyCode === 229) return;
-      if (e.key === "ArrowDown") {
-        擋(e);
-        if (!面板) { 查(!String(框.value || "").trim()); if (面板) { 選中 = 0; 畫(); } return; }
-        選中 = (選中 + 1) % 候選.length; 畫(); return;
-      }
-      if (!面板) return;
-      if (e.key === "ArrowUp") { 擋(e); 選中 = 選中 <= 0 ? 候選.length - 1 : 選中 - 1; 畫(); return; }
-      if ((是Enter鍵(e) || e.key === "Tab") && 選中 >= 0 && !是送出(e)) { 擋(e); 帶(選中); return; }
-      if (e.key === "Escape" || e.code === "Escape") { 擋(e); 關(); }
-    }, true);
-  }
-  // 新卡片會被放到哪一天:完全看上面統計列現在選的是哪一格
   /* 新卡片會被放到哪一天,完全看上面統計列現在選的是哪一格:
        今日 → 今天 ‧ 選了一段 → 那一段 ‧ 週期 → 從今天開始、每週一次(1.5,長期拿掉了) */
   新增日期() {
@@ -4611,7 +4650,25 @@ class 看板視圖 extends TextFileView {
 
     /* ---- 左半:分類 ---- */
     const 活 = 草.分類.filter(x => !x.刪);
-    小標(左, ["swatch-book", "palette"], T.sections, 活.length);
+    /* 1.6.5-U7(C24;使用者 09-22 在 Review 上選了方案 1):
+       分類小標右邊一顆 eye —— 切換卡片上要不要顯示 `#分類名` 那個小字。
+       ⚠ **色條不受影響**:1.6.3 之後色條同時是打勾鈕,藏起來等於拿掉打勾的入口。
+       用的是既有的設定 `顯示分類名稱`(設定頁那一條照舊),不另外開一個鍵。 */
+    const 分標 = 小標(左, ["swatch-book", "palette"], T.sections, 活.length);
+    {
+      const 開 = !!this.插件.設定.顯示分類名稱;
+      const 眼 = 分標.createDiv();
+      st(眼, 圖鈕樣 + "margin-left:auto;" + (開 ? "color:var(--text-accent);" : ""));
+      眼.setAttribute("role", "button"); 眼.setAttribute("tabindex", "0");
+      眼.setAttribute("aria-label", T.showSectionName);
+      圖備(眼, 開 ? ["eye"] : ["eye-off", "eye-closed"], 14);
+      眼.onclick = async (e) => {
+        e.stopPropagation();
+        this.插件.設定.顯示分類名稱 = !開;
+        await this.插件.存設定();
+        this.畫();
+      };
+    }
     /* U41(Q39 / Q40):分類多的時候這一段自己捲(細深灰捲軸,見 styles.css 的 .tk-細捲),
        不要把整塊面板撐長、把卡片清單推到看不見的地方。mockup v16 的高度是 92。 */
     const 分表 = 左.createDiv();
@@ -4810,11 +4867,20 @@ class 看板視圖 extends TextFileView {
     if (頂.length) {
       const 頂塊 = this.畫卡片塊(根, { 標題: T.pinnedBlock, 圖示: "pin", 卡們: 頂, 帶工具: true, 全: 全,
         收合鍵: 置頂收合鍵 });
-      頂塊.style.marginBottom = "5px";            // 1.5.1:12 → 5,塊跟塊之間緊一點
+      /* 1.6.5-U6(C26,使用者 09-22):置頂表和清單表**黏在一起** —— 中間不留空隙(1.5.1 的 5px → 0),
+         接縫處的圓角拿掉、只留一條分隔線,兩張表看起來是同一塊(它們本來就是同一份清單的兩段)。 */
+      頂塊.style.marginBottom = "0";
+      頂塊.style.borderBottomLeftRadius = "0";
+      頂塊.style.borderBottomRightRadius = "0";
+      頂塊.style.borderBottomWidth = "0";
     }
     // 1.6:清單表也能收合,標題前面一顆篩選圖示(跟時間篩選收起來時的標題列同一個語言)
-    this.畫卡片塊(根, { 標題: this.篩選標題(), 色: this.篩選色(), 卡們: 其餘, 帶工具: !頂.length, 全: 全,
-      收合鍵: 清單收合鍵, 前圖示: ["filter", "list-filter"] });
+    const 單塊 = this.畫卡片塊(根, { 標題: this.篩選標題(), 色: this.篩選色(), 卡們: 其餘, 帶工具: !頂.length, 全: 全,
+      收合鍵: 清單收合鍵, 前圖示: ["filter", "list-filter"], 隱張數: true });
+    if (頂.length) {
+      單塊.style.borderTopLeftRadius = "0";
+      單塊.style.borderTopRightRadius = "0";
+    }
   }
 
   /* 一張卡片表:標題列 + 表格(桌機)或一疊卡片(窄螢幕)。置頂表和主清單共用。 */
@@ -4866,10 +4932,18 @@ class 看板視圖 extends TextFileView {
       圖框.setAttribute("aria-label", 設.標題);
     }
     /* 1.6.3(mockup v15 Q30、v16):**張數在日期前面** —— 掃的時候先看到「幾張」,再看是哪一天 */
-    頭.createDiv({ text: (卡們.length + " " + T.cards).trim() }).addClass("tk-頭數");
+    /* 1.6.5 第三輪(使用者 09-22:「header 左邊不要顯示灰色張數」):清單表的標題列不寫張數 ——
+       張數現在看 ⋯ 上面那顆(全部/未完成,而且跟著時間篩選走)。置頂表照舊寫,那裡張數是唯一的資訊。 */
+    if (!設.隱張數) 頭.createDiv({ text: (卡們.length + " " + T.cards).trim() }).addClass("tk-頭數");
+    /* 1.6.5 第三輪(使用者 09-22:「還是要重複寫日期 這樣比較清楚」):
+       清單表的標題列**照舊寫篩選期間**(推翻同一天稍早的 Q14「拿掉」)。 */
     if (!設.圖示) 頭.createDiv({ text: 設.標題 }).addClass("tk-頭字");
+    /* 1.6.5-U1(使用者 09-22:「header搜尋要放在靠左邊」):
+       搜尋 / 指派膠囊畫在「撐」**前面** = 貼著張數和標題,不再飄到最右邊。
+       右邊只留「⋯」,標題列左右兩邊各有一個固定的意思:左 = 現在在看什麼、右 = 功能。 */
+    if (設.帶工具) this.畫標題膠囊(頭);
     頭.createDiv().addClass("tk-撐");
-    if (設.帶工具) this.畫標題工具(頭);
+    if (設.帶工具) this.畫工具群(頭);
     if (收) return 塊;
     if (設.帶工具 && this.狀態.融合中) this.畫融合列(塊, 設.全);
     const 身外 = 塊.createDiv();
@@ -4890,9 +4964,25 @@ class 看板視圖 extends TextFileView {
     return 塊;
   }
 
-  /* 最上面那張表的標題列右邊:搜尋膠囊 · 指派人膠囊 · ⋯ */
-  畫標題工具(頭) {
+  /* 最上面那張表的標題列**左邊**(1.6.5-U1):搜尋膠囊 · 指派人膠囊。
+     這兩顆寫的是「現在在看什麼」,跟張數、標題同一組;「⋯」在另一邊(畫工具群)。 */
+  畫標題膠囊(頭) {
     const T = this.T;
+    /* 1.6.5-U2(使用者 09-22:「header 張數旁邊也要顯示現在篩選區域」):
+       正在用分類篩選時,張數旁邊一顆分類色的膠囊寫 #分類名,點了取消。 */
+    if (this.狀態.區篩) {
+      const 區鈕 = 頭.createEl("button");
+      const c = this.插件.分類色(this.狀態.區篩);
+      st(區鈕, "font-size:0.72em;height:21px;min-height:0;padding:0 9px;border-radius:10px;cursor:pointer;" +
+        "box-shadow:none;display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;" +
+        "max-width:44%;overflow:hidden;white-space:nowrap;" +
+        "color:" + c + ";border:1px solid " + 透明(c, 0.5) + ";background:" + 透明(c, 0.14) + ";");
+      const 字 = 區鈕.createSpan({ text: "#" + 截寬(this.狀態.區篩, 12) });
+      st(字, "flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;");
+      圖(區鈕, "x", 12);
+      區鈕.title = this.狀態.區篩;
+      區鈕.onclick = (e) => { e.stopPropagation(); this.狀態.區篩 = null; this.畫(); };
+    }
     // ⚠ 這裡不再做搜尋欄 —— 搜尋就是上面的「主題 / 內容」框(同一個功能只給一個入口)
     /* ⚠ 1.4.4:搜尋膠囊只顯示**第一行**,後面的一律「…」。
        內容框也是搜尋框,內容一打多行,以前這顆膠囊就跟著一直變長、把標題列擠來擠去;
@@ -4921,7 +5011,6 @@ class 看板視圖 extends TextFileView {
       圖鈕(清, "x", this.狀態.指派, 12);
       清.onclick = () => { this.狀態.指派 = null; this.畫(); };
     }
-    this.畫工具群(頭);
   }
 
   /* 底下那張「未寫日期」表:第一欄換成「補日期」——一鍵把它排進今天 */
@@ -6223,7 +6312,10 @@ class 看板視圖 extends TextFileView {
      ⚠ 掛在 document.body(新增區、表格格子都有 overflow:clip);點外面就關,但不算開它的那顆鈕(1.5 的規則),
        再按一次同一顆 = 關掉。名字用一般字色,顏色交給圓點(黃色的字在淺色主題上看不清楚)。 */
   // 可選目前:標出來的那一個也可以按(取消封存時它是「建議」,不是「現在在這裡」)
-  開分類清單(觸, 目前, 選了, 可選目前) {
+  /* 1.6.5 第三輪(使用者 09-22:「在圓點選單 每個選項 右邊 有一個按鈕 square-arrow-right
+     按這個才會進入查詢 一般不會進入查詢」):傳了 `篩了` 才畫那顆按鈕 ——
+     點名字 = 只換要放到哪一區(原本的行為);按箭頭 = 換區**而且**只看那一區。 */
+  開分類清單(觸, 目前, 選了, 可選目前, 篩了) {
     const 舊 = document.body.querySelector(".tk-分類挑");
     if (舊) {
       const 同一顆 = 舊.__觸 === 觸;
@@ -6260,6 +6352,16 @@ class 看板視圖 extends TextFileView {
       st(點, "width:12px;height:12px;border-radius:50%;flex:0 0 auto;box-sizing:border-box;" +
         "border:2px solid " + c + ";background:" + 透明(c, 0.35) + ";");
       st(列.createDiv({ text: n }), "min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;");
+      if (篩了) {
+        const 去 = 列.createDiv();
+        去.addClass("tk-去篩");
+        st(去, "margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;" +
+          "width:22px;height:22px;border-radius:5px;line-height:0;");
+        圖備(去, ["square-arrow-right", "arrow-right-square", "log-in"], 14);
+        去.setAttribute("role", "button"); 去.setAttribute("tabindex", "0");
+        去.setAttribute("aria-label", this.T.filterSection.replace("N", n));
+        去.onclick = (ev) => { ev.stopPropagation(); 關(); 篩了(n); };
+      }
       if (!是) {
         列.onmouseenter = () => { 列.style.background = "var(--background-modifier-hover)"; };
         列.onmouseleave = () => { 列.style.background = ""; };
@@ -7796,6 +7898,9 @@ function 回報網址(資訊) { return 專案網址 + "/issues/new?template=bug_
 /* 1.6.2(D1)CHANGELOG 只有一份(使用者明講):更新介紹視窗直接顯示 CHANGELOG.md 裡這一版的那一段(英文 / 繁中)。
    ⚠ 發版時由 card-table-release 技能從 CHANGELOG.md 複製過來,**不要在這裡另外寫**。最上面是釘選的 Reminder / Notice。 */
 const 更新說明 = {
+  "1.6.5": {
+    "en": "> [!important]\n> **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!\n>\n> **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.\n\n**Know what you are looking at.** The board now says, at the top, which day it is, which period is filtered and which section — and the completed filter finally stops flickering.\n\n### Bug fixes\n1. Clicking Done / Not done repeatedly no longer makes the popup jump each time — the slide-in animation now plays only when the popup opens.\n2. The counts next to Done / Not done follow the current time filter instead of counting the whole note.\n3. Picking a date range that crosses a year boundary now shows it on the year tile (`26–27`) instead of a single year.\n\n### UX improvements\n1. A new header row at the very top shows today's date, centred and bolder; click it to jump back to today.\n2. The time-filter header now shows the period you are actually filtering, with the card count on the right.\n3. Each entry in the section menu has a \"show only this section\" button — pinned cards outside that section are filtered out too; the list header shows a `#section` capsule with an × to clear it, and the section dot gets a frame while it is active.\n4. The completed filter is one three-way choice: a counter tile on the left (all / not done, following the time filter) wrapping Done and Not done, with a frame on whichever is selected.\n5. The search and assignee capsules moved to the left of the block header, next to the count; the pinned table and the list table are now joined into one block.\n6. Typing a title that does not exist in the ☰ panel offers \"Add …\", and Enter adds it straight away.\n7. The section settings panel has an eye toggle for showing the `#section` name on cards.\n\n### Internal\n1. Removed 83 more lines of dead code (a title-suggestion dropdown that nothing called since 1.6.3, and its helper)."
+  },
   "1.6.4": {
     "en": "> [!important]\n> **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!\n>\n> **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.\n\n**Cleanup release.** Two bugs fixed, ~490 lines of dead code removed, no new settings or format changes.\n\n### Bug fixes\n1. Adding a card while several cards are pinned no longer leaves the board stuck mid-scroll — it now lands on the new card and flashes it, every time.\n2. A card ID left behind by Canvas (`^ct-…`, appended after `[ed:: …]`) is now recognized when parsing and kept as-is on every rewrite (title, checkbox, content, date, archive). Cards without one are unaffected; nothing writes a new ID yet.\n3. The topic capsule no longer shifts 2px to the right while editing — reading and editing now line up exactly (an inline style was overriding the alignment rule).\n\n### Internal\n1. Removed ~490 lines of dead code left over from the pre-1.6.3 table layout, plus unused dictionary keys, an unused import, and superseded helper functions. No behavior change."
   },
@@ -7854,6 +7959,13 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.6.5",
+    ["看板最上面多一列今日日期(點了回到今日),時間篩選那一列改寫「現在篩的是哪一段」加張數,分類選單每一列多一顆「只看這一區」。",
+     "未完成 / 已完成收成一組三選一,左邊的計數跟著時間篩選走;重複點不再跳動,跨年的區間年格會寫 26–27。",
+     "☰ 主題面板打沒有的主題可以當場新增(按 Enter 也可以),分類設定多一顆眼睛控制卡片上要不要寫 #分類名。"],
+    ["A new row at the top shows today's date (click to jump back); the time-filter header now shows the period you are filtering plus the count, and every entry in the section menu has a \"show only this section\" button.",
+     "Done / Not done became one three-way choice with a counter that follows the time filter; clicking repeatedly no longer makes it jump, and a range crossing a year shows as 26–27.",
+     "Typing an unknown title in the ☰ panel adds it (Enter works too), and section settings has an eye toggle for the #section name on cards."]],
   ["1.6.4",
     ["清掃版:新增卡片在置頂多的時候不會再卡在捲到一半;Canvas 留下的卡片 ID 現在讀得懂、改卡片時原樣留著。",
      "主題編輯時字不再往右跳 2px;順手清掉約 490 行舊版面留下的死程式碼,沒有新設定、沒有格式變動。"],

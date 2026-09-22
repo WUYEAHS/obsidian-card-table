@@ -5,6 +5,27 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.6.5
+
+**Know what you are looking at.** The board now says, at the top, which day it is, which period is filtered and which section — and the completed filter finally stops flickering.
+
+### Bug fixes
+1. Clicking Done / Not done repeatedly no longer makes the popup jump each time — the slide-in animation now plays only when the popup opens.
+2. The counts next to Done / Not done follow the current time filter instead of counting the whole note.
+3. Picking a date range that crosses a year boundary now shows it on the year tile (`26–27`) instead of a single year.
+
+### UX improvements
+1. A new header row at the very top shows today's date, centred and bolder; click it to jump back to today.
+2. The time-filter header now shows the period you are actually filtering, with the card count on the right.
+3. Each entry in the section menu has a "show only this section" button — pinned cards outside that section are filtered out too; the list header shows a `#section` capsule with an × to clear it, and the section dot gets a frame while it is active.
+4. The completed filter is one three-way choice: a counter tile on the left (all / not done, following the time filter) wrapping Done and Not done, with a frame on whichever is selected.
+5. The search and assignee capsules moved to the left of the block header, next to the count; the pinned table and the list table are now joined into one block.
+6. Typing a title that does not exist in the ☰ panel offers "Add …", and Enter adds it straight away.
+7. The section settings panel has an eye toggle for showing the `#section` name on cards.
+
+### Internal
+1. Removed 83 more lines of dead code (a title-suggestion dropdown that nothing called since 1.6.3, and its helper).
+
 ## 1.6.4
 
 **Cleanup release.** Two bugs fixed, ~490 lines of dead code removed, no new settings or format changes.

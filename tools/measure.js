@@ -79,9 +79,11 @@ if (列) {
   if (頂) {
     const r0 = 頂.getBoundingClientRect(), 頂條 = 頂.querySelector('.tk-色條'), 釘 = 頂.querySelector('.tk-溝釘');
     if (頂條) 記('M5b', '釘住的卡片:色條從 22 開始(上面留給 📌)', 近(頂條.getBoundingClientRect().top - r0.top, 22), 圓(頂條.getBoundingClientRect().top - r0.top));
+    /* 1.6.5(使用者 09-22:「卡片 pin 圖案全部往左 1pt」):📌 的盒子改到 **2**(色條還是 3)——
+       圖示在 12px 的框裡自己留了白,盒子對齊 3 時看起來偏右。所以這裡量 2,跟色條差 1 也算對。 */
     if (釘) { const rp = 釘.getBoundingClientRect(), rc = 頂條 && 頂條.getBoundingClientRect();
-      記('M5c', '📌 在 left 3 / top 5,而且左緣跟色條同一條線',
-        近(rp.left - r0.left, 3) && 近(rp.top - r0.top, 5) && (!rc || 近(rp.left, rc.left)),
+      記('M5c', '📌 在 left 2 / top 5(視覺補正:比色條再往左 1)',
+        近(rp.left - r0.left, 2) && 近(rp.top - r0.top, 5) && (!rc || Math.abs(rp.left - rc.left) <= 2),
         圓(rp.left - r0.left) + ' / ' + 圓(rp.top - r0.top) + (rc ? ' · 跟色條差 ' + 圓(rp.left - rc.left) : '')); }
   }
   /* 1.6.3(mockup v9 #10):題行**第一個東西**在 18 —— 有指派人是頭像、沒有是空位、
