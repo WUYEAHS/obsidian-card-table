@@ -19,8 +19,12 @@ window.__ctBoardTest = 'running';
   const path = 'ZZ-board-test.md';
   let f = app.vault.getAbstractFileByPath(path);
   if (f) await app.vault.delete(f);
+  // 1.6.4 B1:8 張置頂卡片墊在最前面,新卡片才會被推得夠遠,量得出「捲到一半卡住」這個問題
+  const 置頂墊 = Array.from({ length: 8 }, (_, i) =>
+    '- [ ] [pin:: on] [置頂墊' + i + '] [due:: 2026-09-16]\n\t[ed:: 2026-09-10 09:00]');
   const 初 = [
     '## 1', '',
+    ...置頂墊, '',
     '- [ ] [訂貨] ．每樣兩箱 ＠{2026-09-16 ~ 2026-09-18} #' + 人 + ' 📌 ✎{2026-09-10 09:12}',
     '\t．打給廠商了',
     '\t．💬{2026-09-11 14:20|' + 人 + '} 報價回來了',
@@ -29,7 +33,12 @@ window.__ctBoardTest = 'running';
     '',
     '- [ ] 沒主題的舊卡 ＠{2026-09-16}',
     '',
-    '## 2', '', '## 3', '', '## 4', '', '## 5', '', '## 6', '', '## 7', ''     // 1.6.2 B1:超過 5 個分類
+    '## 2',
+    '- [ ] [ID測試] [due:: 2026-09-16]',       // 1.6.4 B3:已經有 Canvas ID 的卡片(模擬 ^ct-… 接在 [ed::] 後面)
+    '\t- 內容',
+    '\t[ed:: 2026-09-10 09:00] ^ct-b3test',
+    '',
+    '## 3', '', '## 4', '', '## 5', '', '## 6', '', '## 7', ''     // 1.6.2 B1:超過 5 個分類
   ].join('\n');
   f = await app.vault.create(path, 初);
   const leaf = app.workspace.getLeaf(true);
@@ -111,6 +120,31 @@ window.__ctBoardTest = 'running';
     await v.切置頂(k); await 等(400);
     段 = 卡段(await 讀(), '沒主題的舊卡');
     ok('titleless pinned', 段[0] === '- [ ] [pin:: on] 沒主題的舊卡 [due:: 2026-09-16]' && 尾是ed(段), 段);
+    // 8b. 1.6.4 B3:^ct-… 接在 [ed::] 後面,只讀不寫,改主題之後原樣留著
+    {
+      const kid = v.卡片.find(x => x.主題 === 'ID測試');
+      ok('B3 parses ^ct-… id from note', kid && kid.ID === '^ct-b3test', kid && kid.ID);
+      await P.寫手.改主題(f, kid, '改過的ID測試', v.名單); await 等(400);
+      段 = 卡段(await 讀(), '[改過的ID測試]');
+      ok('B3 id survives topic change', 段.length > 0 && 段[段.length - 1].endsWith('^ct-b3test'), 段);
+    }
+    // 8c. 1.6.4 B1:置頂多(8 張墊底)的時候新增卡片,不會卡在捲到一半的地方
+    {
+      v.狀態.新主題 = 'B1測試'; v.狀態.新內容 = '';
+      if (v.內輸) v.內輸.value = '';
+      await v.送出新增(); await 等(400);
+      const kb1 = v.卡片.find(x => x.主題 === 'B1測試');
+      const ce = v.contentEl;
+      const 可見 = (列) => !!列 && 列.getBoundingClientRect().bottom > ce.getBoundingClientRect().top &&
+        列.getBoundingClientRect().top < ce.getBoundingClientRect().bottom;
+      ok('B1 new card visible after normal add (8 pinned ahead of it)', 可見(v.找列(kb1.鍵)), v.找列(kb1.鍵) && v.找列(kb1.鍵).getBoundingClientRect());
+      // 模擬「回音重畫」插進來:要看的卡 還沒被清掉(捲動還沒找到那一列)就先假造一個舊座標、叫一次 畫()
+      ce.scrollTop = 0;
+      v.要看的卡 = kb1.鍵;
+      v.畫();
+      await 等(300);
+      ok('B1 echo repaint re-scrolls instead of freezing at stale scrollTop', 可見(v.找列(kb1.鍵)), { scrollTop: ce.scrollTop });
+    }
     // 9. 新增:只有主題
     v.狀態.新主題 = '只有主題'; v.狀態.新內容 = '';
     if (v.內輸) v.內輸.value = '';

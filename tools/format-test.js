@@ -81,6 +81,23 @@
   eq('checkbox typed variants', ['-[ ]x', '[] y', '* - [x] z'].map(M.照打行).join('|'), '- [ ] x|- [ ] y|- [x] z');
   eq('pinned title-less key', M.解析卡片('- [ ] [pin:: on] [訂] [due:: 2026-09-16]\n\t- c', 名單)[0].基鍵, '[訂] c');
 
+  // ---- 1.6.4 B3:^ct-… 接在 [ed::] 後面(Canvas 的卡片 ID,只讀不寫)----
+  eq('ed with canvas id: timestamp + ID both parse',
+    JSON.stringify(M.讀編行('\t[ed:: 2026-09-17 02:37] ^ct-abc123')),
+    JSON.stringify({ 日: '2026-09-17', 分: '02:37', 秒: '00', ID: '^ct-abc123' }));
+  eq('parsed card exposes k.ID',
+    M.解析卡片(['- [ ] [a] [due:: 2026-09-16]', '\t[ed:: 2026-09-17 02:37] ^ct-abc123'].join('\n'), 名單)[0].ID,
+    '^ct-abc123');
+  eq('rewrite keeps ID as-is (title/content/date/checkbox all go through 蓋卡)',
+    蓋(['- [ ] [a] [due:: 2026-09-16]', '\t- x', '\t[ed:: 2026-01-01 00:00] ^ct-abc123']),
+    '- [ ] #a [due:: 2026-09-16]\n\t- x\n\t[ed:: T] ^ct-abc123');
+  eq('card without ID unaffected by B3 (no trailing ID written)',
+    蓋(['- [ ] [a] [due:: 2026-09-16]', '\t- x', '\t[ed:: 2026-01-01 00:00]']),
+    '- [ ] #a [due:: 2026-09-16]\n\t- x\n\t[ed:: T]');
+  eq('bare ^ct-… line with no [ed::] is not content',
+    M.解析卡片(['- [ ] [a] [due:: 2026-09-16]', '\t- x', '\t^ct-abc123'].join('\n'), 名單)[0].內容行.join('|'),
+    'x');
+
   // ---- 1.6.2 B3:內容照你打的存(縮排、空行、行中的空白) ----
   const 原 = (s) => JSON.stringify(M.解析卡片(s, 名單)[0].內容原);
   eq('raw content keeps nesting, blank line, spaces',

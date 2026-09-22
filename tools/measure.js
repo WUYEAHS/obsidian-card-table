@@ -85,9 +85,15 @@ if (列) {
         圓(rp.left - r0.left) + ' / ' + 圓(rp.top - r0.top) + (rc ? ' · 跟色條差 ' + 圓(rp.left - rc.left) : '')); }
   }
   /* 1.6.3(mockup v9 #10):題行**第一個東西**在 18 —— 有指派人是頭像、沒有是空位、
-     個人模式才是主題膠囊。以前量的是主題,頭像搬到前面之後那個數字本來就會變。 */
+     個人模式才是主題膠囊。以前量的是主題,頭像搬到前面之後那個數字本來就會變。
+     ⚠ 1.6.4(S1):量的是**字的位置**,不是盒子的左緣 —— 主題膠囊(和頭像的那個字)
+     左邊都墊了內距,是第一個的時候盒子刻意往左 2px 讓字落在 18(見 styles.css .tk-主題 那段註解);
+     量盒子左緣會少算那 2px 內距。頭像空是純圖示、沒有文字節點,退回量盒子左緣。 */
   const 首件 = [...(列.querySelector('.tk-題左') || 列).children].find(看得見);
-  if (首件) 記('M6', '題行第一個東西(頭像 / 空位 / 主題)在 18', 近(首件.getBoundingClientRect().left - x0, 18), 圓(首件.getBoundingClientRect().left - x0));
+  if (首件) {
+    const 首位 = 字位(首件) || { x: 首件.getBoundingClientRect().left };
+    記('M6', '題行第一個東西(頭像 / 空位 / 主題)在 18', 近(首位.x - x0, 18), 圓(首位.x - x0));
+  }
   const 頭 = 列.querySelector('.tk-頭像, .tk-頭像空');
   if (頭) { const r = 頭.getBoundingClientRect(); 記('M6c', '頭像 17 × 17(跟主題膠囊等高)', 近(r.width, 17) && 近(r.height, 17), 圓(r.width) + ' × ' + 圓(r.height)); }
   const 題 = 列.querySelector('.tk-主題'), 題字 = 題 && 字位(題);
