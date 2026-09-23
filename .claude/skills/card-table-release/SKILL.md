@@ -12,6 +12,9 @@ description: 卡片看板(obsidian-card-table)的升版與發版流程。使用�
 
 - 新版本號(semver)和這一版的**主題**(一版一個主題,見技能 `card-table-principles`)。
 - 工作區乾淨或只有這一版的改動(`git status`)。
+- **GitHub 上實際發到哪一版**(2026-09-23:1.6.7 的 tag 推在沒升版的 commit 上,release 是空的,沒人收到):
+  `git fetch --tags` + `api.github.com/repos/WUYEAHS/obsidian-card-table/releases` 看最近的 release **有沒有三個附件**。講「發了沒」之前一定先看這個,不要只看 repo 的 manifest。
+- 不升版的 commit(只修程式、不發):交接時明講「**這版不發,不要推 tag**」。推了 tag 之後提醒使用者看 Actions 是不是綠的。
 - 不變的東西:`manifest.json` 的 `id` 永遠是 `card-table`;英文名稱 `Card Table - Dated Tasks` **不能有冒號**;作者 `jiajiunwu`。
 
 ## 1. 改版本號(三處 + versions.json)
