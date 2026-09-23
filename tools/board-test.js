@@ -126,7 +126,8 @@ window.__ctBoardTest = 'running';
       ok('B3 parses ^ct-… id from note', kid && kid.ID === '^ct-b3test', kid && kid.ID);
       await P.寫手.改主題(f, kid, '改過的ID測試', v.名單); await 等(400);
       段 = 卡段(await 讀(), '[改過的ID測試]');
-      ok('B3 id survives topic change', 段.length > 0 && 段[段.length - 1].endsWith('^ct-b3test'), 段);
+      // 1.6.8(ADR-001 D2):內容是子清單 → ID 搬到它前面、自己一行
+      ok('B3 id survives topic change', 段[1] === '\t^ct-b3test' && 尾是ed(段), 段);
     }
     // 8c. 1.6.4 B1:置頂多(8 張墊底)的時候新增卡片,不會卡在捲到一半的地方
     {
@@ -309,6 +310,112 @@ window.__ctBoardTest = 'running';
 
       // 清掉這一段自己加的分類,不留在檔案裡影響後面的檢查
       await P.寫手.改分類們(f, { 新增: [], 刪: [['乙', { 名: '1', 新: false }], ['甲甲', { 名: '1', 新: false }]], 改名: [] });
+    }
+    /* 15. 1.6.8(ADR-001、PRD §8):卡片 ID。每一個寫入動作之後問 **Obsidian 自己**:
+       metadataCache 裡那個 ID 的範圍 = 整張卡片(第一行到最後一個非空白行)。
+       等 metadataCache 的 changed 事件,不等固定毫秒(1.6.7-R1)。卡片物件每次從檔案重新解析(跟 format-test 同一招)。 */
+    {
+      const fs = require('fs'), 路 = require('path');
+      const src = fs.readFileSync(路.join(app.vault.adapter.basePath, app.plugins.manifests['card-table'].dir, 'main.js'), 'utf8');
+      const C = class {};
+      const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C,
+        WorkspaceLeaf: C, debounce: g => g, setIcon: () => {}, addIcon: () => {} };
+      const M = new Function('require', 'module', src + '\n;return {解析卡片};')(() => stub, { exports: {} });
+      const 名 = v.名單;
+      M.解析卡片('', 名);
+      const 卡 = async (題) => M.解析卡片(await 讀(), 名).find(x => x.主題 === 題);
+      // 快取是最新的 = Obsidian 記的 mtime 跟檔案一樣、而且算好了(等實際狀態,不等固定毫秒)
+      const 等新 = async () => {
+        for (let n = 0; n < 60; n++) {
+          const e = (app.metadataCache.fileCache || {})[f.path];
+          if (e && e.mtime === f.stat.mtime && app.metadataCache.getFileCache(f)) return true;
+          await 等(50);
+        }
+        return false;
+      };
+      const 寫後 = async (做) => { const r = await 做(); await 等新(); return r; };
+      /* ⚠ 驗法(CR-1.6.8-01):Obsidian 的 block position 只到清單項目**自己的段落**,不含子項目(children);
+         嵌入 / Canvas 顯示時子項目會跟著出來。所以「ID 指到整張卡片」= 卡片第一行那個清單項目的 id 就是它,
+         而且 block 從卡片第一行開始(ID 跑到子待辦上的話,起點會是子待辦那一行)。 */
+      const 範圍對 = async (題, id) => {
+        const 新 = await 等新();
+        const 行 = (await 讀()).split('\n');
+        const i = 行.findIndex(t => /^- \[[ xX]\]/.test(t) && 有題(t, '[' + 題 + ']'));
+        const c = app.metadataCache.getFileCache(f) || {};
+        const 名id = String(id).slice(1);
+        const b = (c.blocks || {})[名id];
+        const li = (c.listItems || []).find(x => x.position.start.line === i);
+        return { 對: 新 && i >= 0 && !!b && b.position.start.line === i && !!li && li.id === 名id,
+          首: i, 得: b && [b.position.start.line, b.position.end.line], 項: li && li.id, 段: 行.slice(i, i + 8) };
+      };
+      await 寫後(() => P.寫手.改分類們(f, { 新增: ['ID區', 'ID區2'], 刪: [], 改名: [] }));
+      const 夾 = [
+        ['- [ ] #ID空 [due:: 2026-09-16]', ['\t[ed:: 2026-09-10 09:00]']],
+        ['- [ ] #ID文 [due:: 2026-09-16]', ['\t一般內容', '\t連回去:[[ZZ-board-test#^ct-have01]]', '\t[ed:: 2026-09-10 09:00]']],
+        ['- [ ] #ID子 [due:: 2026-09-16]', ['\t說明', '\t- [ ] 子待辦', '\t[ed:: 2026-09-10 09:00]']],
+        ['- [ ] #ID碼 [due:: 2026-09-16]', ['\t```', '\t- 不是清單', '\t```', '\t[ed:: 2026-09-10 09:00]']],
+        ['- [ ] #ID有 [due:: 2026-09-20]', ['\t內容', '\t[ed:: 2026-09-10 09:00] ^ct-have01']],
+        ['- [ ] #ID複甲 [due:: 2026-09-16]', ['\t甲', '\t[ed:: 2026-09-10 09:00] ^ct-dup001']],
+        ['- [ ] #ID複乙 [due:: 2026-09-16]', ['\t乙', '\t[ed:: 2026-09-10 09:00] ^ct-dup001']],
+      ];
+      for (const [首, 尾] of 夾) await 寫後(() => P.寫手.新增卡片(f, 'ID區', 首, 尾));
+      const ids = {};
+      for (const 題 of ['ID空', 'ID文', 'ID子', 'ID碼', 'ID有']) {
+        const 前 = await 讀();
+        const id = await 寫後(async () => P.寫手.取ID(f, await 卡(題), 名));
+        ids[題] = id;
+        const 後文 = await 讀();
+        const 去ID = (s) => s.split('\n').filter(t => t.trim() !== id).map(t => t.replace(' ' + id, '')).join('\n');
+        ok('1.6.8-F1 ' + 題 + ': id format', /^\^ct-[a-z0-9]{6,}$/.test(String(id)), id);
+        ok('1.6.8-F1 ' + 題 + ': nothing but the ID changed (ed stamp kept)', 去ID(後文) === 去ID(前), [前, 後文]);
+        const r = await 範圍對(題, id);
+        ok('1.6.8-F1 ' + 題 + ': Obsidian block = whole card', r.對, r);
+      }
+      ok('1.6.8-F1 existing ID kept (link to it elsewhere is not a duplicate)', ids['ID有'] === '^ct-have01', ids['ID有']);
+      {
+        const 前 = await 讀();
+        const id2 = await P.寫手.取ID(f, await 卡('ID子'), 名);
+        ok('1.6.8-F1 second copy: same ID, file untouched', id2 === ids['ID子'] && (await 讀()) === 前, id2);
+      }
+      // F2:有子待辦那張,每個寫入動作之後重跑同一個檢查
+      const 子 = ids['ID子'];
+      const 步 = [
+        ['check', async () => P.寫手.改首行(f, await 卡('ID子'), (s) => s.replace('- [ ]', '- [x]'), 名)],
+        ['date', async () => P.寫手.改首行(f, await 卡('ID子'), (s) => s.replace('[due:: 2026-09-16]', '[due:: 2026-09-21]'), 名)],
+        ['content (B1)', async () => P.寫手.換內容(f, await 卡('ID子'), '說明改了\n- [ ] 子待辦\n\t- [ ] 孫', 名)],
+        ['comment', async () => P.寫手.插一行(f, await 卡('ID子'), '\t[cm:: 2026-09-23 10:00|' + 人 + '] 留', 名)],
+        ['sub-todo', async () => P.寫手.改一行(f, await 卡('ID子'), (t) => /- \[ \] 子待辦/.test(t), (t) => t.replace('- [ ]', '- [x]'), 名)],
+        ['move section', async () => P.寫手.搬分類(f, await 卡('ID子'), 'ID區2', 名)],
+        ['archive', async () => P.寫手.搬分類(f, await 卡('ID子'), 'Archive', 名)],
+        ['restore', async () => P.寫手.搬分類(f, await 卡('ID子'), 'ID區', 名)],
+      ];
+      for (const [名稱, 做] of 步) {
+        const w = await 寫後(做);
+        const r = await 範圍對('ID子', 子);
+        ok('1.6.8-F2 after ' + 名稱 + ': Obsidian block = whole card', w && r.對 && (await 讀()).split(子).length === 2, [w, r]);
+      }
+      // D6:同 ID 兩張 → 按的那張換新的,另一張不動
+      {
+        const id = await 寫後(async () => P.寫手.取ID(f, await 卡('ID複甲'), 名));
+        const 文 = await 讀();
+        ok('1.6.8-F1 duplicate: pressed card gets a new ID, the other keeps it',
+          id && id !== '^ct-dup001' && 文.split('^ct-dup001').length === 2 && 文.split(id).length === 2 &&
+          (await 卡('ID複乙')).ID === '^ct-dup001' && (await 卡('ID複甲')).ID === id, [id, 文]);
+      }
+      // F3:融合 → 留主卡(日期最新的 ID有)的 ID,其他張的拿掉
+      {
+        await 寫後(async () => v.做融合([await 卡('ID有'), await 卡('ID文')]));
+        const 文 = await 讀();
+        const r = await 範圍對('ID有', '^ct-have01');
+        ok('1.6.8-F3 merge keeps main card ID', 文.split('^ct-have01').length === 3 && !文.includes(ids['ID文']) && r.對, [r, 文]);   // 3 = 定義 + ID文 內容裡的連結
+      }
+      // B1:全部轉成新格式,ID 還在、Obsidian 照樣認得
+      {
+        const c3 = await 寫後(() => P.寫手.轉新格式(f, 名));
+        if (c3 && c3.備份) { const 備3 = app.vault.getAbstractFileByPath(c3.備份); if (備3) await app.vault.trash(備3, true); }
+        const r = await 範圍對('ID子', 子);
+        ok('1.6.8-B1 convert keeps ID, block = whole card', r.對, [c3, r]);
+      }
     }
     out.push('--- 最後的檔案 ---\n' + 後);
   } catch (e) {

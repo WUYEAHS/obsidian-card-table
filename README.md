@@ -173,6 +173,7 @@ The first line is the card: pin, title, dates, repeat, assignee. Below it come t
 | Repeat record | `[done:: 2026-08-25]` (repeating cards only) | — | After the content |
 | Comment | `[cm:: 2026-09-11 14:20\|Alex] text` | `．💬{2026-09-11 14:20\|Alex} text` | After the content |
 | Last edited (written by the plugin) | `[ed:: 2026-09-11 14:20]` | `✎{2026-09-11 14:20}` (on the first line) | Always the card's last line |
+| Card ID (written only when you press "Copy card link") | `^ct-abc123` | — | After `[ed:: …]`, or on its own line before the first sub-item |
 | Archive | `## Archive` | Same | Section heading |
 | Long-term | — | `#long-term` (no special meaning since 1.5; kept as a plain tag) | — |
 

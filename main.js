@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260923v2";
-const 插件版本 = "1.6.6";
+const 看板版本 = "260923v3";
+const 插件版本 = "1.6.8";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -147,6 +147,7 @@ const 字典 = {
     editPosDesc: "內容很長的時候,編修框會一次撐開很多行。不處理的話瀏覽器會把畫面拉到框的底部。",
     editPosKeep: "原地不動（預設）", editPosTop: "拉到最上面", editPosNone: "交給瀏覽器",
     pinnedBlock: "置頂", addBlock: "新增卡片", filterBlock: "時間篩選", fold: "收合", unfold: "展開", lastEdited: "最後編輯",
+    copyCardLink: "複製卡片連結", linkCopied: "已複製卡片連結",
     meName: "我",
     donate: "支持這個外掛", donateDesc: "卡片看板是一個人利用下班時間做的。覺得好用的話,可以請作者喝杯咖啡。",
     donateBtn: "在 Ko-fi 贊助",
@@ -310,6 +311,7 @@ const 字典 = {
     editPosDesc: "A long card opens a tall editor. Left alone, the browser scrolls to the bottom of it.",
     editPosKeep: "Leave it where it is (default)", editPosTop: "Pull it to the top", editPosNone: "Let the browser decide",
     pinnedBlock: "Pinned", addBlock: "New card", filterBlock: "Time filters", fold: "Collapse", unfold: "Expand", lastEdited: "Last edited",
+    copyCardLink: "Copy card link", linkCopied: "Card link copied",
     meName: "me",
     donate: "Support this plugin", donateDesc: "Card Table is built by one person in spare time. If it helps you, you can buy the author a coffee.",
     donateBtn: "Support on Ko-fi",
@@ -940,10 +942,37 @@ function 卡尾(行, 起, 迄) {
   while (i > 起 && !String(行[i] || "").trim()) i--;
   return i;
 }
+/* 1.6.8(ADR-001 D2/D3):卡片 [起, 迄] 裡的 ^ct-… 全部收起來,照卡片形狀放回一個。回傳新的 迄。
+     沒有子清單 → 接在 [ed:: …] 後面;有子清單 → 自己一行,放在第一個清單項目前面(code block 裡的不算);
+     沒有 [ed::] 也沒有子清單 → 自己一行,放在卡片最後一個非空白行後面。
+   id 有給就用它(新寫的、或呼叫的人先收好的);沒給就用卡片裡找到的(由下往上,最後留下最上面那個)。
+   ⚠ 冪等:位置已經對的卡片,跑完一字不差(轉整份第二次要改到 0 張)。 */
+const 清單項Re = /^\s+(?:[-*+]|\d+[.)])\s/;
+const ID尾Re = /[ \t]+\^ct-[A-Za-z0-9_-]+[ \t]*$/;
+function 擺ID(行, 起, 迄, id) {
+  let 找 = null;
+  for (let i = 迄; i > 起; i--) {                       // 由下往上,splice 才不會讓前面的行號跑掉
+    const e = 讀編行(行[i]);
+    if (e && e.ID) { 找 = e.ID; 行[i] = 行[i].replace(ID尾Re, ""); continue; }   // 只拿掉尾巴,時戳原樣
+    const x = 內文之(行[i]);
+    if (純IDRe.test(x)) { 找 = x; 行.splice(i, 1); 迄--; }
+  }
+  id = id || 找;
+  if (!id) return 迄;
+  let 圍 = false;
+  for (let i = 起 + 1; i <= 迄; i++) {
+    if (/^\s*(```|~~~)/.test(行[i])) { 圍 = !圍; continue; }
+    if (!圍 && 清單項Re.test(行[i])) { 行.splice(i, 0, "\t" + id); return 迄 + 1; }
+  }
+  const 尾 = 卡尾(行, 起, 迄);
+  if (尾 > 起 && 讀編行(行[尾])) { 行[尾] += " " + id; return 迄; }
+  行.splice(尾 + 1, 0, "\t" + id);
+  return 迄 + 1;
+}
 /* ⚠⚠ 1.6.1:每一次寫卡片都經過這裡 —— 蓋上新的 [ed:: …],同時把這張卡片換成新寫法(改到才轉)。
    ・第一行照新寫法重組(舊寫法有主題又有第一行內容的,內容搬到第二行)
    ・卡片裡原本的 [ed:: …] 全部拿掉,在最後一個不是空白的行後面補一行新的(ed 永遠是最後一行)
-   ・1.6.4(B3):原本 [ed::] 後面接的 ^ct-… ID 原樣留著,不寫新的
+   ・1.6.8:^ct-… ID 最後由 擺ID 照卡片形狀放回(單獨一行的也收)
    ⚠ 會 splice 行陣列(卡片後面的行號會動),所以**一定是呼叫的人做的最後一件事**;卡片的 起 不會變。
    戳 不給就是現在。回傳新的 迄。 */
 function 蓋卡(行, 起, 迄, 戳) {
@@ -958,8 +987,8 @@ function 蓋卡(行, 起, 迄, 戳) {
     if (e) { if (e.ID) id = e.ID; 行.splice(i, 1); 迄--; }
   }
   const 尾 = 卡尾(行, 起, 迄);
-  行.splice(尾 + 1, 0, 組編行(戳 || 現在戳(), id));
-  return 迄 + 1;
+  行.splice(尾 + 1, 0, 組編行(戳 || 現在戳()));
+  return 擺ID(行, 起, 迄 + 1, id);          // 1.6.8:在新的 [ed::] 之後才擺,不然會接到被刪掉的舊行上
 }
 
 /* 1.6.1 設定裡的「全部轉成新格式」:整份筆記的卡片一次換成新寫法(純函式,給 寫手.轉新格式 用)。
@@ -993,7 +1022,8 @@ function 轉整份(文, 名單) {
       新.push(空 + 照打行(身));
     });
     新.push(...留);
-    if (k.編修戳) 新.push(組編行(k.編修戳.slice(0, 16)));
+    if (k.編修戳) 新.push(組編行(k.編修戳.slice(0, 16), k.ID));
+    擺ID(新, 0, 新.length - 1, null);               // 1.6.8-B1:ID 留著、照卡片形狀擺(單獨一行的上面被當內容推進來,這裡收掉重放)
     新.push(...舊.slice(空尾));
     if (新.join("\n") !== 舊.join("\n")) {
       行.splice(k.起, 舊.length, ...新);
@@ -1188,7 +1218,8 @@ function 收尾(k, 人Re, 名單) {
   if (!e && 拆 && 拆.戳) { const q = 讀編時(首); e = q || { 日: 拆.戳.slice(0, 10), 分: 拆.戳.slice(11, 16), 秒: "00" }; }
   k.編修時 = e ? (e.日 + " " + e.分) : null;                     // 顯示用,到分鐘
   k.編修戳 = e ? (e.日 + " " + e.分 + ":" + e.秒) : null;        // 排序和辨識用,到秒
-  k.ID = (e && e.ID) || null;    // 1.6.4(B3):Canvas 的 ^ct-… ID,只讀不寫,寫回去原樣留著
+  // 1.6.4(B3)Canvas 的 ^ct-… ID;1.6.8:單獨一行的也算(有子清單時 擺ID 放在那裡)
+  k.ID = (e && e.ID) || k.行.map(內文之).find(x => 純IDRe.test(x)) || null;
 
   const 純 = 拆 ? [拆.文].concat(拆.標籤).filter(Boolean).join(" ") : "";
   k.內容行 = [純].filter(Boolean);
@@ -1520,6 +1551,24 @@ class 寫手 {
     }));
   }
 
+  /* 1.6.8-F1(ADR-001 D4/D6):卡片沒有 ID 就寫一個,**不蓋 [ed::]**(加 ID 不算編輯)。回傳 ID;失敗 false。
+     同一份筆記裡有別張卡片也定義了同一個 ID(複製貼上)→ 按的這張換新的,另一張不動。
+     ⚠ 只數**行尾的定義**:筆記裡連回這張卡片的 [[…#^ct-…]] 不算重複(算了會換掉 ID、連結反而斷)。 */
+  async 取ID(檔, 卡, 名單) {
+    let id = null;
+    const ok = await this.排隊做(() => this.改卡片(檔, 卡, 名單, (行, 卡x) => {
+      const 全 = 行.join("\n");
+      if (卡x.ID) {
+        const 定 = new RegExp("(^|[ \\t])" + 卡x.ID.replace(/[-^]/g, "\\$&") + "[ \\t]*$", "gm");
+        if ((全.match(定) || []).length === 1) { id = 卡x.ID; return null; }    // 已經有、沒重複:不寫
+      }
+      const 有 = new Set(全.match(/\^ct-[A-Za-z0-9_-]+/g) || []);
+      do id = "^ct-" + Math.random().toString(36).slice(2, 8).padEnd(6, "0"); while (有.has(id));
+      擺ID(行, 卡x.起, 卡x.迄, id);          // 傳了 id → 卡片裡原本那個(重複的)被收掉、換成新的;不呼叫 蓋卡
+    }));
+    return ok ? id : false;
+  }
+
   /* 只改／刪一行:找到那一行(用留言 id 或整行比對)換掉它 */
   // 新文 也可以是函式:拿到找到的那一行,回傳新的那一行(1.6.1 勾內容裡的待辦)
   async 改一行(檔, 卡, 認行, 新文, 名單) {
@@ -1565,6 +1614,7 @@ class 寫手 {
       const 空行 = [];
       for (let i = 卡x.迄; i > 卡x.起 && !String(行[i]).trim(); i--) 空行.unshift(行[i]);
       行.splice(卡x.起, 卡x.迄 - 卡x.起 + 1, 組首行(p), ...尾, ...留, 組編行(現在戳()), ...空行);
+      擺ID(行, 卡x.起, 卡x.起 + 尾.length + 留.length + 1, 卡x.ID);     // 1.6.8-B1:以前整張重組就把 ID 丟了(空行不算卡片)
     }, 收)).then(r => {
       /* ⚠ 改完內容,這張卡片的**身分就換了** —— 鍵是「主題 + 第一行內容」算出來的。
          隨打隨存的時候如果不把新的鍵交回去,下一次自動存就會拿舊鍵去找,
@@ -1677,6 +1727,7 @@ class 寫手 {
       let 插 = 標 + 1;
       while (插 < 行.length && 行[插].trim() === "") 插++;
       行.splice(插, 0, 首行, ...(尾行 || []));
+      擺ID(行, 插, 插 + 尾行.length, null);         // 1.6.8-F3:主卡的 ID(view 接在 [ed::] 後面)照卡片形狀擺
       return { 文: 行.join("\n") };
     }));
   }
@@ -5122,6 +5173,17 @@ class 看板視圖 extends TextFileView {
   }
 
   /* 真手機寬度:一張卡片右上角只留一顆「⋯」,裡面是封存 / 留言 / 刪除。 */
+  /* 1.6.8-F1:沒有 ID 就寫一個(寫手.取ID,不蓋 [ed::]),複製 [[筆記#^ct-…]] */
+  async 複製卡片連結(k) {
+    if (this.狀態.編修) await this.收掉編修();           // 編修中的字先寫進去,不然會拿舊的卡片去找
+    const id = await this.插件.寫手.取ID(this.file, k, this.名單);
+    if (!id) return;                                      // 找不到 / 含糊:寫手已經跳 Notice
+    // 來源路徑給 "":給自己的路徑,Obsidian 會產生同一份筆記內的 [[#^…]],貼到別處就壞了
+    const 連 = this.app.fileManager.generateMarkdownLink(this.file, "", "#" + id);
+    try { await navigator.clipboard.writeText(連); new Notice(this.T.linkCopied); }
+    catch (e) { new Notice(連, 8000); }                    // 剪貼簿被擋(少數手機):至少看得到、可以手動抄
+  }
+
   畫卡片工具選單(盒, k, 已封存, 具樣) {
     const T = this.T, s = this.狀態;
     const 更 = 膠囊(盒, "");
@@ -5151,6 +5213,8 @@ class 看板視圖 extends TextFileView {
             this.重畫清單();
           }));
       }
+      // 1.6.8-F1:封存的卡片也有(連結要指得到)
+      m.addItem((i) => i.setTitle(T.copyCardLink).setIcon("link").onClick(() => this.複製卡片連結(k)));
       // 窄螢幕的主題那一行不顯示最後編輯時間(1.4.5),收在這裡
       if (k.編修時 && this.顯示編時) {
         m.addSeparator();
@@ -5295,7 +5359,7 @@ class 看板視圖 extends TextFileView {
     const 首行 = 組首行({ 題: 題 || null, 文: 首文, 起: 起, 迄: 迄, 人: 人, 頂: 頂 });
 
     // 1.6.1 順序:內容 → 留言 → [ed::](最後一行)
-    const ok = await this.插件.寫手.融合(this.file, 選, 主.分類, 首行, 尾.concat(留行, [組編行(現在戳())]), this.名單);
+    const ok = await this.插件.寫手.融合(this.file, 選, 主.分類, 首行, 尾.concat(留行, [組編行(現在戳(), 主.ID)]), this.名單);   // 1.6.8-F3:留主卡的 ID
     if (ok) {
       this.狀態.融合中 = false; this.狀態.融合選 = {};
       new Notice(T.merged.replace("N", String(選.length)));
@@ -7949,6 +8013,18 @@ class 確認框 extends Modal {
    每一項:[Lucide 圖示名, 標題, 說明]
    ============================================================ */
 const 更新介紹 = {
+  "1.6.8": {
+    "zh-TW": [
+      ["link", "複製卡片連結", "卡片的「⋯」多了「複製卡片連結」:貼到別的筆記就能連回這張卡片;貼到 Canvas 時在前面加 !,整張卡片(連子待辦)都會顯示出來。"],
+      ["shield-check", "改內容不會再弄丟卡片 ID", "以前在看板裡改內容、或「全部轉成新格式」,會把卡片的 ^ct-… ID 丟掉,連結就斷了。現在不管做什麼動作,ID 都跟著卡片、放在 Obsidian 認得的位置。"],
+      ["grip-vertical", "分類可以拖曳排序", "新增卡片區的「⋯」→ 分類設定,每一列左邊有把手,拖一拖就能換順序;存檔時筆記裡的 ## 分類跟著換,卡片一個字都不動。"]
+    ],
+    "en": [
+      ["link", "Copy card link", "The card “⋯” menu has a new Copy card link. Paste it into any note to link back to the card; in Canvas, put ! in front to show the whole card, sub-tasks included."],
+      ["shield-check", "Editing no longer drops the card ID", "Editing a card's content, or converting the whole note, used to drop its ^ct-… ID and break links to it. The ID now stays with the card through every action, always where Obsidian recognises it."],
+      ["grip-vertical", "Drag to reorder sections", "In the section settings (“⋯” on the New card block), drag a row by its handle to reorder. Saving moves the ## sections in your note to match — card text is left untouched."]
+    ]
+  },
   "1.6.6": {
     "zh-TW": [
       ["pin", "置頂鈕長在色條上方,不擋分類色", "📌 從「疊在分類色條上」改成排在色條正上方。沒釘的平常隱形,滑過卡片才浮出來;釘住的一直看得到。"],
@@ -8073,6 +8149,11 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.6.8",
+    ["卡片可以複製連結了(「⋯」→ 複製卡片連結),貼到 Canvas 前面加 ! 就是整張卡片;在看板改內容不會再弄丟卡片 ID。",
+     "分類設定可以拖曳排序,筆記裡的 ## 分類跟著換。(1.6.7 沒發出去,併在這一版。)"],
+    ["Cards can be linked: “⋯” → Copy card link; in Canvas, put ! in front to show the whole card. Editing a card no longer drops its ID.",
+     "Sections can be reordered by drag in the section settings; the ## sections in the note follow. (1.6.7 never shipped and is included here.)"]],
   ["1.6.6",
     ["卡片左邊整理過:📌 排到分類色條的正上方、不再疊著,沒釘的滑過才出現;卡片第一行跟著上移對齊。",
      "主題膠囊跟分類脫鉤改中性色,三個主題長得一樣;編輯時不再畫框,只有淡底,字的位置跟閱讀時完全一致。",

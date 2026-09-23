@@ -10,7 +10,7 @@
   const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C,
     WorkspaceLeaf: C, debounce: f => f, setIcon: () => {}, addIcon: () => {} };
   const M = new Function('require', 'module', src +
-    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限};')(
+    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 擺ID, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限};')(
     () => stub, { exports: {} });
   const out = [];
   const eq = (name, a, b) => out.push((a === b ? 'ok   ' : 'FAIL ') + name + (a === b ? '' : '\n   got: ' + JSON.stringify(a) + '\n  want: ' + JSON.stringify(b)));
@@ -92,15 +92,53 @@
   eq('parsed card exposes k.ID',
     M.解析卡片(['- [ ] [a] [due:: 2026-09-16]', '\t[ed:: 2026-09-17 02:37] ^ct-abc123'].join('\n'), 名單)[0].ID,
     '^ct-abc123');
-  eq('rewrite keeps ID as-is (title/content/date/checkbox all go through 蓋卡)',
+  // 1.6.8(刻意改的預期值):內容 `- x` 是子清單 → ID 照 ADR-001 D2 搬到它前面
+  eq('1.6.8 rewrite keeps ID, placed before first sub-item',
     蓋(['- [ ] [a] [due:: 2026-09-16]', '\t- x', '\t[ed:: 2026-01-01 00:00] ^ct-abc123']),
-    '- [ ] #a [due:: 2026-09-16]\n\t- x\n\t[ed:: T] ^ct-abc123');
+    '- [ ] #a [due:: 2026-09-16]\n\t^ct-abc123\n\t- x\n\t[ed:: T]');
+  eq('1.6.8 rewrite: bare ID line, no sub-list -> after [ed::]',
+    蓋(['- [ ] #a', '\tfoo', '\t^ct-abc123']), '- [ ] #a\n\tfoo\n\t[ed:: T] ^ct-abc123');
   eq('card without ID unaffected by B3 (no trailing ID written)',
     蓋(['- [ ] [a] [due:: 2026-09-16]', '\t- x', '\t[ed:: 2026-01-01 00:00]']),
     '- [ ] #a [due:: 2026-09-16]\n\t- x\n\t[ed:: T]');
   eq('bare ^ct-… line with no [ed::] is not content',
     M.解析卡片(['- [ ] [a] [due:: 2026-09-16]', '\t- x', '\t^ct-abc123'].join('\n'), 名單)[0].內容行.join('|'),
     'x');
+
+  // ---- 1.6.8 F2:擺ID(照卡片形狀擺,冪等)----
+  const E = '\t[ed:: 2026-09-17 10:00]';
+  const 擺 = (lines, id) => { const a = lines.slice(); const 迄 = M.擺ID(a, 0, a.length - 1, id); return a.join('\n') + '|' + 迄; };
+  const 擺同 = (name, lines) => eq(name, 擺(lines, null), lines.join('\n') + '|' + (lines.length - 1));
+  eq('擺ID no content -> ed tail', 擺(['- [ ] #a', E], '^ct-n'), '- [ ] #a\n' + E + ' ^ct-n|1');
+  eq('擺ID plain content -> ed tail', 擺(['- [ ] #a', '\tfoo', E], '^ct-n'), '- [ ] #a\n\tfoo\n' + E + ' ^ct-n|2');
+  eq('擺ID blank line inside', 擺(['- [ ] #a', '\tfoo', '', '\tbar', E], '^ct-n'), '- [ ] #a\n\tfoo\n\n\tbar\n' + E + ' ^ct-n|4');
+  eq('擺ID with comment', 擺(['- [ ] #a', '\tfoo', '\t[cm:: 2026-09-17 09:00|欣明] 好', E], '^ct-n'),
+    '- [ ] #a\n\tfoo\n\t[cm:: 2026-09-17 09:00|欣明] 好\n' + E + ' ^ct-n|3');
+  eq('擺ID sub-list -> own line before it', 擺(['- [ ] #a', '\t- x', E], '^ct-n'), '- [ ] #a\n\t^ct-n\n\t- x\n' + E + '|3');
+  eq('擺ID sub-list in the middle', 擺(['- [ ] #a', '\tfoo', '\t- [ ] sub', '\tbar', E], '^ct-n'),
+    '- [ ] #a\n\tfoo\n\t^ct-n\n\t- [ ] sub\n\tbar\n' + E + '|5');
+  eq('擺ID numbered sub-list', 擺(['- [ ] #a', '\t1. x', E], '^ct-n'), '- [ ] #a\n\t^ct-n\n\t1. x\n' + E + '|3');
+  eq('擺ID only sub-list, no ed', 擺(['- [ ] #a', '\t- x'], '^ct-n'), '- [ ] #a\n\t^ct-n\n\t- x|2');
+  eq('擺ID "- " inside code block is not a list', 擺(['- [ ] #a', '\t```', '\t- no', '\t```', E], '^ct-n'),
+    '- [ ] #a\n\t```\n\t- no\n\t```\n' + E + ' ^ct-n|4');
+  eq('擺ID old dashed comment is a list item', 擺(['- [ ] #a', '\tfoo', '\t- [cm:: 2026-09-17 09:00|欣明] 好', E], '^ct-n'),
+    '- [ ] #a\n\tfoo\n\t^ct-n\n\t- [cm:: 2026-09-17 09:00|欣明] 好\n' + E + '|4');
+  eq('擺ID no ed, no list -> own line after last content, trailing blank kept', 擺(['- [ ] #a', '\tfoo', ''], '^ct-n'),
+    '- [ ] #a\n\tfoo\n\t^ct-n\n|3');
+  擺同('擺ID idempotent: ed tail', ['- [ ] #a', '\tfoo', E + ' ^ct-abc123']);
+  擺同('擺ID idempotent: before sub-list', ['- [ ] #a', '\t^ct-abc123', '\t- x', E]);
+  擺同('擺ID no ID -> untouched', ['- [ ] #a', '\t- x', E]);
+  eq('擺ID two IDs keep the top one', 擺(['- [ ] #a', '\t^ct-one', '\t- x', E + ' ^ct-two'], null), '- [ ] #a\n\t^ct-one\n\t- x\n' + E + '|3');
+  eq('擺ID given id replaces the old', 擺(['- [ ] #a', '\tfoo', E + ' ^ct-old'], '^ct-new'), '- [ ] #a\n\tfoo\n' + E + ' ^ct-new|2');
+  eq('擺ID moves misplaced ID (ed tail -> before list)', 擺(['- [ ] #a', '\t- x', E + ' ^ct-abc123'], null), '- [ ] #a\n\t^ct-abc123\n\t- x\n' + E + '|3');
+  eq('收尾 bare ID line -> k.ID, not content, key unchanged',
+    (k => [k.ID, k.內容行.join(','), k.基鍵].join('|'))(M.解析卡片(['- [ ] #a', '\t^ct-abc123', '\t- x', E].join('\n'), 名單)[0]),
+    '^ct-abc123|x|[a] x');
+  const 有ID文 = ['## 1', '', '- [ ] #a [due:: 2026-09-16]', '\t- x', E + ' ^ct-abc123', '- [ ] #b', '\tfoo', E + ' ^ct-def456', ''].join('\n');
+  const 轉ID = M.轉整份(有ID文, 名單);
+  eq('1.6.8-B1 轉整份 keeps ID, places by shape',
+    轉ID.文, ['## 1', '', '- [ ] #a [due:: 2026-09-16]', '\t^ct-abc123', '\t- x', E, '- [ ] #b', '\tfoo', E + ' ^ct-def456', ''].join('\n'));
+  eq('1.6.8-B1 轉整份 with ID idempotent', M.轉整份(轉ID.文, 名單).張, 0);
 
   // ---- 1.6.2 B3:內容照你打的存(縮排、空行、行中的空白) ----
   const 原 = (s) => JSON.stringify(M.解析卡片(s, 名單)[0].內容原);

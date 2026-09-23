@@ -5,6 +5,24 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.6.8
+
+**Link to a card.** A card can now be linked from other notes and Canvas, and its ID survives every edit. This release also ships 1.6.7 (drag to reorder sections): its tag was pushed without bumping the version, so no files were attached and nobody received it.
+
+### New
+1. **Copy card link** in the card "⋯" menu (also on archived cards). The first time, the card gets an Obsidian block ID (`^ct-` + 6 characters) and `[[note#^ct-…]]` is copied; after that the same link is copied without touching the note. Adding the ID does not change the card's last-edited time. Paste it anywhere; in Canvas, put `!` in front to show the whole card, sub-tasks included.
+2. The ID always sits where Obsidian recognises it as the whole card: after `[ed:: …]`, or on its own line before the first sub-item when the card has sub-items. Every write (tick, pin, date, assignee, repeat, title, content, comment, sub-todo, section, archive, restore, convert, merge) puts it back in the right place. If two cards share an ID (copy-paste), the one you press gets a new ID. Merging keeps the main card's ID.
+3. (from 1.6.7) Drag a row by its handle in the section settings to reorder sections. Saving moves the `## sections` in your note in one write; card text is not touched. Auto colours stay with their section when positions change.
+
+### Bug fixes
+1. Editing a card's content, or "Convert everything to the new format", no longer drops its `^ct-…` ID (links to the card used to break silently).
+
+### Notes
+- Versions 1.6.4–1.6.7 read the new ID lines fine, but editing a card's content there still drops the ID — keep all synced devices on 1.6.8.
+
+### Internal
+1. The board test now asks Obsidian's own metadata cache, after every write, whether the ID belongs to the card's list item; waits for the actual cache state instead of fixed delays.
+
 ## 1.6.6
 
 **One signal, one meaning.** The left edge of a card was reworked so the pin and the section colour no longer fight each other, titles stopped borrowing the section colour, and editing stopped drawing a box.
