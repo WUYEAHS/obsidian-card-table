@@ -263,6 +263,7 @@ check4 抓切字溢出,measure 抓對不齊,改版面兩個都跑。新的 UI �
 
 ⚠ **2026-09-19 起(使用者明講:檢查太多次)**:平常疊代跑 `.\tools\check4.ps1`(快速:只有中 / 英 × 桌機 1280 兩組);
 **發版前**(或大改版面告一段落)才跑 `.\tools\check4.ps1 -Full`。
+⚠ `-Full` 的結果**跟今天的日期有關**(週標籤 `9/21–9/27` 比較長):昨天乾淨的版本今天可能報溢出。報了先看 diff 有沒有碰到那個元素,再決定是不是回歸。
 
 `-Full` 會把 **中文/英文 × 桌機 1280 / 看板 800 / 手機看板 390 / 手機看板 360** 八種組合各掃一遍(1.6.3 起),報告三件事:
 元素裝不下自己的內容、文字被切掉、跑出板子的左右邊界。**每一份都要是空的**才算過。
@@ -469,4 +470,6 @@ check4 抓切字溢出,measure 抓對不齊,改版面兩個都跑。新的 UI �
 
 - remote:`https://github.com/WUYEAHS/obsidian-card-table.git`,branch `main`
 - **commit 完直接用命令列 `git push`**(2026-09-23 使用者同意;1.6.8 起命令列 push 成功過)。失敗再退回 GitHub Desktop
+- ⚠ commit 訊息**先寫成 scratchpad 的檔案再 `git commit -F <檔>`**。PowerShell 5.1 的 `-F -` 不會讀 stdin(1.6.8、1.6.9 各踩一次)
+- 刪死程式碼**兩邊都搜**:函式沒人呼叫可以刪,也要反查「本來有人呼叫、現在沒了」(1.6.3 的主題下拉就是這樣不見的);刪 main.js 那一半時,styles.css 和字典那一半也要一起找
 - `git` 在 `%LOCALAPPDATA%\GitHubDesktop\...\git\cmd`,已加進使用者 PATH

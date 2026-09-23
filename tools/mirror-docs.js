@@ -21,8 +21,7 @@
       ['README.md', 'Card Table README (en)'],
       ['README.zh-TW.md', 'Card Table README (zh-TW)'],
       ['CHANGELOG.md', 'Card Table CHANGELOG'],
-      ['CLAUDE.md', 'Card Table CLAUDE'],
-      ['docs/roadmap.md', 'Card Table roadmap']
+      ['CLAUDE.md', 'Card Table CLAUDE']
     ];
     const 加 = (子, 前綴, 挑) => {
       const d = path.join(repo, 子);
