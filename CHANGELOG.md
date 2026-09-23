@@ -5,6 +5,28 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.7.2
+
+**Archive loop, closed.** Links follow sections that move between the board and its Archive note, restoring is previewed, and Canvas sends come as a grid.
+
+### New
+1. **Links follow moved sections** (1.7.2-F1, ADR-002 D8): moving a section out to the Archive note or back updates wikilinks and embeds to its cards (`#^ct-…`) and to its heading in other notes and Canvases (file nodes and `[[…]]` inside text nodes), including cards whose ID was renewed. Aliases and `!` are kept. The confirmation says how many links will be updated. Each note is one atomic write; a note that changed in the meantime, a broken Canvas, markdown-style links `[x](note.md#…)` and links inside the board or Archive themselves are not changed and are listed in a notice. 300 links across 20 notes and 2 Canvases take under a second.
+2. **Move back asks first** (1.7.2-F1): the same kind of confirmation as moving out.
+3. **Canvas grid and group** (1.7.2-U1): Send to Canvas lays cards out four to a row (column = widest card + 20, row = tallest card + 20). Sending a whole Archive section wraps the cards in a group named after the section; cards already on the Canvas are skipped. An open Canvas is saved before the plugin writes to it, so a card you just dragged keeps its place (1.7.2-R1).
+
+### Changed
+1. **Moved-back sections land in the archive zone** (1.7.2-B1): a section moved back from the Archive becomes `## Archive/name` on the board (with ` (moved back date)` if that name is taken) instead of a normal section. Restoring a section with that suffix merges it into `name`.
+2. **Restoring is previewed** (CR-1.7.2-02): "Restore this section" no longer writes at once. A dashed row appears at the end of the section list (rename, drag or recolour it; ↩ cancels), the archive row turns dashed and the list shows that section's cards. Pressing ✓ writes it together with your other section changes, merging into a section with the same name.
+3. **One folder for plugin files** (CR-1.7.2-03): Archive notes, new Canvases, conversion backups, exported images and layout diagnostics go to `Card Table attachments` (Settings → Note format). A folder you set before is kept; existing files are not moved, and Archive notes next to their board are still found.
+4. **Copy card ID** (CR-1.7.2-04): "Copy card" is renamed "Copy card ID" with a shorter notice. A card embed `![[…#^ct-…]]` pasted into a card's content or a comment is written as a link `[[…#^ct-…]]` and shown as one (also in older notes), so cards can point at each other without nested or looping previews. Image and other embeds are untouched.
+5. **Embedded cards in notes are at most 320px tall** and scroll inside (CR-1.7.2-04); cards on a Canvas keep their full size.
+
+### Bug fixes
+1. Moving back onto a name that already existed wrote a notice text into the heading (`(↩ Moved back to "N" date)`); the dictionary had the key twice (1.7.2-B2).
+
+### Docs
+1. README: one table of every syntax (current and still-read older ones), a shorter warning, Archive and Canvas sections, a fairer Kanban comparison, full links (1.7.2-D1–D4).
+
 ## 1.7.1
 
 **Archive loop.** Archived sections move to one Archive note that links back to the board, and can move back.

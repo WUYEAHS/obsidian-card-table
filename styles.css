@@ -1357,6 +1357,8 @@
   overscroll-behavior:auto;
   cursor:pointer;
 }
+/* CR-1.7.2-04:一般筆記裡的嵌入卡片最高 320px,超過在卡片裡捲(Canvas 不掛 tk-嵌筆,見 畫唯讀卡片) */
+.tk-board.tk-嵌卡.tk-嵌筆 { max-height:320px; overflow-y:auto; }
 .tk-board.tk-嵌卡 .tk-列 { background-image:none; }
 .tk-board.tk-嵌卡 .tk-色條,
 .tk-board.tk-嵌卡 .tk-色條:hover { width:5.5px; cursor:inherit; }

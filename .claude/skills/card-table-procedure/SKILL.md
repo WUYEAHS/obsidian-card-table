@@ -33,7 +33,7 @@ description: 卡片看板(obsidian-card-table)的工作流程(2026-09-18 起,使
 | 1 分流 Triage | PM | 每項一則留言 + REPLY 總覽 + 決策清單(一輪最多約 12 題) | **Gate A** 使用者回覆決策 |
 | 2 定義 Define | PM + UX | PRD(範圍、Problem statement、每項的 AC、**§5 實作指南**);新流程先 wireframe;格式變動寫 ADR | **Gate B** 使用者簽核 PRD |
 | 3 實作 Build | Dev | 照 CLAUDE.md;範圍變了就寫 CR | |
-| 4 驗證 QA | QA(subagent) | Review pack:每項 ✅ / ❌ + 證據 | **Gate C** 使用者驗收(桌機 + 手機) |
+| 4 驗證 QA | QA(使用者下指令才跑,主對話) | Review pack:每項 ✅ / ❌ + 證據 + 行為數字 | **Gate C** 使用者驗收(桌機 + 手機) |
 | 5 發版 | PM | 技能 `card-table-release` | 使用者推 tag |
 | 6 回顧 | PM | 技能 `card-table-self-review`(大版本的一輪結束時;小的一輪有值得講的才寫) | |
 
@@ -61,7 +61,7 @@ Bug 先證明再提案:讀程式、在 Obsidian 裡跑純函式(像 `tools/forma
 - 一輪最多約 12 個要使用者決定的問題;其他的合併,或排到下一輪。
 - 同一項最多來回 3 次,還沒結論就標「擱置」,不要卡住整版。
 - 換角色跟著階段換,不是每句話換。
-- subagent `card-table-qa` **只在大版本(1.x)的 Gate C 之前用**(使用者 2026-09-18:太燒 token);修正版的 QA 在主對話做。UX critic 使用者拿掉了(太複雜);其他時間在主對話做,省 token。
+- **QA 使用者下指令才跑**(2026-09-23:版本修完之後他再說),大小版本都在主對話做,**不用 subagent**。開發中每改一次照樣跑測試,那不算 QA。UX critic 使用者拿掉了(太複雜)。
 - 走錯方向最貴的是**大版本的畫面和格式**:這兩種一定先 wireframe / ADR,再寫程式。
 
 ## 文件放哪裡

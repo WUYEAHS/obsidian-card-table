@@ -133,8 +133,9 @@ window.__ctBoardTest = 'running';
     {
       v.狀態.新主題 = 'B1測試'; v.狀態.新內容 = '';
       if (v.內輸) v.內輸.value = '';
-      await v.送出新增(); await 等(400);
-      const kb1 = v.卡片.find(x => x.主題 === 'B1測試');
+      await v.送出新增();
+      let kb1;                                      // 等到解析出來(固定 400ms 偶爾不夠,2026-09-24 跑到一次 undefined)
+      for (let i = 0; i < 40 && !(kb1 = v.卡片.find(x => x.主題 === 'B1測試')); i++) await 等(50);
       const ce = v.contentEl;
       const 可見 = (列) => !!列 && 列.getBoundingClientRect().bottom > ce.getBoundingClientRect().top &&
         列.getBoundingClientRect().top < ce.getBoundingClientRect().bottom;
@@ -214,14 +215,17 @@ window.__ctBoardTest = 'running';
       const 圖檔 = 圖路 && app.vault.getAbstractFileByPath(圖路);
       let 寬 = 0;
       if (圖檔) { const b = new Uint8Array(await app.vault.readBinary(圖檔)); 寬 = (b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19]; }
-      ok('B7 export = 1440px-wide PNG', 寬 === 1440, [圖路, 寬]);
+      ok('B7 export = 1440px-wide PNG, in the plugin folder (CR-03)', 寬 === 1440 && 圖檔.parent.path === P.衍生夾(), [圖路, 寬]);
       if (圖檔) await app.vault.trash(圖檔, true);
     }
-    // 12. 全部轉換(同資料夾備份)
+    // 12. 全部轉換(CR-1.7.2-03:備份放外掛的資料夾)
     const 前 = await 讀();
     const c = await P.寫手.轉新格式(f, v.名單);
     const 備 = c && c.備份 && app.vault.getAbstractFileByPath(c.備份);
-    ok('convert backup next to note', !!備 && 備.parent.path === f.parent.path && (await app.vault.read(備)) === 前, c);
+    ok('CR-03 convert backup in the plugin folder', !!備 && 備.parent.path === P.衍生夾() && (await app.vault.read(備)) === 前, c);
+    const 原設夾 = P.設定.移出資料夾; P.設定.移出資料夾 = '';
+    ok('CR-03 empty setting → Card Table attachments', P.衍生夾() === 'Card Table attachments', P.衍生夾());
+    P.設定.移出資料夾 = 原設夾;
     const 後 = await 讀();
     ok('convert leaves no legacy markers', !/[＠✎📌🔁💬]|\bEd\{|\bPin\{|\bRe\{|\bCm\{|Done\{/.test(後), 後);
     const c2 = await P.寫手.轉新格式(f, v.名單);
@@ -245,7 +249,8 @@ window.__ctBoardTest = 'running';
       await app.vault.process(f, t => t.replace(/(#移出甲[^\n]*\n\t內容移出甲)/, '$1 ^ct-lnk001'));
       const 連檔 = await app.vault.create('ZZ-board-test-links.md', '[[ZZ-board-test#^ct-lnk001]] [[ZZ-board-test#Archive/移出測試]]');
       await 等(1200);
-      ok('F1 link count before move-out = 2', P.數連結(f, new Set(['^ct-lnk001']), 'Archive/移出測試') === 2, P.數連結(f, new Set(['^ct-lnk001']), 'Archive/移出測試'));
+      const 單0 = await P.找連結(f, null, new Set(['^ct-lnk001']), 'Archive/移出測試');
+      ok('F1 link count before move-out = 2', 單0.數 === 2 && 單0.筆 === 1 && 單0.畫 === 0, [單0.數, 單0.筆, 單0.畫]);
       await app.vault.trash(連檔, true);
       // ① 第一次:沒有 Archive → 建一份,兩邊 yaml 互連
       ok('F1 no archive yet', P.找Archive(f) === null, P.找Archive(f) && P.找Archive(f).path);
@@ -282,22 +287,113 @@ window.__ctBoardTest = 'running';
       ok('F1 interrupted: false, board untouched, archive has it', r3 === false && (await 讀()) === 斷前 && /## 斷掉測試/.test(await app.vault.read(A)), r3);
       await P.寫手.刪分區(f, 'Archive/斷掉測試');
       await P.寫手.刪分區(A, '斷掉測試');
-      // ⑤ 搬回:先寫看板再從 Archive 拿掉;名字去掉 (日);看板有同名 → (搬回 日);[archived::] 拿掉
+      // ⑤ 搬回:先寫看板再從 Archive 拿掉;1.7.2-B1 進看板的封存區 `Archive/名`,已經有 → `(搬回 日)`;[archived::] 拿掉
       const 搬前張 = 張(await 讀()) + 張(await app.vault.read(A));
       const n1 = await P.寫手.搬回分區(A, '移出測試', f);
       const n2 = await P.寫手.搬回分區(A, '移出測試 (' + 日 + ')', f);
       文 = await 讀(); A文 = await app.vault.read(A);
-      ok('F2 moved back, none lost', n1 === 2 && n2 === 1 && 張(文) + 張(A文) === 搬前張 && 張(A文) === 0, [n1, n2, 張(文), 張(A文)]);
-      ok('F2 names: 移出測試 + (搬回 today), no [archived::]', 區們(文).includes('移出測試') && 區們(文).includes('移出測試 (' + P.寫手.T.movedBack + ' ' + 日 + ')') && !/archived::/.test(文), 區們(文));
+      const 尾名 = 'Archive/移出測試 (' + P.寫手.T.movedBackTail + ' ' + 日 + ')';
+      ok('F2 moved back, none lost', n1.張 === 2 && n2.張 === 1 && 張(文) + 張(A文) === 搬前張 && 張(A文) === 0, [n1, n2, 張(文), 張(A文)]);
+      ok('1.7.2-B1 back into the archive zone: Archive/名 + (搬回 today), no [archived::]', 區們(文).includes('Archive/移出測試') && 區們(文).includes(尾名)
+        && !區們(文).includes('移出測試') && n2.名 === 尾名 && !/archived::/.test(文), 區們(文));
+      ok('1.7.2-B2 heading has no notice text', !/↩|已搬回|Moved back to/.test(文), 區們(文));
+      // B1 ③ + CR-1.7.2-02:還原先進草稿(不寫檔、清單切到那一區),✓ 才寫;`Archive/名` → `名`,帶尾巴的併進 `名`
+      await 等(800);
+      v.狀態.設定模式 = true; v.設草 = v.建設草();
+      const 還前 = await 讀();
+      v.還原封存區('Archive/移出測試', '移出測試');
+      v.還原封存區(尾名, 尾名.slice(8));
+      v.還原封存區(尾名, 尾名.slice(8));                  // 按兩次不會多一項
+      const 還項 = v.設草.分類.filter(x => x.還原);
+      ok('CR-02 restore is a draft: file untouched, 2 preview rows, list shows that section', (await 讀()) === 還前 && 還項.length === 2
+        && 還項.every(x => x.名 === '移出測試') && v.狀態.封存看 === 尾名 && v.卡片.filter(k => v.合顯示(k)).every(k => k.分類 === 尾名), 還項.map(x => [x.原, x.名]));
+      await 等(300);
+      const 左虛 = [...v.containerEl.querySelectorAll('input')].filter(i => i.value === '移出測試' && /dashed/.test(i.parentElement.style.outline)).length;   // 簡寫裡有 var() → outlineStyle 是空的
+      const 右虛 = v.containerEl.querySelectorAll('.tk-封列.tk-封預').length;
+      ok('CR-02 preview rows drawn (left dashed row, right dashed archive row)', 左虛 === 2 && 右虛 === 2,
+        [左虛, 右虛, v.containerEl.querySelectorAll('input').length, [...v.containerEl.querySelectorAll('input')].map(i => i.value).slice(0, 12)]);
+      await v.存設草();
+      文 = await 讀();
+      ok('1.7.2-B1 restore merges the tailed section into 名 (one write)', 區們(文).filter(x => /移出測試/.test(x)).join('|') === '移出測試' && 張(文) === 搬前張 && !v.設草, 區們(文));
+      v.狀態.設定模式 = false; v.設草 = null;
       // ⑥ 搬回再搬出:card-table-archived 照樣是最後那一天
       await P.寫手.改分類們(f, { 新增: [], 刪: [], 改名: [['移出測試', 'Archive/移出測試']] });
       const r4 = await P.寫手.移出分區(f, 'Archive/移出測試', P.找Archive(f), '');
       A文 = await app.vault.read(A);
-      ok('F2 move out again after move back', r4 && 區們(A文).join('|') === '移出測試' && A文.includes('card-table-archived: ' + 日), 區們(A文));
-      await P.寫手.刪分區(f, '移出測試 (' + P.寫手.T.movedBack + ' ' + 日 + ')');
+      ok('F2 move out again after move back', r4 && 區們(A文).join('|') === '移出測試' && 張(A文) === 3 && A文.includes('card-table-archived: ' + 日), 區們(A文));
       await app.fileManager.processFrontMatter(f, y => { delete y['card-table-archive']; });
       delete P.設定.看板檔案[A.path];
       await app.vault.trash(A, true);
+
+      // ---- 1.7.2-F1 EU(PRD §8):搬出 / 搬回時,別的筆記和 Canvas 的連結一起改 ----
+      {
+        const 源 = f.basename, 丟 = [];
+        await 放('連結測試', ['連甲', '連乙']);
+        await app.vault.process(f, t => t.replace(/(#連甲[^\n]*\n\t內容連甲)/, '$1 ^ct-eu0001')
+          .replace(/(#連乙[^\n]*\n)(\t內容連乙)/, '$1\t看 ![[' + 源 + '#^ct-eu0001]]\n$2 ^ct-eu0002'));   // CR-1.7.2-01:看板裡的卡片貼了另一張
+        // Archive 已經有同名區(→ 名字 (日))和 ^ct-eu0002(D9 → 換號)
+        const A2 = await app.vault.create(源 + ' Archive.md', '## 連結測試\n- [ ] #舊 [due:: 2026-09-01]\n\t舊內容 ^ct-eu0002\n');
+        await app.fileManager.processFrontMatter(A2, y => { y['card-table-source'] = '[[' + 源 + ']]'; y['card-table'] = 'archive'; });
+        await app.fileManager.processFrontMatter(f, y => { y['card-table-archive'] = '[[' + 源 + ' Archive]]'; });
+        const n1 = await app.vault.create('ZZ-eu-n1.md', ['別名 [[' + 源 + '#^ct-eu0001|看這張]]', '嵌入 ![[' + 源 + '#^ct-eu0002]]', '標題 [[' + 源 + '#Archive/連結測試]]',
+          'md [x](' + 源 + '.md#^ct-eu0001)', '不相干 [[' + 源 + '#^ct-b3test]]'].join('\n'));
+        const n2 = await app.vault.create('ZZ-eu-n2.md', 'line1\n[[' + 源 + '#^ct-eu0001]]');
+        const c1 = await app.vault.create('ZZ-eu-c1.canvas', JSON.stringify({ nodes: [
+          { id: 'a', type: 'file', file: f.path, subpath: '#^ct-eu0001', x: 0, y: 0, width: 400, height: 100 },
+          { id: 'b', type: 'text', text: '看 ![[' + 源 + '#^ct-eu0002]]', x: 500, y: 0, width: 300, height: 100 }], edges: [] }, null, '\t'));
+        const c2 = await app.vault.create('ZZ-eu-c2.canvas', '{"nodes": [ "' + 源);     // JSON 壞掉
+        丟.push(A2, n1, n2, c1, c2);
+        await 等(1500);                                                                  // metadataCache
+        const ids = new Set(['^ct-eu0001', '^ct-eu0002']);
+        let t0 = performance.now();
+        const 單 = await P.找連結(f, A2, ids, 'Archive/連結測試');
+        const 找時 = performance.now() - t0;
+        ok('EU find: 4 in notes + 2 in canvas; markdown link, the board itself and broken canvas listed', 單.數 === 6 && 單.筆 === 2 && 單.畫 === 1
+          && ['ZZ-eu-n1', 源, 'ZZ-eu-c2.canvas'].every(x => 單.沒.includes(x)), [單.數, 單.筆, 單.畫, 單.沒]);
+        ok('EU 0 links → no sentence in the confirm box', v.連結句({ 數: 0 }) === '' && v.連結句(單).includes('6'), v.連結句(單));
+        await app.vault.process(n2, t => 'inserted\n' + t);                             // 確認框開著時改了 n2
+        const r = await P.寫手.移出分區(f, 'Archive/連結測試', A2, '');
+        t0 = performance.now();
+        const ru = await P.搬後改連結(單, A2, r.換, r.名);
+        const 改時 = performance.now() - t0;
+        const N1 = await app.vault.read(n1), C1 = JSON.parse(await app.vault.read(c1)), 新2 = r.換.get('^ct-eu0002'), 新路 = 源 + ' Archive';
+        ok('EU D9 new id + (day) name reported', !!新2 && 新2 !== '^ct-eu0002' && !r.換.has('^ct-eu0001') && r.名 === '連結測試 (' + 日 + ')', [r.名, 新2]);
+        ok('EU alias kept', N1.includes('[[' + 新路 + '#^ct-eu0001|看這張]]'), N1);
+        ok('EU embed follows the new id', N1.includes('![[' + 新路 + '#' + 新2 + ']]'), N1);
+        ok('EU heading → new name', N1.includes('[[' + 新路 + '#連結測試 (' + 日 + ')]]'), N1);
+        ok('EU markdown link + unrelated link untouched', N1.includes('[x](' + 源 + '.md#^ct-eu0001)') && N1.includes('[[' + 源 + '#^ct-b3test]]'), N1);
+        ok('EU note changed meanwhile → skipped + listed, others done', (await app.vault.read(n2)).includes('[[' + 源 + '#^ct-eu0001]]') && ru.失敗.includes('ZZ-eu-n2') && ru.改 === 5, ru);
+        ok('EU canvas file node + text node', C1.nodes[0].file === A2.path && C1.nodes[0].subpath === '#^ct-eu0001' && C1.nodes[1].text === '看 ![[' + 新路 + '#' + 新2 + ']]', C1.nodes);
+        ok('EU broken canvas untouched', (await app.vault.read(c2)) === '{"nodes": [ "' + 源, '');
+        // 搬回(反方向):連結指回看板、`#Archive/連結測試`
+        await 等(1500);
+        const 單b = await P.找連結(A2, f, new Set(['^ct-eu0001', 新2]), r.名);
+        const rb = await P.寫手.搬回分區(A2, r.名, f);
+        await P.搬後改連結(單b, f, rb.換, rb.名);
+        const N1b = await app.vault.read(n1), C1b = JSON.parse(await app.vault.read(c1));
+        ok('EU move back: links point to the board again', 單b.數 === 5 && rb.名 === 'Archive/連結測試' && N1b.includes('[[' + 源 + '#^ct-eu0001|看這張]]')
+          && N1b.includes('![[' + 源 + '#' + 新2 + ']]') && N1b.includes('[[' + 源 + '#Archive/連結測試]]') && C1b.nodes[0].file === f.path, [單b.數, rb.名, N1b]);
+        await P.寫手.刪分區(f, 'Archive/連結測試');
+        // 行為數字:一區 100 張 × 20 份筆記(每份 5 個連結)+ 2 個 Canvas(各 100 個節點)
+        const 百 = Array.from({ length: 100 }, (_, i) => '- [ ] #量' + i + ' [due:: 2026-09-16]\n\t內容 ^ct-pf' + String(i).padStart(4, '0'));
+        await app.vault.process(f, t => t.replace(/\s*$/, '\n\n## Archive/量測\n' + 百.join('\n') + '\n'));
+        for (let j = 0; j < 20; j++) 丟.push(await app.vault.create('ZZ-eu-p' + j + '.md', Array.from({ length: 5 }, (_, i) => '![[' + 源 + '#^ct-pf' + String(j * 5 + i).padStart(4, '0') + ']]').join('\n')));
+        for (let j = 0; j < 2; j++) 丟.push(await app.vault.create('ZZ-eu-pc' + j + '.canvas', JSON.stringify({ nodes: Array.from({ length: 100 }, (_, i) =>
+          ({ id: 'n' + i, type: 'file', file: f.path, subpath: '#^ct-pf' + String(i).padStart(4, '0'), x: i * 10, y: 0, width: 400, height: 100 })), edges: [] })));
+        await 等(2500);
+        const pids = new Set(Array.from({ length: 100 }, (_, i) => '^ct-pf' + String(i).padStart(4, '0')));
+        t0 = performance.now();
+        const 單p = await P.找連結(f, A2, pids, 'Archive/量測');
+        const 找p = performance.now() - t0;
+        const rp = await P.寫手.移出分區(f, 'Archive/量測', A2, '');
+        t0 = performance.now();
+        const rup = await P.搬後改連結(單p, A2, rp.換, rp.名);
+        const 改p = performance.now() - t0;
+        ok('EU perf 100 cards × 20 notes + 2 canvas: all ' + 單p.數 + ' updated · find ' + Math.round(找p) + 'ms · update ' + Math.round(改p) + 'ms (small: find ' + Math.round(找時) + ' / update ' + Math.round(改時) + 'ms)',
+          單p.數 === 300 && rup.改 === 300 && !rup.失敗.length, [單p.數, rup]);
+        await app.fileManager.processFrontMatter(f, y => { delete y['card-table-archive']; });
+        for (const x of 丟) await app.vault.trash(x, true);
+      }
 
       // 整批刪除:不留檔
       await P.寫手.改分類們(f, { 新增: ['Archive/刪除測試'], 刪: [], 改名: [] });
@@ -508,6 +604,7 @@ window.__ctBoardTest = 'running';
         await cl.openFile(cv);
         const 嵌數 = await 等到(() => { const n = cl.view.containerEl.querySelectorAll('.canvas-node .tk-嵌卡').length; return n >= 4 ? n : 0; });
         ok('1.6.9-F2 canvas: 4 embedded cards drawn as cards', 嵌數 === 4, 嵌數);
+        ok('CR-04 canvas cards have no 320px cap', cl.view.containerEl.querySelectorAll('.tk-嵌筆').length === 0, '');
         await 等(500);
         // 原本就在的 ID碼 那個節點是測試自己寫的 120 高,不算
         const 捲 = [...cl.view.containerEl.querySelectorAll('.canvas-node')].filter(n => n.querySelector('.tk-嵌卡') && !n.textContent.includes('ID碼')).map(n => {
@@ -524,6 +621,8 @@ window.__ctBoardTest = 'running';
         await el2.setViewState({ type: 'markdown', state: { file: emPath, mode: 'preview' } });
         const 嵌2 = await 等到(() => el2.view.containerEl.querySelectorAll('.markdown-embed .tk-嵌卡').length);
         ok('1.6.9-F2 ![[…#^ct-…]] in a note: drawn as a card, plain task untouched', 嵌2 === 1 && el2.view.containerEl.querySelectorAll('.tk-嵌卡').length === 1, 嵌2);
+        const 筆卡 = el2.view.containerEl.querySelector('.tk-嵌卡');
+        ok('CR-04 card embedded in a note: capped at 320px', 筆卡 && 筆卡.classList.contains('tk-嵌筆') && getComputedStyle(筆卡).maxHeight === '320px', 筆卡 && getComputedStyle(筆卡).maxHeight);
         P.設定.看板檔案 = Object.assign({}, P.設定.看板檔案, { [f.path]: false });
         const rl = app.workspace.getLeaf('tab'); 開們.push(rl);
         await rl.setViewState({ type: 'markdown', state: { file: f.path, mode: 'preview' } });

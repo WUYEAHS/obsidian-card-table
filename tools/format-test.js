@@ -10,7 +10,7 @@
   const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C, SuggestModal: C, MarkdownRenderChild: C,
     WorkspaceLeaf: C, debounce: f => f, setIcon: () => {}, addIcon: () => {} };
   const M = new Function('require', 'module', src +
-    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 擺ID, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限, 補ID, Canvas加節點, 成對方區, 接到尾, 月範圍字};')(
+    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 擺ID, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限, 補ID, Canvas加節點, 成對方區, 接到尾, 月範圍字, 搬回尾Re, 換連結字, 連結尾, 嵌卡改連結, 顯示md};')(
     () => stub, { exports: {} });
   const out = [];
   const eq = (name, a, b) => out.push((a === b ? 'ok   ' : 'FAIL ') + name + (a === b ? '' : '\n   got: ' + JSON.stringify(a) + '\n  want: ' + JSON.stringify(b)));
@@ -163,7 +163,14 @@
     eq('Canvas加節點 empty file -> 2 file nodes', [空.加, 空.已有, d.nodes.length, d.edges.length].join(','), '2,0,2,0');
     eq('Canvas加節點 node shape', [d.nodes[0].type, d.nodes[0].file, d.nodes[0].subpath, d.nodes[0].x, d.nodes[0].y, d.nodes[0].width, d.nodes[0].height, /^[0-9a-f]{16}$/.test(d.nodes[0].id)].join(','),
       'file,a/b.md,#^ct-aaa111,0,0,400,120,true');
-    eq('Canvas加節點 stacks down', d.nodes[1].y, 140);
+    eq('1.7.2-U1 Canvas加節點 two -> side by side', [d.nodes[1].x, d.nodes[1].y].join(), '420,0');
+    const 九 = Array.from({ length: 9 }, (_, i) => ({ 路徑: 'a.md', id: '^ct-n' + i, 寬: i === 2 ? 500 : 400, 高: i === 5 ? 300 : 100 }));
+    const g = M.Canvas加節點('', 九), dg = JSON.parse(g.文).nodes;
+    eq('U1 grid: 4 per row, col = widest + 20, row = tallest + 20', [dg[3].x, dg[4].x, dg[4].y, dg[8].y, g.群].join(), '1560,0,120,440,false');
+    const gg = M.Canvas加節點('', 九, '工作'), dgg = JSON.parse(gg.文).nodes;
+    eq('U1 group first, wraps the cards (40 margin)', [gg.群, dgg.length, dgg[0].type, dgg[0].label, dgg[0].x, dgg[0].y, dgg[0].width, dgg[0].height, dgg[1].x, dgg[1].y].join(),
+      'true,10,group,工作,0,0,2140,620,40,40');
+    eq('U1 group: all already there -> no group', M.Canvas加節點(gg.文, 九, '工作').群, false);
     const 有 = JSON.stringify({ nodes: [{ id: 'x', type: 'text', text: 'hi', x: -100, y: 50, width: 300, height: 100 },
       { id: 'y', type: 'file', file: 'a/b.md', subpath: '#^ct-bbb222', x: 0, y: -30, width: 400, height: 100 }], edges: [{ id: 'e' }] }, null, '\t');
     const r = M.Canvas加節點(有, 節), d2 = JSON.parse(r.文);
@@ -237,6 +244,20 @@
   eq('back: no archived line, (搬回 day)', M.成對方區('## y (2026-09-23)\n[archived:: 2026-09-23]\n- [ ] #a', 'y', null, '## y', ' (搬回 2026-09-24)'), '## y (搬回 2026-09-24)\n- [ ] #a\n');
   const 撞 = M.成對方區('## x\n- [ ] #a\n\t[ed:: 2026-09-10 09:00] ^ct-aaaaaa\n- [ ] #b\n\t[ed:: 2026-09-10 09:00] ^ct-bbbbbb', 'x', null, '- [ ] #z\n\t[ed:: 2026-09-10 09:00] ^ct-aaaaaa', '');
   eq('D9 clash renewed, other kept', [/\^ct-aaaaaa/.test(撞), /\^ct-bbbbbb/.test(撞), /\[ed:: 2026-09-10 09:00\] \^ct-[a-z0-9]{6}\n/.test(撞)].join(), 'false,true,true');
+  // ---- 1.7.2 B1 / F1 ----
+  const 記 = {}, 撞2 = M.成對方區('## x\n- [ ] #a\n\t^ct-aaaaaa\n- [ ] #b\n\t^ct-bbbbbb', 'Archive/x', null, '## Archive/x\n- [ ] #z\n\t^ct-aaaaaa', ' (搬回 2026-09-24)', 記);
+  eq('F1 記: final name + renamed id only', [記.名, 記.換.size, 記.換.get('^ct-aaaaaa') === (撞2.match(/\^ct-\w+/) || [])[0], 記.換.has('^ct-bbbbbb')].join(), 'Archive/x (搬回 2026-09-24),1,true,false');
+  eq('B1 back tail regex', ['x (搬回 2026-09-24)', 'x (moved back 2026-09-24 2)', 'x (2026-09-24)', 'x 搬回 2026-09-24'].map(s => s.replace(M.搬回尾Re, '')).join('|'), 'x|x|x (2026-09-24)|x 搬回 2026-09-24');
+  eq('F1 link: embed + alias kept', M.換連結字('![[2026卡片日誌#^ct-abc|看這張]]', 'A/2026卡片日誌 Archive', '^ct-xyz'), '![[A/2026卡片日誌 Archive#^ct-xyz|看這張]]');
+  eq('F1 link: heading', M.換連結字('[[板#Archive/工作]]', '板 Archive', '工作 (2026-09-23)'), '[[板 Archive#工作 (2026-09-23)]]');
+  eq('F1 link: markdown style untouched', M.換連結字('[x](板.md#^ct-abc)', '板 Archive', '^ct-abc'), '[x](板.md#^ct-abc)');
+  const 假mc = { getFirstLinkpathDest: (p) => p === '板' ? 'SRC' : null }, 中 = (t) => t === '^ct-abc' || t === 'Archive/工作';
+  eq('F1 canvas text link match', ['![[板#^ct-abc]]', '[[板#Archive/工作|x]]', '[[別#^ct-abc]]', '[[板#^ct-zzz]]', '[[#^ct-abc]]'].map(s => M.連結尾(s, 'SRC', 'c.canvas', 中, 假mc)).join('|'), '^ct-abc|Archive/工作|||');
+  // ---- CR-1.7.2-04:卡片裡的卡片只當連結 ----
+  eq('CR-04 card embed → link, alias kept; image / note embed untouched', M.嵌卡改連結('看 ![[板#^ct-abc|這張]] ![[圖.png]] ![[筆記#段]] [[板#^ct-x]]'), '看 [[板#^ct-abc|這張]] ![[圖.png]] ![[筆記#段]] [[板#^ct-x]]');
+  eq('CR-04 written content line', M.照打段('打給 ![[板#^ct-abc]]\n\t- ![[板#^ct-def]]').join('|'), '打給 [[板#^ct-abc]]|\t- [[板#^ct-def]]');
+  eq('CR-04 written comment', M.組留言行文('2026-09-23', '09:00', 'A', '見 ![[板#^ct-abc]]'), '\t[cm:: 2026-09-23 09:00|A] 見 [[板#^ct-abc]]');
+  eq('CR-04 shown as link (old notes untouched on disk)', M.顯示md(['\t![[板#^ct-abc]]', '\t![[圖.png]]'], { doneRec: 'x' }), '\t[[板#^ct-abc]]\n\t![[圖.png]]');
   eq('append to end', M.接到尾('---\na: 1\n---\n## 1\n\n\n', '## x\n'), '---\na: 1\n---\n## 1\n\n## x\n');
   eq('month range', [M.月範圍字([{ 起日: '2026-09-01', 迄日: '2026-09-30' }]), M.月範圍字([{ 起日: '2025-11-02', 迄日: '2025-11-02' }, { 起日: null }, { 起日: '2026-01-01', 迄日: '2026-09-03' }]), M.月範圍字([{}])].join('|'), '2026-09|2025-11 – 2026-09|');
   // 同名的標題出現兩次 → 兩段都算

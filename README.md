@@ -12,7 +12,7 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
-From 1.6.1 cards are written with the same `[key:: value]` fields as the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) and [Dataview](https://github.com/blacksmithgu/obsidian-dataview) plugins, so their queries see your cards' dates and repeats too.
+Cards are written with the same `[key:: value]` fields as the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) and [Dataview](https://github.com/blacksmithgu/obsidian-dataview) plugins, so their queries see your cards' dates and repeats too.
 
 - **Time filters.** Year, month, week, day, overdue and repeat are always on screen, and the four date tiles follow one date. No date pickers, no pop-up dialogs — ◀ ▶ reach any day in a few taps.
 - **Instant search.** Type a title or some content under New card and the table filters as you type.
@@ -23,16 +23,9 @@ From 1.6.1 cards are written with the same `[key:: value]` fields as the [Tasks]
 If Card Table saves you time, you can [buy me a coffee on Ko-fi](https://ko-fi.com/jiajiunwu).
 
 > [!WARNING]
-> **1.6.1 is a big update that changes the note format. Sorry for the trouble.**
-> Cards are now written with Tasks / Dataview `[key:: value]` fields instead of emoji.
-> - **Your old notes still work**: the old syntax is still read, and a card switches to the new syntax only when it is changed.
-> - **To switch everything at once**: Settings → Note format → **Convert everything to the new format** (one click; each note is backed up in its own folder first).
-> - **Update every device to 1.6.1**: Card Table 1.6.0 and older cannot read the new syntax.
-> - The full old-vs-new table is in [The text format](#the-text-format).
->
-> **1.6.3 changed titles and assignees too**: titles are now `#Title` tags (up to 3) and assignees are `@name`. Same rules apply — old notes still work, and a card switches when it is changed. Update every device to 1.6.3.
->
-> If anything goes wrong with the conversion or the plugin, please email me at [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com), or open a [GitHub issue](../../issues).
+> **Old notes keep working.** Every older syntax is still read; a card switches to the current one only when it is changed (or all at once: Settings → Note format → Convert everything, which backs up first).
+> **Update every device to the same version** — Card Table 1.6.0 and older cannot read the current syntax. See [The text format](#the-text-format).
+> Something wrong? Email [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com) or open a [GitHub issue](https://github.com/WUYEAHS/obsidian-card-table/issues).
 
 
 ## Installation
@@ -41,7 +34,7 @@ If Card Table saves you time, you can [buy me a coffee on Ko-fi](https://ko-fi.c
 2. Browse, search for **Card Table - Dated Tasks**, install and enable it.
 
 Not listed yet? Download `main.js`, `manifest.json` and `styles.css` from the
-[latest release](../../releases/latest) into `<your vault>/.obsidian/plugins/card-table/`,
+[latest release](https://github.com/WUYEAHS/obsidian-card-table/releases/latest) into `<your vault>/.obsidian/plugins/card-table/`,
 then reload Obsidian and enable **Card Table - Dated Tasks**.
 
 ## Getting started
@@ -79,9 +72,19 @@ then reload Obsidian and enable **Card Table - Dated Tasks**.
 
 ### Cards
 - **Edit in place** — Obsidian's Live Preview editor right in the card, saved as you type; to-dos inside a card can be ticked.
-- **Pinned, repeating, archived** — a pinned table on top, `[repeat:: every 2 weeks]`, archive before delete.
+- **Pinned and repeating** — a pinned table on top, `[repeat:: every 2 weeks]`.
 - **Merge and export** — combine several cards into one, or export the current view to PNG or PDF.
-- **Canvas and links** — send one card or the whole list to a Canvas, or Copy card and paste it into a Canvas or note; it shows as a card there, and a click goes back to the board.
+
+### Archive
+- **Archive zone** — archive a whole section from the New card `⋯`: it leaves the list but stays in the note as `## Archive/Name`. Archiving and restoring are both previewed first; nothing changes until you save.
+- **Archive note** — move an archived section out to a linked `<board> Archive` note to keep the board short; move it back any time and it returns to the archive zone.
+- **In an Archive note** you can search, filter by section, tick, comment and send a section to a Canvas; you cannot add cards or edit content.
+- **Links follow** — links in other notes and Canvases to the moved cards or section are updated in the same step.
+
+### Canvas and card links
+- **Send to Canvas** — one card, the list, or an archive section. Each card is its own frame, four to a row; an archive section comes wrapped in a group named after it. Cards already on the Canvas are skipped.
+- **Copy card ID** — paste it into a Canvas or another note and the whole card shows there; a click goes back to the board. Pasted into another card it becomes a plain link (no preview), so cards can point at each other without nesting.
+- **Card ID** — `^ct-abc123` is added to the end of a card only when you copy its ID or send it to a Canvas, so links can find it. A card without one works exactly the same.
 
 ### Sections
 - **Colour and status in one** — name the red section *Waiting* and every card in it is waiting.
@@ -134,7 +137,7 @@ Grouped the same way as in the plugin; **What's new** at the top lists what ever
 | Cards | How done cards look, section names, last edited time, comments and where they go |
 | Adding and editing | Submit key (see [Keyboard](#keyboard)), cursor and card position when editing, unpin when done |
 | Jump after an action | Whether each action scrolls to the card |
-| Note format | File name suffix and folder for cards moved out of the archive; convert every old card to the new format (backs up first) |
+| Note format | Folder for files the plugin creates (Archive notes, new Canvases, backups, exported images; `Card Table attachments` by default); convert every old card to the current format (backs up first) |
 
 ## The text format
 
@@ -157,26 +160,27 @@ That is the whole storage format — everything the table shows comes from lines
 
 The first line is the card: pin, title, dates, repeat, assignee. Below it come the content (written exactly as you type it — no automatic bullets), repeat records, comments, and last of all the edit time. The lines the plugin writes itself have no bullet either.
 
-### Old and new syntax
+### Every syntax
 
-| Meaning | From 1.6.3 | Older syntax (all still read) | Where |
+| Meaning | Written as | Older syntax, still read | Where |
 | --- | --- | --- | --- |
-| One card, not done / done | `- [ ]` / `- [x]` | Same | Start of the first line |
+| One card, not done / done | `- [ ]` / `- [x]` | — | Start of the first line |
 | Pinned | `[pin:: on]` | `📌` | First line, before the title |
-| Title(s) | `#Title` — up to 3, anywhere on the first line; a space in a title becomes `-` (`#UX-review`) | 1.6.1–1.6.2: `[Title]`; 1.6.0 and older: same, on the first line | First line |
+| Title(s) | `#Title` — up to 3; a space becomes `-` (`#UX-review`). Titles are tags, so Obsidian's tag search, Tasks and Dataview find them too | `[Title]` | First line |
 | One day | `[due:: 2026-09-11]` | `＠{2026-09-11}` | First line |
 | A range | `[start:: 2026-09-11] [due:: 2026-09-14]` | `＠{2026-09-11 ~ 2026-09-14}` | First line |
 | Repeat | `[repeat:: every 2 weeks]` (`every 3 days`, `every month`…) | `🔁 every 2 weeks`, `🔁 每2週` | First line, after the dates |
-| Assignee | `@Alex` — any `@name` (a new name is added to the people list automatically) | 1.6.1–1.6.2: `#Alex` (had to be on the people list); 1.6.0 and older: same | First line |
-| Content | From the second line, as you type it | Could also follow the title on the first line | Second line on |
-| Content bullets | Only if you type them: `- `, `* `, `1. ` | `．` (optional) | Start of a content line |
+| Assignee | `@Alex` — any `@name`; a new name joins the people list | `#Alex` (a name on the people list) | First line |
+| Content | As you type it; bullets only if you type them (`- `, `* `, `1. `) | Content after the title on the first line; `．` bullets | Second line on |
 | To-do inside a card | `- [ ] something` (`-[ ]` and `[]` are tidied to this) | — | Content line |
 | Repeat record | `[done:: 2026-08-25]` (repeating cards only) | — | After the content |
 | Comment | `[cm:: 2026-09-11 14:20\|Alex] text` | `．💬{2026-09-11 14:20\|Alex} text` | After the content |
-| Last edited (written by the plugin) | `[ed:: 2026-09-11 14:20]` | `✎{2026-09-11 14:20}` (on the first line) | Always the card's last line |
-| Card ID (written only when you press "Copy card" or "Send to Canvas") | `^ct-abc123` | — | After `[ed:: …]`, or on its own line before the first sub-item |
-| Archive | `## Archive` | Same | Section heading |
-| Long-term | — | `#long-term` (no special meaning since 1.5; kept as a plain tag) | — |
+| Last edited (written by the plugin) | `[ed:: 2026-09-11 14:20]` | `✎{2026-09-11 14:20}` on the first line | Always the card's last line |
+| Card ID (only after Copy card ID or Send to Canvas) | `^ct-abc123` | — | After `[ed:: …]`, or on its own line before the first sub-item |
+| Archived section | `## Archive/Name` | `## Archive` (cards archived one by one) | Heading in the board |
+| Section in the Archive note | `## Name`, then `[archived:: 2026-09-23]` | — | Heading in `<board> Archive` |
+| Board ↔ Archive note | Board: `card-table-archive: "[[Board Archive]]"`. Archive: `card-table: archive`, `card-table-source: "[[Board]]"`, `card-table-archived` | — | Properties (YAML) |
+| Long-term | — | `#long-term` (a plain tag, no special meaning) | — |
 
 - Lines the plugin writes (`[done::]`, `[cm::]`, `[ed::]`) have no `- `; times always use a four-digit year and minutes.
 - Other fields on the first line (for example `[completion:: …]` or `[priority:: …]` written by Tasks) are kept as they are.
@@ -187,7 +191,7 @@ The first line is the card: pin, title, dates, repeat, assignee. Below it come t
 **They keep working and change only when touched.** A card switches to the new syntax only when you edit it, tick it or change its date; nothing else in the note is touched.
 
 **One-click conversion.** Settings → Note format → **Convert everything to the new format** converts every note you have opened as a Card Table in one go.
-Each note's original text is first saved in the same folder (`name backup-20260916-1420.md`). Edit times are kept, lines outside cards are left alone, and running it a second time changes nothing.
+Each note's original text is first saved in the plugin's folder (`Card Table attachments/name backup-20260916-1420.md`). Edit times are kept, lines outside cards are left alone, and running it a second time changes nothing.
 
 Card Table 1.6.0 and older cannot read the new syntax, so update every device that opens these notes.
 If something looks wrong after converting, or you have any question, please email [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com).
@@ -201,11 +205,10 @@ If something looks wrong after converting, or you have any question, please emai
 | | Kanban | Card Table |
 | --- | --- | --- |
 | Built around | Stages — which lane is this card in? | Time — what is due today, this week, this month? |
-| Moving a card | Drag it to another lane | Change its date, tick it, archive it |
-| Everyday view | The whole board | Today (or any day, week, month) in one tap |
-| Conversation | — | Signed, timestamped comments on each card |
-| Several people | — | Designed for it: per-device identity, atomic writes |
-| Phone | — | The same cards as on desktop |
+| Dates | `@{date}` | `[due:: …]` / `[start:: …]` (Tasks and Dataview read them) — the two plugins don't read each other's dates |
+| Main view | The whole board, lanes side by side | One list filtered to a day, week or month |
+| Comments | — | Signed, timestamped comments on each card |
+| Archive | An archive list in the same note | Archived sections move to a linked `… Archive` note and can be moved back; links follow |
 
 **Can I use both?** Yes. Card Table only takes over notes you open with it (it remembers each note), and it never switches a Kanban board over on its own; it also unloads cleanly when Kanban intercepts the same Obsidian method.
 Both read `## headings` and `- [ ]` cards, so a Card Table note opens in Kanban too, but Kanban only understands its own `@{date}` dates — Card Table's `[due:: …]` fields show as plain text there.
@@ -219,7 +222,7 @@ Both read `## headings` and `- [ ]` cards, so a Card Table note opens in Kanban 
 
 ## Support
 
-- Bugs and ideas: [GitHub issues](../../issues), or email [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com)
+- Bugs and ideas: [GitHub issues](https://github.com/WUYEAHS/obsidian-card-table/issues), or email [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com)
 - Support development: [Ko-fi](https://ko-fi.com/jiajiunwu)
 
 ## Licence

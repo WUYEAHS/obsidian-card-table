@@ -29,7 +29,7 @@ Obsidian 外掛,把一份 markdown 筆記讀成一張任務卡片表。
   Claude 用 **tandem comments** 逐項回覆(技能 `obsidian-tandem-comments`,裝在使用者層級);正文只動最下面的「Claude REPLY」,不改使用者寫的字。
 - 流程照技能 **`card-table-procedure`**。正本是 vault 的 `Procedure/Working procedure.md`(使用者可以直接改),角色在 `Procedure/Roles.md`。
   文件順序:Dialogue → PRD(使用者簽核)→ CR(簽核後的變更)→ Review pack(每項 ✅/❌ + 證據)→ 發版 → 回顧。每一項一個編號(例:`1.6.2-B1`)。
-- 每次回覆最後附「PM 自我批評」。給使用者驗收前,用 `.claude/agents/card-table-qa` 做獨立審查 —— **只有大版本(1.x)**,修正版在主對話自己 QA(使用者 2026-09-18:太燒 token;UX critic 也拿掉了,太複雜)。
+- 每次回覆最後附「PM 自我批評」。**QA 使用者下指令才跑**(2026-09-23:版本修完之後他再說),大小版本都在主對話做,不用 subagent(以前的 `card-table-qa` agent 留著不用;UX critic 也拿掉了)。
 - **平常的溝通像 Discord**(使用者明講):每做一件事,在 vault 的 `Diologue/Dev chat.md` 最下面留一兩句(交接頁是 `Procedure/Handoff.md`)(發現、做了什麼、需要什麼),使用者直接在底下回。
 - **回顧**(技能 **`card-table-self-review`**)在**大版本的一輪結束時**寫(例:1.6 → 1.7),小的一輪有值得講的才寫;寫在 vault 的 `Reviews/`。
 - repo 的文件用 `.\tools\mirror-docs.ps1` 鏡像到 vault 的 `Repo mirror/`(唯讀;改了 repo 就重跑,鏡像上的 tandem 留言會保留)。新文件的連結加進 `Main navigator.md`。
@@ -67,7 +67,7 @@ Obsidian 從社群外掛安裝或更新時會加這一行,其他部分跟 repo �
 - `tools/`、README、CHANGELOG、skills 這些只在 repo 裡改。commit 之前一定要先跑一次 run-tests(它會把 vault 的版本帶回來)。
 - 手機要看新版:等 Sync 把那三個檔案同步過去,再在手機上重新載入外掛。
 - 手機的版面問題桌機模擬不出來(模擬是 is-tablet):請使用者在手機跑指令「匯出版面診斷」,
-  會寫 `ZZ-card-table-版面診斷.md`(每個編輯器由外到內的尺寸、樣式、命中的規則),同步回來再看。
+  會寫 `ZZ-card-table-版面診斷.md`(每個編輯器由外到內的尺寸、樣式、命中的規則;1.7.2 起在外掛的資料夾,預設 `Card Table attachments/`),同步回來再看。
 
 以下是舊的做法(junction / 複製進 `card-table`),留作參考:
 
