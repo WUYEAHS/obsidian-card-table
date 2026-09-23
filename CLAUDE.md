@@ -470,6 +470,7 @@ check4 抓切字溢出,measure 抓對不齊,改版面兩個都跑。新的 UI �
 
 - remote:`https://github.com/WUYEAHS/obsidian-card-table.git`,branch `main`
 - **commit 完直接用命令列 `git push`**(2026-09-23 使用者同意;1.6.8 起命令列 push 成功過)。失敗再退回 GitHub Desktop
-- ⚠ commit 訊息**先寫成 scratchpad 的檔案再 `git commit -F <檔>`**。PowerShell 5.1 的 `-F -` 不會讀 stdin(1.6.8、1.6.9 各踩一次)
+- ⚠ commit 訊息**先寫成 scratchpad 的檔案再 `git commit -F <檔>`**。PowerShell 5.1 的 `-F -` 不會讀 stdin(1.6.8、1.6.9 各踩一次)。
+  檔案用 `[IO.File]::WriteAllText(檔, 訊息, [Text.UTF8Encoding]::new($false))` 寫 —— `Out-File -Encoding utf8` 會帶 BOM,跑進訊息第一個字(`a4e5b30`)
 - 刪死程式碼**兩邊都搜**:函式沒人呼叫可以刪,也要反查「本來有人呼叫、現在沒了」(1.6.3 的主題下拉就是這樣不見的);刪 main.js 那一半時,styles.css 和字典那一半也要一起找
 - `git` 在 `%LOCALAPPDATA%\GitHubDesktop\...\git\cmd`,已加進使用者 PATH
