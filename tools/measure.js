@@ -61,10 +61,21 @@ const 右緣們 = [];
   const 圖 = 子[0] && (子[0].querySelector('svg') || (子[0].tagName === 'svg' ? 子[0] : null));
   if (圖) { const r = 圖.getBoundingClientRect(); 記(名 + ' M2', '收合箭頭 / 溝圖示置中在 10.5(溝 3–18)', 近(r.left + r.width / 2 - x0, 10.5), 圓(r.left + r.width / 2 - x0)); }
   // 1.6.3(mockup v15 Q31 / v16 Guide 22):標題列上溝後面的第一個東西從 22 開始(18 + 4 的間距)
-  if (子[1]) 記(名 + ' M3', '溝後面第一個東西從 22 開始', 近(子[1].getBoundingClientRect().left - x0, 22), 圓(子[1].getBoundingClientRect().left - x0));
+  // 1.7.0-U6(使用者明講):新增卡片的分類圓點例外,往右 2 → 24
+  const 起 = 子[1] && 子[1].classList.contains('tk-點座') ? 24 : 22;
+  if (子[1]) 記(名 + ' M3', '溝後面第一個東西從 ' + 起 + ' 開始', 近(子[1].getBoundingClientRect().left - x0, 起), 圓(子[1].getBoundingClientRect().left - x0));
   const 點點 = [...頭.querySelectorAll('svg.lucide-ellipsis')].filter(看得見).pop();
   if (點點) 右緣們.push([塊名(塊) + i, 點點.getBoundingClientRect().right - x0]);
 });
+// 1.7.0-U7(使用者「行事曆 icon 跟日期要對到 pin 跟篩選 header」):時間篩選的 📅 和日期,跟清單標題列的圖示和字同一條線
+{
+  const 篩頭 = b.querySelector('.tk-篩塊:not(.tk-新塊) > .tk-塊頭');
+  const 清頭 = [...b.querySelectorAll('.tk-塊頭')].find(h => 看得見(h) && h.querySelector('svg.lucide-filter'));
+  const 左 = (h, sel) => { const e = h && h.querySelector(sel); return e && 看得見(e) ? e.getBoundingClientRect().left - 基(h.parentElement) : null; };
+  const 曆 = 左(篩頭, '.tk-曆鈕 svg'), 期 = 左(篩頭, '.tk-頭字'), 圖 = 左(清頭, '.tk-頭圖 svg'), 字 = 左(清頭, '.tk-頭字');
+  記('M25', '時間篩選的 📅 / 日期 = 清單標題列的圖示 / 字(1.7.0-U7)',
+    曆 != null && 圖 != null && 近(曆, 圖) && 近(期, 字), '📅 ' + 圓(曆) + ' vs ' + 圓(圖) + ' · 日期 ' + 圓(期) + ' vs ' + 圓(字));
+}
 
 // ---------- M5–M9 卡片 ----------
 const 列 = [...b.querySelectorAll('.tk-列')].find(r => 看得見(r) && r.querySelector('.tk-主題'));
@@ -74,7 +85,8 @@ if (列) {
   /* 使用者 09-20:「色線跟 pin 有沒有對齊?回去看 mockup 的輔助線」——
      兩個都對齊到**溝的左邊 3**(v16 的紅線;mockup 自己畫成 4 / 5 是 v7「溝 5–13」時代留下來的)。 */
   /* 1.6.6:使用者「色線貼齊左邊 table 直線」—— 從 0 開始、寬度加大到 7(右緣維持在 7,跟 📌 對齊不變)。 */
-  if (條) { const r = 條.getBoundingClientRect(); 記('M5', '色條從 0 開始、7 寬(貼齊左邊、跟 📌 同一右緣)', 近(r.left - x0, 0) && 近(r.right - x0, 7), 圓(r.left - x0) + '–' + 圓(r.right - x0)); }
+  /* 1.7.0-U8(使用者「沒 hover 時往左變窄 1.5pt」):7 → 5.5,左緣照舊 0(📌 還是 7 寬,右緣不再同一條) */
+  if (條) { const r = 條.getBoundingClientRect(); 記('M5', '色條從 0 開始、5.5 寬(貼齊左邊,1.7.0-U8)', 近(r.left - x0, 0) && Math.abs(r.right - x0 - 5.5) <= 0.3, 圓(r.left - x0) + '–' + 圓(r.right - x0)); }
   /* CR-1.6.6-03(使用者:「pin 改成在色線上面,色線收短留空間給 pin,不要放在上面」):
      推翻 1.6.6 的「色條高度固定、📌 直接疊上去」—— 疊在一起時 📌 的背景是分類色,
      每張卡片都不一樣,對比失控(dark 幾乎看不到)。現在上下排開:📌 8–20、色條從 24 開始,中間 4。 */
@@ -103,6 +115,12 @@ if (列) {
         const b釘 = rp.bottom - r0.top, b題 = rt.bottom - r0.top;
         記('M5e', '卡片第一行(主題)底部 = 📌 底部 + 3(視覺微調)', 近(b題, b釘 + 3),
           '📌 底 ' + 圓(b釘) + ' / 主題 底 ' + 圓(b題)); } }
+  }
+  // 1.7.0-U9:只有標題的卡片,色條 24–36(12 高,跟 📌 一樣)
+  {
+    const 只 = [...b.querySelectorAll('.tk-列.tk-有釘')].find(r => 看得見(r) && r.querySelector('.tk-內盒 > .tk-文區:empty'));
+    const c = 只 && 只.querySelector(':scope > .tk-色條');
+    記('M5f', '只有標題的卡片:色條 12 高(1.7.0-U9)', !!c && 近(c.offsetHeight, 12), c ? c.offsetTop + '–' + (c.offsetTop + c.offsetHeight) : '沒有只有標題的卡片');
   }
   /* 1.6.3(mockup v9 #10):題行**第一個東西**在 18 —— 有指派人是頭像、沒有是空位、
      個人模式才是主題膠囊。以前量的是主題,頭像搬到前面之後那個數字本來就會變。
@@ -320,12 +338,12 @@ for (const [名, 開, 關, 目標] of [
     const 左 = 行.getBoundingClientRect().left + parseFloat(cs.paddingLeft || 0) - x0;
     記('M16', '新增卡片的內容字從 3(U32)', 近(左, 3), 圓(左));
   } else 記('M16', '新增卡片的內容字從 3(U32)', false, '找不到輸入框');
-  // U25:分類圓點 16,點擊範圍 26;圓點自己落在 22(跟標題列第一個圖示同一條線)
+  // U25:分類圓點 16,點擊範圍 26;圓點原本落在 22,1.7.0-U6(使用者「往右 2pt」)→ 24
   const 座 = 塊 && 塊.querySelector('.tk-點座'), 點圓 = 座 && 座.querySelector('.tk-點');
   if (點圓) {
     const r = 點圓.getBoundingClientRect(), rs = 座.getBoundingClientRect();
-    記('M17', '分類圓點 16 × 16 · 點擊範圍 26 · 圓點在 22(U25)',
-      近(r.width, 16) && 近(r.height, 16) && 近(rs.width, 26) && 近(r.left - x0, 22),
+    記('M17', '分類圓點 16 × 16 · 點擊範圍 26 · 圓點在 24(U25 + 1.7.0-U6)',
+      近(r.width, 16) && 近(r.height, 16) && 近(rs.width, 26) && 近(r.left - x0, 24),
       圓(r.width) + ' × ' + 圓(r.height) + ' · 盒 ' + 圓(rs.width) + ' · 左 ' + 圓(r.left - x0));
   } else 記('M17', '分類圓點 16(U25)', false, '找不到 .tk-點');
   // U29:送出鈕 56 寬,右緣跟標題列的 ⋯ 同一條線
@@ -370,13 +388,14 @@ try {
       const r = e.getBoundingClientRect();
       let g = 組.find(g => Math.abs(g.top - r.top) <= 3);
       if (!g) { g = { top: r.top, 件: [] }; 組.push(g); }
-      g.件.push(r);
+      g.件.push({ left: r.left, right: r.right, 點座: e.classList.contains('tk-點座') });
     });
     組.forEach(g => {
       g.件.sort((a, b) => a.left - b.left);
       for (let i = 1; i < g.件.length; i++) {
         const 隙 = 圓(g.件[i].left - g.件[i - 1].right);
-        if (!合格(隙)) 壞.push(名 + ' ' + 圓(g.件[i - 1].right) + '→' + 圓(g.件[i].left) + '(' + 隙 + 'px)');
+        if (g.件[i].點座 && 近(隙, 6)) continue;   // 1.7.0-U6:溝 → 新增的分類圓點 = 4 + 使用者要的 2
+        if (!合格(隙))壞.push(名 + ' ' + 圓(g.件[i - 1].right) + '→' + 圓(g.件[i].left) + '(' + 隙 + 'px)');
       }
     });
   };

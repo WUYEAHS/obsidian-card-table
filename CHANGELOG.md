@@ -5,6 +5,20 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.7.0
+
+**Small fixes.** A tidier calendar title bar, steadier detailed edit, and time-filter labels that fit.
+
+### Changed
+1. **Calendar title bar** (1.7.0-U1, U2): the month switcher moved into the title bar — `[×] ◀ 2026 / 09 ▶ [This month] [Year] [All] ··· [⋯]`. Close is always the × at the top left and returns to where you opened the calendar from (new card or detailed edit). **Year** filters the whole year the calendar is showing. The month's card count moved into the month's tooltip.
+2. **Detailed edit keeps the section dot in place** (1.7.0-U3): the dot, frequent topics and repeat menu stay in the title bar instead of moving to a second row.
+3. **Undo-done icon** (1.7.0-U5): hovering the colour bar of a done card shows ↶ (it un-completes the card) instead of a check mark.
+4. **Alignment tweaks** (1.7.0-U4, U6, U7): the new-card input sits 3px higher; the section dot moved 2px right; the time filter's calendar icon and date now line up with the pinned and list title bars.
+5. **Colour bars** (1.7.0-U8, U9): 1.5px slimmer when not hovered (left edge unchanged); title-only cards get a taller bar, as tall as the 📌.
+
+### Bug fixes
+1. Time-filter labels that did not fit were never shrunk (the shrink function had been disconnected since 1.6.3), so the week and day tiles overflowed on phones. They shrink again, and on narrow layouts the day tile shows `9/23` without the weekday (1.7.0-B1).
+
 ## 1.6.9
 
 **Cards on a Canvas.** Send cards to a Canvas in one step, and cards embedded in a Canvas or note now look like cards.

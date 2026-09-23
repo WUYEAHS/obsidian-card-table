@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260923v4";
-const 插件版本 = "1.6.9";
+const 看板版本 = "260923v5";
+const 插件版本 = "1.7.0";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -135,7 +135,7 @@ const 字典 = {
     jumps: "動作完成後要不要跳轉", jumpDesc: "把篩選調到看得到那張卡片的地方,並捲過去",
     jumpDone: "標成已完成 → 自動勾選「已完成」", jumpTodo: "移回未完成 → 自動勾選「未完成」",
     jumpArchive: "封存 → 自動勾選「含封存」", jumpToday: "設為今日",
-    calMonthTotal: "這個月 D 張 ‧ N 天有卡片", thisMonth: "回到本月",
+    calMonthTotal: "這個月 D 張 ‧ N 天有卡片", thisMonth: "回到本月", wholeYear: "整年",
     changing: "更改中…", cancelWord: "取消", more: "更多", less: "收合",
     finish: "完成", undoEdit: "復原這一次編輯(全部刪掉了也退得回來)",
     sectionsAndPeople: "分類與封存區", editHere: "在這裡改",
@@ -302,7 +302,7 @@ const 字典 = {
     jumps: "Jump after an action", jumpDesc: "Move the filter to where the card is visible, and scroll to it",
     jumpDone: "Marked done → tick Done", jumpTodo: "Back to to do → tick To do",
     jumpArchive: "Archived → tick Archived", jumpToday: "Move to today",
-    calMonthTotal: "D cards this month across N days", thisMonth: "This month",
+    calMonthTotal: "D cards this month across N days", thisMonth: "This month", wholeYear: "Year",
     changing: "Changing…", cancelWord: "Cancel", more: "more", less: "less",
     finish: "Done", undoEdit: "Undo this edit (works even if you deleted everything)",
     sectionsAndPeople: "Sections and archive", editHere: "Edit here",
@@ -2076,13 +2076,14 @@ const 反悔毫秒 = 2000;
 //   舊版是三層疊在同一欄,不要再做回去。
 // 1.5:週月格 118 → 124。本月 / 本周改成高箭頭,「9/28–10/4」在 118 裡差 3px
 const 日格寬 = 98, 週月格寬 = 132;     // 1.6:124 → 132,週的標籤寫兩次月份(10/12–10/18)
-/* 1.6:標籤放不下就一級一級縮小字(每次 0.04em,最小 0.5em)。分頁還沒顯示(寬度 0)的時候不動。 */
+/* 1.6:標籤放不下就一級一級縮小字。分頁還沒顯示(寬度 0)的時候不動。
+   1.7.0-B1:1.6.3 起沒人呼叫(畫導覽列 補回來);起點改成算出來的 px(CSS 給 12.5 / 11px,以前從 0.7em 起算會先跳一大級),每次 0.5px,最小 8px。 */
 function 縮到放得下(el) {
   try {
-    let em = parseFloat(el.style.fontSize) || 0.7;
-    for (let n = 0; n < 6 && el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 0.5 && em > 0.5; n++) {
-      em = Math.round((em - 0.04) * 100) / 100;
-      el.style.fontSize = em + "em";
+    let px = parseFloat(getComputedStyle(el).fontSize) || 12;
+    for (let n = 0; n < 8 && el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 0.5 && px > 8; n++) {
+      px -= 0.5;
+      el.style.fontSize = px + "px";
     }
   } catch (e) {}
 }
@@ -3420,12 +3421,14 @@ class 看板視圖 extends TextFileView {
     /* 1.6.3(mockup v9 #3、#4,使用者:「直接拿掉了,放在 header 日期的左邊」)
        行事曆鈕從 ⋯ 搬到標題列,就在「今日」左邊 —— 標題列 = ⌄ · 📅 · 今日 ·… · ⋯。
        ⚠ 它掛在溝後面,所以是標題列的**第一個圖示**:22 那條線(v15 Q31)。 */
+    /* 1.7.0-U7(使用者 09-23「行事曆 icon 跟日期要對到 pin 跟篩選 header」):不再是 26 寬的 tk-頭鈕(圖示被置中推到 28、日期到 52),
+       改成跟 📌 / 篩選一樣的 13px 頭圖 → 圖示在 22、日期在 39。點擊範圍用 ::before 往外撐(styles.css .tk-曆鈕),版面寬度不變。 */
     const 曆 = 頭.createDiv();
-    曆.addClass("tk-頭鈕");
+    曆.addClass("tk-頭圖"); 曆.addClass("tk-曆鈕");
     if (s.開行事曆) 曆.addClass("tk-亮");
     曆.setAttribute("role", "button"); 曆.setAttribute("tabindex", "0");
     曆.setAttribute("aria-label", T.calendar);
-    圖備(曆, ["calendar", "calendar-days"], 14);
+    圖備(曆, ["calendar", "calendar-days"], 13);
     曆.onclick = (e) => { e.stopPropagation(); this.切行事曆(); };
     曆.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); this.切行事曆(); } };
     /* 1.6.5-U4(使用者 09-22:「第一 header 改成篩選的日期 不要固定顯示今日日期」):
@@ -3444,6 +3447,7 @@ class 看板視圖 extends TextFileView {
     const 條 = 塊.createDiv();
     條.addClass("tk-篩條");
     this.畫篩格們(條, 全);
+    條.querySelectorAll(".tk-篩中").forEach(縮到放得下);   // 1.7.0-B1:整排畫完、寬度定了才量
   }
 
   /* 標題列右邊的 ⋯:平常收著;按了往左彈出「全部 · 未完成|已完成 · 封存區」,樣子跟沒收起來一樣(使用者 v4 留言) */
@@ -3622,7 +3626,8 @@ class 看板視圖 extends TextFileView {
       數(g, this.區間張數(全, 段.起, 段.迄));
       const c = 中(g);
       c.createSpan({ text: 月日(段.起) });
-      c.createSpan({ text: "(" + 語().週名[new Date(段.起 + "T00:00:00").getDay()] + ")" }).addClass("tk-週名");
+      // 1.7.0-B1(使用者 09-23「手機版每日不要顯示周幾」):窄排法(手機一定是)只寫 9/23,英文 360 寬縮到 8px 還放不下
+      if (!this.密) c.createSpan({ text: "(" + 語().週名[new Date(段.起 + "T00:00:00").getDay()] + ")" }).addClass("tk-週名");
       箭(g, true, "後一天", () => this.移游標("日", 1));
       g.setAttribute("aria-label", T.dayLayer + " · " + T.tileHint);
       g.onclick = () => 選層("今日", "日");
@@ -3680,26 +3685,54 @@ class 看板視圖 extends TextFileView {
 
   /* ---- ② 行事曆:點第一下 = 起,點第二下 = 迄,選滿一段就自動收起來 ---- */
   /* 1.6:行事曆是新增卡片那一塊的第三種內容(見 畫新增區),畫在塊的標題列底下;收起鈕在標題列上。 */
-  畫行事曆(外塊, 全) {
-    const T = this.T, s = this.狀態;
-    const 盒 = 外塊.createDiv();
-    st(盒, "padding:9px 10px 9px 18px;");       // 內容從 18 開始(Guide 18)
-
-    const 頭 = 盒.createDiv();
-    st(頭, "display:flex;align-items:center;gap:6px;margin-bottom:6px;");
-    this.畫箭(頭, false, "", () => { s.顯示月 = this.移月(s.顯示月, -1); this.畫(); });
-    const 月字 = 頭.createDiv({ text: s.顯示月.replace("-", " / ") });
-    st(月字, "flex:0 0 96px;width:96px;text-align:center;font-size:0.9em;font-weight:700;");
-    this.畫箭(頭, true, "", () => { s.顯示月 = this.移月(s.顯示月, 1); this.畫(); });
-    // 1.6.3 C8:不寫「點一天當開始」灰字(UI 規則:不寫灰色說明字),改放 title
-    盒.title = s.選起 ? T.pickEnd : T.pickStart;
-
+  曆每日(全) {
     const 每日 = {};
     this.清單池(全).forEach(k => {
       if (!k.起日) return;
       let d = k.起日; const 末 = k.迄日 || d;
       for (let n = 0; d && d <= 末 && n < 400; n++) { 每日[d] = (每日[d] || 0) + 1; d = 加日(d, 1); }
     });
+    return 每日;
+  }
+  /* 1.7.0-U2(使用者:月份放第一行、回到本月右邊加整年、整年右邊全部、不顯示張數):
+     行事曆的月份那一排搬進新增區的標題列 → [x] ◀ 2026 / 09 ▶ [回到本月] [整年] [全部] ··· [⋯]。
+     張數拿掉,「這個月 D 張 ‧ N 天有卡片」留在月份的 title。三顆一樣是 tk-框鈕(標題列 26 高,不用 <button>)。 */
+  畫行事曆頭(頭, 全) {
+    const T = this.T, s = this.狀態, f = s.篩 || {};
+    this.畫箭(頭, false, "", () => { s.顯示月 = this.移月(s.顯示月, -1); this.畫(); });
+    const 月字 = 頭.createDiv({ text: s.顯示月.replace("-", " / ") });
+    st(月字, "flex:0 1 96px;width:96px;min-width:0;text-align:center;font-size:0.9em;font-weight:700;white-space:nowrap;overflow:hidden;");
+    this.畫箭(頭, true, "", () => { s.顯示月 = this.移月(s.顯示月, 1); this.畫(); });
+    const 每日 = this.曆每日(全);
+    let 張 = 0, 天 = 0;
+    for (const d in 每日) if (d.slice(0, 7) === s.顯示月) { 張 += 每日[d]; 天++; }
+    月字.title = T.calMonthTotal.replace("D", String(張)).replace("N", String(天));
+    const 框鈕 = (字, 亮, 做) => {
+      const b = 頭.createDiv({ text: 字 });
+      b.addClass("tk-頭鈕"); b.addClass("tk-框鈕");
+      if (亮) b.addClass("tk-亮");
+      b.setAttribute("role", "button"); b.setAttribute("tabindex", "0");
+      b.onclick = (e) => { e.stopPropagation(); 做(); };
+      b.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); 做(); } };
+    };
+    const 關 = () => { s.開行事曆 = false; s.選起 = null; s.選迄 = null; this.畫(); };
+    框鈕(T.thisMonth, false, () => { s.顯示月 = this.今.slice(0, 7); this.畫(); });
+    // 整年 = 時間篩選切「年度」(跟年格同一個動作),年份跟著行事曆:今年 → 游標留在今天,別年 → 1/1
+    const 年 = s.顯示月.slice(0, 4);
+    框鈕(T.wholeYear, f.型 === "年度" && String(s.游標 || this.今).slice(0, 4) === 年, () => {
+      this.設游標(年 === this.今.slice(0, 4) ? this.今 : 年 + "-01-01");
+      s.篩 = { 型: "年度" }; 關();
+    });
+    // 1.6.3(Q13):「全部」= 所有日期,放行事曆的標題列(1.7.0 從右邊搬到整年右邊)
+    框鈕(T.all, f.型 === "全部", () => { s.篩 = { 型: "全部" }; 關(); });
+  }
+  畫行事曆(外塊, 全) {
+    const T = this.T, s = this.狀態;
+    const 盒 = 外塊.createDiv();
+    st(盒, "padding:9px 10px 9px 18px;");       // 內容從 18 開始(Guide 18)
+    // 1.6.3 C8:不寫「點一天當開始」灰字(UI 規則:不寫灰色說明字),改放 title
+    盒.title = s.選起 ? T.pickEnd : T.pickStart;
+    const 每日 = this.曆每日(全);
 
     const 年 = Number(s.顯示月.slice(0, 4)), 月 = Number(s.顯示月.slice(5, 7)) - 1;
     const 網 = 盒.createDiv();
@@ -3735,20 +3768,6 @@ class 看板視圖 extends TextFileView {
         s.選起 = null; s.開行事曆 = false; this.畫();
       };
     }
-    /* 1.6.3 C8:這個月幾張 = 月份右邊的灰字數字(不寫「張」,C10;幾天有卡片放 title),
-       「回到本月」也在月份右邊;底下那一排拿掉了。 */
-    let 張 = 0, 天 = 0;
-    for (let d = 1; d <= 天數; d++) {
-      const 日 = 年 + "-" + 兩位(月 + 1) + "-" + 兩位(d);
-      if (每日[日]) { 張 += 每日[日]; 天++; }
-    }
-    const 數 = 頭.createDiv({ text: String(張) });
-    st(數, "font-size:0.72em;color:var(--text-faint);margin-left:4px;");
-    數.title = T.calMonthTotal.replace("D", String(張)).replace("N", String(天));
-    const 回 = 頭.createEl("button", { text: T.thisMonth });
-    st(回, "margin-left:6px;font-size:0.72em;height:20px;min-height:0;padding:0 9px;border-radius:6px;" +
-      "cursor:pointer;box-shadow:none;");
-    回.onclick = () => { s.顯示月 = this.今.slice(0, 7); this.畫(); };
   }
   移月(ym, n) {
     const y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7)) - 1 + n;
@@ -3850,17 +3869,16 @@ class 看板視圖 extends TextFileView {
     };
     const 溝 = 頭.createDiv();
     溝.addClass("tk-溝");
-    /* U30(mockup v9 #9,使用者「增加返回按鍵」):行事曆是從**詳細編輯**打開的 →
-       溝裡放返回 chevron-left,按了回詳細編輯;從時間篩選打開的照 U23 放 calendar-days(不能按,所以不掛 role)。 */
-    if (s.開行事曆 && s.詳細) {
+    /* 1.7.0-U1(使用者「左上角改放 x」):行事曆的溝一律是 x,按了回到打開之前的畫面(新增 / 詳細編輯,切行事曆() 本來就會);
+       右邊那顆 x 拿掉。取代 U30 的 chevron-left 和 U23 的 calendar-days。 */
+    if (s.開行事曆) {
       溝.setAttribute("role", "button"); 溝.setAttribute("tabindex", "0");
-      溝.setAttribute("aria-label", T.backToEdit);
-      圖備(溝, ["chevron-left", "arrow-left"], 14);
+      溝.setAttribute("aria-label", s.詳細 ? T.backToEdit : T.close);
+      圖備(溝, ["x"], 14);
       const 回 = (e) => { e.stopPropagation(); this.切行事曆(); };
       溝.onclick = 回;
       溝.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 回(e); } };
     }
-    else if (s.開行事曆) 圖備(溝, ["calendar-days", "calendar"], 14);
     else if (s.設定模式 && this.設草) 圖備(溝, ["settings", "cog"], 14);
     else {
       const 詳 = !!s.詳細;
@@ -3880,21 +3898,10 @@ class 看板視圖 extends TextFileView {
       this.畫新增區(根, this.卡片);
     };
     if (s.開行事曆 || (s.設定模式 && this.設草)) {
+      // 1.7.0-U2:行事曆的 ◀ 月 ▶ 回到本月 整年 全部 由 畫行事曆() 畫在這個標題列上(撐的前面)
+      if (s.開行事曆) this.畫行事曆頭(頭, 全);
       頭.createDiv().addClass("tk-撐");
-      if (s.開行事曆) {
-        /* 1.6.3(mockup v9 #1 / Q13,使用者:「放進行事曆」):
-           「全部」= 所有日期,跟未完成 / 已完成不是同一件事,所以不放在時間篩選的 ⋯ 裡,
-           放在**行事曆標題列的右邊**(v16:有框)。 */
-        const 全鈕 = 頭.createDiv({ text: T.all });
-        全鈕.addClass("tk-頭鈕"); 全鈕.addClass("tk-框鈕");
-        if ((s.篩 || {}).型 === "全部") 全鈕.addClass("tk-亮");
-        全鈕.setAttribute("role", "button"); 全鈕.setAttribute("tabindex", "0");
-        const 看全部 = () => { s.篩 = { 型: "全部" }; s.開行事曆 = false; s.選起 = null; s.選迄 = null; this.畫(); };
-        全鈕.onclick = (e) => { e.stopPropagation(); 看全部(); };
-        全鈕.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); 看全部(); } };
-        小鈕(["x"], T.close, () => { s.開行事曆 = false; s.選起 = null; s.選迄 = null; this.畫(); });
-      }
-      else {
+      if (!s.開行事曆) {
         小鈕(["undo-2", "undo", "rotate-ccw"], T.backDiscard, () => this.離開設定模式());
         小鈕(["check"], T.save, () => this.存設草(), true);
       }
@@ -3905,21 +3912,14 @@ class 看板視圖 extends TextFileView {
 
     // ---- 詳細編輯模式:1.6.6-U4(使用者:「header 日期拿掉,圓點跟常用主題一樣放第一排」)——
     //    標題列不再放日期,分類圓點、常用主題、循環選單都在第一排;日期改看送出鈕上方的灰字。 ----
+    // 1.7.0-U3(使用者「圓點那一行不要下移 一樣位置」):詳細編輯也畫在標題列裡,按 ⤢ 前後圓點不動(取代 1.6.6-U4 的第一排)
     const 詳 = !!s.詳細;
-    let 題排 = 頭;
-    if (詳) {
-      頭.createDiv().addClass("tk-撐");
-      題排 = 外塊.createDiv();
-      題排.addClass("tk-題排");
-    }
+    const 題排 = 頭;
     // ---- 分類圓點(U25:圓點 16、點擊範圍 26):點了選要放到哪一區 ----
     const 區 = this.分類清單.filter(x => !/archive|封存/i.test(x));
     if (s.新分類 === null || 區.indexOf(s.新分類) < 0) s.新分類 = 區[0] || "紅色";
     const 點座 = 題排.createDiv();
     點座.addClass("tk-點座");
-    /* 1.6.6(使用者臨時加項:「新增卡片的圓點 右移 2pt」):只在**詳細編輯**自己的第一排調整 ——
-       壓縮狀態的標題列圓點是「溝後面第一個東西在 22」那條基準線(U25 / M3 / M17),不能動。 */
-    if (詳) 點座.style.marginLeft = "2px";
     點座.setAttribute("role", "button"); 點座.setAttribute("tabindex", "0");
     const 點 = 點座.createDiv();
     點.addClass("tk-點");
@@ -5643,7 +5643,8 @@ class 看板視圖 extends TextFileView {
     }
     if (k.完成) 條.addClass("tk-色條-完");
     const 循 = k.循環 && !k.完成;
-    const 勾 = 圖(條, "check", 9);
+    // 1.7.0-U5:已完成滑過是 ↶(按下去是取消完成),不是打勾
+    const 勾 = (k.完成 && 圖備(條, ["undo-2", "undo"], 9)) || 圖(條, "check", 9);
     勾.addClass("tk-色勾");
     勾.style.display = "";   // 顯示與否交給 CSS(平常不佔寬,4px 的色條才裝得下;滑過才出來)
     const 名 = 條.createDiv({ text: k.分類 });
@@ -8464,6 +8465,11 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.7.0",
+    ["行事曆的月份、回到本月、整年、全部都搬進標題列,左上角是關閉;詳細編輯時圓點不再往下跳,已完成的卡片滑過顯示 ↶。",
+     "時間篩選的字放不下會自動縮(手機的本日格不寫星期);色條變窄、只有標題的卡片色條加高,幾個圖示和日期重新對齊。"],
+    ["The calendar's month, This month, Year and All moved into its title bar, with close at the top left; the section dot no longer jumps in detailed edit, and done cards show ↶ on hover.",
+     "Time-filter labels shrink to fit (the day tile drops the weekday on narrow layouts); slimmer colour bars, taller bars on title-only cards, and a few icons and dates realigned."]],
   ["1.6.9",
     ["卡片可以送到 Canvas(一張或整份清單),框照內容量大小;Canvas、嵌入和預覽裡的卡片畫成看板的樣子,點了回看板。",
      "「複製卡片連結」改成「複製卡片」,貼上就是整張卡片;修掉卡片 ID 跑到子待辦後面、Canvas 有幾張沒畫成卡片的 bug。"],

@@ -37,6 +37,8 @@
 	| --- | --- |
 	| 1 | 2 |
 	[ed:: 2026-09-18 10:00]
+- [ ] [只有標題] [due:: {{今}}]
+	[ed:: 2026-09-18 10:05]
 - [ ] [English title, long name wrapping] [due:: {{後1}}] #Alexander
 	English content, long enough to wrap at phone widths without breaking the layout of the card.
 	[ed:: 2026-09-18 10:10]
