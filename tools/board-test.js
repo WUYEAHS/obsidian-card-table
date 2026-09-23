@@ -228,22 +228,76 @@ window.__ctBoardTest = 'running';
     ok('convert twice = 0', c2 && c2.張 === 0, c2);
     if (備) await app.vault.trash(備, true);
 
-    /* 13. 1.6.3(U43–U46)封存區的移出 / 整批刪除 —— 兩個都會寫檔,所以在這裡真的跑一遍。
-       ⚠ 移出是「先建新檔 → 再刪原文」,所以要檢查三件事:新檔有那些卡片、原文那一段不見了、看板上那一區消失。 */
+    /* 13. 1.6.3(U43–U46)封存區的移出 / 整批刪除;1.7.1(ADR-002)移出接到 `<看板名> Archive.md`、可以搬回。
+       ⚠ 移出是「先寫 Archive → yaml → 最後才刪原文」:中間斷掉最壞兩邊都有。行為數字:兩份的區名和張數。 */
     {
-      await P.寫手.改分類們(f, { 新增: ['Archive/移出測試'], 刪: [], 改名: [] });
-      await P.寫手.新增卡片(f, 'Archive/移出測試', '- [ ] #移出甲 [due:: 2026-09-16]', ['\t內容甲']);
-      await P.寫手.新增卡片(f, 'Archive/移出測試', '- [ ] #移出乙 [due:: 2026-09-16]', ['\t內容乙']);
+      const 日 = new Date().toLocaleDateString('sv');            // YYYY-MM-DD(本地時間)
+      const 區們 = (t) => t.split('\n').filter(x => /^## /.test(x)).map(x => x.slice(3));
+      const 張 = (t) => (t.match(/^- \[[ xX]\] /gm) || []).length;
+      const 放 = async (名, 題們) => {
+        await P.寫手.改分類們(f, { 新增: ['Archive/' + 名], 刪: [], 改名: [] });
+        for (const 題 of 題們) await P.寫手.新增卡片(f, 'Archive/' + 名, '- [ ] #' + 題 + ' [due:: 2026-09-16]', ['\t內容' + 題]);
+      };
+      await 放('移出測試', ['移出甲', '移出乙']);
       let 文 = await 讀();
       ok('U43 archive section written', /## Archive\/移出測試/.test(文) && /#移出甲/.test(文) && /#移出乙/.test(文), 文);
-      const r = await P.寫手.移出分區(f, 'Archive/移出測試', '移出測試-card table-archive', '');
-      const 新檔 = r && r.檔 && app.vault.getAbstractFileByPath(r.檔);
-      const 新文 = 新檔 ? await app.vault.read(新檔) : '';
-      ok('U43 moved-out file has the cards', !!新檔 && /#移出甲/.test(新文) && /#移出乙/.test(新文) && r.張 === 2, [r, 新文]);
-      ok('U43 moved-out file next to note', !!新檔 && 新檔.parent.path === f.parent.path, 新檔 && 新檔.path);
+      // 連結數(PRD 5.3):別的筆記指到這一區的卡片 ID
+      await app.vault.process(f, t => t.replace(/(#移出甲[^\n]*\n\t內容移出甲)/, '$1 ^ct-lnk001'));
+      const 連檔 = await app.vault.create('ZZ-board-test-links.md', '[[ZZ-board-test#^ct-lnk001]] [[ZZ-board-test#Archive/移出測試]]');
+      await 等(1200);
+      ok('F1 link count before move-out = 2', P.數連結(f, new Set(['^ct-lnk001']), 'Archive/移出測試') === 2, P.數連結(f, new Set(['^ct-lnk001']), 'Archive/移出測試'));
+      await app.vault.trash(連檔, true);
+      // ① 第一次:沒有 Archive → 建一份,兩邊 yaml 互連
+      ok('F1 no archive yet', P.找Archive(f) === null, P.找Archive(f) && P.找Archive(f).path);
+      const r = await P.寫手.移出分區(f, 'Archive/移出測試', null, '');
+      const A = r && r.檔 && app.vault.getAbstractFileByPath(r.檔);
+      let A文 = A ? await app.vault.read(A) : '';
+      ok('F1 archive file = <board> Archive.md next to board', !!A && A.basename === 'ZZ-board-test Archive' && A.parent.path === f.parent.path, r);
+      ok('F1 section → ## name + [archived:: today], 2 cards', r.張 === 2 && 區們(A文).join('|') === '移出測試' && A文.includes('## 移出測試\n[archived:: ' + 日 + ']') && 張(A文) === 2, A文);
+      ok('F1 archive yaml', /card-table: archive/.test(A文) && /card-table-source: "\[\[ZZ-board-test\]\]"/.test(A文) && A文.includes('card-table-archived: ' + 日), A文);
       文 = await 讀();
+      ok('F1 board yaml links archive', /card-table-archive: "\[\[ZZ-board-test Archive\]\]"/.test(文), 文.slice(0, 200));
       ok('U45 section gone from the note', !/移出測試/.test(文) && !/#移出甲/.test(文), 文);
-      if (新檔) await app.vault.trash(新檔, true);
+      await 等(800);
+      ok('F1 find archive both ways', P.找Archive(f) === A && P.找看板(A) === f, [P.找Archive(f) && P.找Archive(f).path, P.找看板(A) && P.找看板(A).path]);
+      // ② 第二次、同名 + ID 撞號:接在後面,`## 名 (今天)`,撞號的 ^ct- 換新
+      await 放('移出測試', ['移出丙']);
+      await app.vault.process(f, t => t.replace(/(#移出丙[^\n]*\n\t內容移出丙)/, '$1 ^ct-lnk001'));
+      const r2 = await P.寫手.移出分區(f, 'Archive/移出測試', P.找Archive(f), '');
+      A文 = await app.vault.read(A);
+      ok('F1 same name → (today), appended', r2 && r2.檔 === A.path && 區們(A文).join('|') === '移出測試|移出測試 (' + 日 + ')' && 張(A文) === 3, 區們(A文));
+      ok('D9 clashing ^ct- renewed', (A文.match(/\^ct-lnk001/g) || []).length === 1 && (A文.match(/\^ct-[a-z0-9]{6}/g) || []).length === 2, A文);
+      // ③ 看板改名之後照 yaml 找得到
+      await app.fileManager.renameFile(f, 'ZZ-board-test-renamed.md');
+      await 等(1200);
+      ok('F1 archive found after board rename', P.找Archive(f) === A, P.找Archive(f) && P.找Archive(f).path);
+      await app.fileManager.renameFile(f, path);
+      await 等(1200);
+      // ④ 中間斷掉:yaml 寫不進去 → 回 false,看板一個字都沒動(Archive 那邊已經有 = 兩邊都有,救得回)
+      await 放('斷掉測試', ['斷甲']);
+      const 斷前 = await 讀(), 原fm = app.fileManager.processFrontMatter;
+      app.fileManager.processFrontMatter = async () => { throw new Error('test'); };
+      const r3 = await P.寫手.移出分區(f, 'Archive/斷掉測試', A, '');
+      app.fileManager.processFrontMatter = 原fm;
+      ok('F1 interrupted: false, board untouched, archive has it', r3 === false && (await 讀()) === 斷前 && /## 斷掉測試/.test(await app.vault.read(A)), r3);
+      await P.寫手.刪分區(f, 'Archive/斷掉測試');
+      await P.寫手.刪分區(A, '斷掉測試');
+      // ⑤ 搬回:先寫看板再從 Archive 拿掉;名字去掉 (日);看板有同名 → (搬回 日);[archived::] 拿掉
+      const 搬前張 = 張(await 讀()) + 張(await app.vault.read(A));
+      const n1 = await P.寫手.搬回分區(A, '移出測試', f);
+      const n2 = await P.寫手.搬回分區(A, '移出測試 (' + 日 + ')', f);
+      文 = await 讀(); A文 = await app.vault.read(A);
+      ok('F2 moved back, none lost', n1 === 2 && n2 === 1 && 張(文) + 張(A文) === 搬前張 && 張(A文) === 0, [n1, n2, 張(文), 張(A文)]);
+      ok('F2 names: 移出測試 + (搬回 today), no [archived::]', 區們(文).includes('移出測試') && 區們(文).includes('移出測試 (' + P.寫手.T.movedBack + ' ' + 日 + ')') && !/archived::/.test(文), 區們(文));
+      // ⑥ 搬回再搬出:card-table-archived 照樣是最後那一天
+      await P.寫手.改分類們(f, { 新增: [], 刪: [], 改名: [['移出測試', 'Archive/移出測試']] });
+      const r4 = await P.寫手.移出分區(f, 'Archive/移出測試', P.找Archive(f), '');
+      A文 = await app.vault.read(A);
+      ok('F2 move out again after move back', r4 && 區們(A文).join('|') === '移出測試' && A文.includes('card-table-archived: ' + 日), 區們(A文));
+      await P.寫手.刪分區(f, '移出測試 (' + P.寫手.T.movedBack + ' ' + 日 + ')');
+      await app.fileManager.processFrontMatter(f, y => { delete y['card-table-archive']; });
+      delete P.設定.看板檔案[A.path];
+      await app.vault.trash(A, true);
 
       // 整批刪除:不留檔
       await P.寫手.改分類們(f, { 新增: ['Archive/刪除測試'], 刪: [], 改名: [] });
@@ -255,9 +309,9 @@ window.__ctBoardTest = 'running';
       const 前文 = await 讀();
       const 無 = await P.寫手.刪分區(f, 'Archive/根本沒有');
       ok('U46 missing section writes nothing', 無 === false && (await 讀()) === 前文, 無);
-      const 無2 = await P.寫手.移出分區(f, 'Archive/根本沒有', 'x-card table-archive', '');
+      const 無2 = await P.寫手.移出分區(f, 'Archive/根本沒有', null, '');
       ok('U43 missing section: no file, no write', 無2 === false && (await 讀()) === 前文 &&
-        !app.vault.getAbstractFileByPath((f.parent.path === '/' ? '' : f.parent.path + '/') + 'x-card table-archive.md'), 無2);
+        !app.vault.getAbstractFileByPath((f.parent.path === '/' ? '' : f.parent.path + '/') + 'ZZ-board-test Archive.md'), 無2);
     }
     /* 14. 1.6.7(U6b)分類拖曳排序寫檔:改分類們() 加的排序步驟只搬整段,不碰卡片一個字。
        直接叫寫手,不透過 DOM(拖放事件用程式模擬又慢又假)。 */

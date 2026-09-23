@@ -10,7 +10,7 @@
   const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C, SuggestModal: C, MarkdownRenderChild: C,
     WorkspaceLeaf: C, debounce: f => f, setIcon: () => {}, addIcon: () => {} };
   const M = new Function('require', 'module', src +
-    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 擺ID, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限, 補ID, Canvas加節點};')(
+    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 擺ID, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限, 補ID, Canvas加節點, 成對方區, 接到尾, 月範圍字};')(
     () => stub, { exports: {} });
   const out = [];
   const eq = (name, a, b) => out.push((a === b ? 'ok   ' : 'FAIL ') + name + (a === b ? '' : '\n   got: ' + JSON.stringify(a) + '\n  want: ' + JSON.stringify(b)));
@@ -230,6 +230,15 @@
   eq('cut section rest', 切.剩, ['# 標頭', '', '## 1', '- [ ] #a', '\t內容', '', '## 2', '- [ ] #d', ''].join('\n'));
   eq('cut section missing', M.抓分區(份, 'Archive/沒有這一區'), null);
   eq('cut section empty name', M.抓分區(份, ''), null);
+  // ---- 1.7.1(ADR-002 D4/D5/D9)成對方區、接到尾、月範圍字 ----
+  eq('to archive: head + archived', M.成對方區(切.段, '2025 秋季', '2026-09-23', '', ''),
+    '## 2025 秋季\n[archived:: 2026-09-23]\n- [ ] #b\n\t- x\n- [x] #c\n');
+  eq('to archive: same name → (day), then (day 2)', M.成對方區('## x\n- [ ] #a', 'y', '2026-09-23', '## y\n## y (2026-09-23)', ' (2026-09-23)').split('\n')[0], '## y (2026-09-23 2)');
+  eq('back: no archived line, (搬回 day)', M.成對方區('## y (2026-09-23)\n[archived:: 2026-09-23]\n- [ ] #a', 'y', null, '## y', ' (搬回 2026-09-24)'), '## y (搬回 2026-09-24)\n- [ ] #a\n');
+  const 撞 = M.成對方區('## x\n- [ ] #a\n\t[ed:: 2026-09-10 09:00] ^ct-aaaaaa\n- [ ] #b\n\t[ed:: 2026-09-10 09:00] ^ct-bbbbbb', 'x', null, '- [ ] #z\n\t[ed:: 2026-09-10 09:00] ^ct-aaaaaa', '');
+  eq('D9 clash renewed, other kept', [/\^ct-aaaaaa/.test(撞), /\^ct-bbbbbb/.test(撞), /\[ed:: 2026-09-10 09:00\] \^ct-[a-z0-9]{6}\n/.test(撞)].join(), 'false,true,true');
+  eq('append to end', M.接到尾('---\na: 1\n---\n## 1\n\n\n', '## x\n'), '---\na: 1\n---\n## 1\n\n## x\n');
+  eq('month range', [M.月範圍字([{ 起日: '2026-09-01', 迄日: '2026-09-30' }]), M.月範圍字([{ 起日: '2025-11-02', 迄日: '2025-11-02' }, { 起日: null }, { 起日: '2026-01-01', 迄日: '2026-09-03' }]), M.月範圍字([{}])].join('|'), '2026-09|2025-11 – 2026-09|');
   // 同名的標題出現兩次 → 兩段都算
   const 兩份 = ['## Archive/x', '- [ ] #a', '## 1', '- [ ] #b', '## Archive/x', '- [ ] #c'].join('\n');
   const 切2 = M.抓分區(兩份, 'Archive/x');

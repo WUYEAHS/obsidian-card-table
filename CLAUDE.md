@@ -466,6 +466,14 @@ check4 抓切字溢出,measure 抓對不齊,改版面兩個都跑。新的 UI �
   編輯時間沿用原本的(搬到最後一行);卡片以外的行不動;跑第二次改到 0 張。
   ⚠ 1.6.0 以前的外掛讀不懂新寫法 —— 警告文字要一直留著。
 - 測試:`tools/format-test.js`、`tools/board-test.js`(見技能 `card-table-format-test`)。
+## 1.7.1 的規則(Archive,ADR-002)
+
+- **看板 ↔ `<看板名> Archive.md`**:yaml `card-table-archive` / `card-table-source`(`processFrontMatter` 寫,不要自己拼 yaml)。
+  互找一律 `插件.找Archive(看板)` / `找看板(A)`;對方明確指到別份才不認(D3)。
+- 搬出 / 搬回都是**先寫目的地、最後才刪來源**(`寫手.移出分區` / `搬回分區`),區的文字由純函式 `成對方區()` 產生(標題、`[archived::]`、撞名、撞號的 `^ct-`)。
+- **`看板視圖.是Archive`** 看內文的 yaml(`card-table: archive`),Archive 的分支都掛它:今日列、清單一區一塊、✎ `visibility:hidden`、不能拖、`送出新增` 擋掉、已逾期格換成全部、未完成 / 已完成用 `顯設`(不動全域設定)。
+- ⚠ **`st(el, css)` 是整條蓋掉 `style.cssText`**:已經 st 過的元素要補樣式用 `el.style.x = …`。
+
 ## Git
 
 - remote:`https://github.com/WUYEAHS/obsidian-card-table.git`,branch `main`

@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260923v5";
-const 插件版本 = "1.7.0";
+const 看板版本 = "260923v6";
+const 插件版本 = "1.7.1";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -62,12 +62,14 @@ const 字典 = {
     edit: "編輯", save: "儲存", cancel: "取消", comment: "留言", pin: "置頂",
     archiveZone: "封存區", archiveSection: "封存整個分類(按 ✓ 儲存才生效)", unarchiveSection: "取消封存", oldArchived: "以前單張封存的卡片", restoreSection: "還原這一區", restoreAgain: "再按一次還原", searchArchive: "搜尋這一區", detailEdit: "詳細編輯", backToBoard: "回到看板", done: "完成", placeholder: "留一則給大家看的…", /* C10:張數只寫數字,不寫「張」(跟英文一樣) */ cards: "", undo: "按一下復原", doneOnceShort: "按一下 = 本次完成",
     /* 1.6.3(U43–U46)封存區的移出 / 整批刪除。NAME = 封存區的名字、CNT = 幾張、FILE = 新檔案 */
-    moveOut: "移出 Card Table", moveOutYes: "移出",
-    moveOutAsk: "移出「NAME」?\n這一區的 CNT 張卡片會搬到:\nFILE\n搬走之後封存區清單裡就沒有這一區了(檔案還在)。",
-    moveOutFailed: "移出失敗:新檔案建不起來,原本的筆記一個字都沒動",
+    moveOut: "移到 FILE", moveOutYes: "移出",
+    moveOutAsk: "移出「NAME」?\n這一區的 CNT 張卡片會搬到〈FILE〉,\n在那裡可以再搬回來。",
+    moveOutFailed: "移出失敗:Archive 沒寫好,原本的筆記一個字都沒動",
+    /* 1.7.1(ADR-002)看板 ↔ Archive。N = 幾個、FILE = 對方檔名、NAME = 看板名 */
+    linksBreak: "⚠ 別的筆記裡有 N 個連結指到這一區,搬走之後會斷(Canvas 裡的不算)。",
+    movedBack: "搬回", moveBack: "搬回 FILE", openArchive: "開啟 FILE", archiveOf: "NAME 的 Archive", archivedOn: "封存 D", archiveNoAdd: "Archive 不能新增卡片(可以搜尋、打勾、留言)",
     deleteAllSection: "整批刪除這一區(刪掉就沒了)", deleteAllYes: "刪除",
     deleteAllAsk: "整批刪除「NAME」?\n這一區的 CNT 張卡片會直接從筆記裡刪掉,\n不留檔、沒辦法復原。",
-    moveOutSuffix: "移出的檔名後綴", moveOutSuffixDesc: "封存區「移出」出去的檔名 = 封存區的名字 + 這個後綴。預設「-card table-archive」。",
     moveOutFolder: "移出放哪個資料夾", moveOutFolderDesc: "空白 = 跟看板筆記同一個資料夾(預設)。填路徑(例:Archive/2026)就放那裡,資料夾要先存在。",
     justNow: "剛剛", minsAgo: "分鐘前", hoursAgo: "小時前",
     yesterday: "昨天", daysAgo: "天前",
@@ -148,7 +150,7 @@ const 字典 = {
     editPosKeep: "原地不動（預設）", editPosTop: "拉到最上面", editPosNone: "交給瀏覽器",
     pinnedBlock: "置頂", addBlock: "新增卡片", filterBlock: "時間篩選", fold: "收合", unfold: "展開", lastEdited: "最後編輯",
     copyCardLink: "複製卡片", linkCopied: "已複製卡片:貼到 Canvas 或筆記會顯示整張卡片",
-    sendToCanvas: "送到 Canvas", sendListToCanvas: "目前的清單送到 Canvas", newCanvas: (n) => "新增 " + n,
+    sendToCanvas: "送到 Canvas", sendListToCanvas: "目前的清單送到 Canvas", sendSectionToCanvas: "這一區送到 Canvas", newCanvas: (n) => "新增 " + n,
     pickCanvas: "送到哪一個 Canvas?", sentToCanvas: (c, n, m) => "已送到 " + c + ":" + n + " 張" + (m ? "(" + m + " 張已經在裡面)" : ""),
     cardsLost: (n) => "," + n + " 張找不到", cardNotInView: "這張卡片不在目前的篩選裡", canvasBroken: "這個 Canvas 檔讀不懂(JSON 壞了),沒有寫入",
     meName: "我",
@@ -230,12 +232,13 @@ const 字典 = {
     assignee: "Who", none: "Unassigned", noCards: "No cards in this range",
     edit: "Edit", save: "Save", cancel: "Cancel", comment: "Comment", pin: "Pin",
     archiveZone: "Archive", archiveSection: "Archive the whole section (applies when you save)", unarchiveSection: "Keep", oldArchived: "Cards archived one by one", restoreSection: "Restore this section", restoreAgain: "Click again to restore", searchArchive: "Search this section", detailEdit: "Detailed edit", backToBoard: "Back to board", done: "Done", placeholder: "Leave a note for everyone…", cards: "", undo: "click to undo", doneOnceShort: "click = done this time",
-    moveOut: "Move out of Card Table", moveOutYes: "Move out",
-    moveOutAsk: "Move “NAME” out?\nThe CNT cards in this section move to:\nFILE\nThe section then disappears from the archive list (the file stays).",
-    moveOutFailed: "Move out failed: the new file could not be created, the note was left untouched",
+    moveOut: "Move to FILE", moveOutYes: "Move out",
+    moveOutAsk: "Move “NAME” out?\nThe CNT cards in this section move to “FILE”,\nwhere you can move them back.",
+    moveOutFailed: "Move out failed: the archive was not written, the note was left untouched",
+    linksBreak: "⚠ N links in other notes point into this section and will break after the move (Canvas not counted).",
+    movedBack: "moved back", moveBack: "Move back to FILE", openArchive: "Open FILE", archiveOf: "Archive of NAME", archivedOn: "archived D", archiveNoAdd: "No new cards in an archive (search, tick and comment still work)",
     deleteAllSection: "Delete this whole section (gone for good)", deleteAllYes: "Delete",
     deleteAllAsk: "Delete “NAME” entirely?\nThe CNT cards in this section are removed from the note,\nwith no copy kept and no way back.",
-    moveOutSuffix: "Suffix for moved-out files", moveOutSuffixDesc: "A moved-out section is saved as the section name plus this suffix. Default “-card table-archive”.",
     moveOutFolder: "Folder for moved-out files", moveOutFolderDesc: "Empty = the same folder as the board note (default). Give a path (e.g. Archive/2026) to use that folder; it has to exist already.",
     justNow: "just now", minsAgo: "m ago", hoursAgo: "h ago",
     yesterday: "yesterday", daysAgo: "d ago",
@@ -315,7 +318,7 @@ const 字典 = {
     editPosKeep: "Leave it where it is (default)", editPosTop: "Pull it to the top", editPosNone: "Let the browser decide",
     pinnedBlock: "Pinned", addBlock: "New card", filterBlock: "Time filters", fold: "Collapse", unfold: "Expand", lastEdited: "Last edited",
     copyCardLink: "Copy card", linkCopied: "Card copied: paste into a Canvas or note to show the whole card",
-    sendToCanvas: "Send to Canvas", sendListToCanvas: "Send this list to Canvas", newCanvas: (n) => "New " + n,
+    sendToCanvas: "Send to Canvas", sendListToCanvas: "Send this list to Canvas", sendSectionToCanvas: "Send this section to Canvas", newCanvas: (n) => "New " + n,
     pickCanvas: "Send to which Canvas?", sentToCanvas: (c, n, m) => "Sent to " + c + ": " + n + (n === 1 ? " card" : " cards") + (m ? " (" + m + " already there)" : ""),
     cardsLost: (n) => ", " + n + " not found", cardNotInView: "This card isn't in the current filter", canvasBroken: "Couldn't read this Canvas file (broken JSON). Nothing was written.",
     meName: "me",
@@ -491,10 +494,8 @@ const 預設設定 = {
   留言位置: "上",
   項目符號: false,              // 1.6.1:設定拿掉了,留著這個鍵只是為了讀舊的 data.json 不出錯
   排序: "編修",          // 編修 = 最近新增/編修的排最上面(預設);顏色 = 日期 → 分類順序
-  /* 1.6.3(U44,mockup v14 Q27 定案)封存區「移出」出去的檔案叫什麼、放哪裡。
-     移出後綴   接在封存區名字後面(`2025秋季專案-card table-archive.md`)
+  /* 1.6.3(U44)封存區「移出」到的 `<看板名> Archive.md` 放哪裡(1.7.1:後綴拿掉了)。
      移出資料夾 空的 = 跟看板筆記同一個資料夾(使用者定的預設);填了就放那個資料夾 */
-  移出後綴: "-card table-archive",
   移出資料夾: "",
   看過版本: "",          // 1.6.1:更新介紹看過哪一版(見 秀更新介紹)
   版本: 插件版本
@@ -1444,6 +1445,35 @@ function 淨檔名(s) {
     .replace(/-{2,}/g, "-").replace(/\s+/g, " ").trim().replace(/^[.\-]+/, "").slice(0, 80).trim();
   return x || "archive";
 }
+/* 1.7.1(ADR-002 D4/D5/D9):把 抓分區 切出來的一段換成對方檔案裡的一區(純函式,回傳要接在對方最後面的文字)。
+   標題全部拿掉換成一個 `## 名`,`[archived::]` 行拿掉;日 有給就在標題下一行寫 `[archived:: 日]`(搬出),沒給(搬回)就不寫。
+   對方已經有同名的標題 → 名 + 撞尾(撞尾 = " (日)" / " (搬回 日)"),再撞就加序號。
+   卡片的 ^ct- 定義跟對方已有的撞 → 換新的(跟 補ID 同一種抽法)。 */
+const 封存日Re = /^[\[(]archived::[ \t]*[^\])]*[\])][ \t]*$/i;
+const 封存尾Re = / \(\d{4}-\d{2}-\d{2}(?: \d+)?\)$/;      // 搬出時同名加的 ` (日)`;搬回、配色時拿掉
+function 成對方區(段, 名, 日, 對方文, 撞尾) {
+  const 對 = String(對方文 || "");
+  const 已名 = new Set(對.split("\n").map(t => { const h = 標題Re.exec(t); return h ? h[1].trim() : null; }));
+  let 終 = 名;
+  for (let i = 2; 已名.has(終); i++) 終 = 名 + 撞尾.replace(/\)$/, i > 2 ? " " + (i - 1) + ")" : ")");
+  const 有 = new Set(對.match(/\^ct-[A-Za-z0-9_-]+/g) || []);
+  const 身 = String(段).replace(/\s+$/, "").split("\n").filter(t => !標題Re.test(t) && !封存日Re.test(t.trim()))
+    .map(t => t.replace(/([ \t]|^)(\^ct-[A-Za-z0-9_-]+)([ \t]*)$/, (m, a, id, b) => {
+      if (!有.has(id)) { 有.add(id); return m; }
+      let n; do n = "^ct-" + Math.random().toString(36).slice(2, 8).padEnd(6, "0"); while (有.has(n));
+      有.add(n); return a + n + b;
+    }));
+  return ["## " + 終].concat(日 ? ["[archived:: " + 日 + "]"] : [], 身).join("\n") + "\n";
+}
+/* 1.7.1-F3:一疊卡片的日期範圍,只寫到月份(使用者 09-23「篩到月份」):`2026-09`、`2025-11 – 2026-09`。沒有日期的不算,全部沒有回 "" */
+function 月範圍字(卡們) {
+  const 日 = 卡們.flatMap(k => [k.起日, k.迄日]).filter(Boolean).sort();
+  if (!日.length) return "";
+  const a = 日[0].slice(0, 7), b = 日[日.length - 1].slice(0, 7);
+  return a === b ? a : a + " – " + b;
+}
+/* 接在一份筆記最後面:中間空一行 */
+function 接到尾(文, 區) { const t = String(文 || "").replace(/\s+$/, ""); return (t ? t + "\n\n" : "") + 區; }
 /* 1.6.9-F1:從 取ID 抽出來的純函式。有 = 這份筆記裡已經用掉的 ID(Set),補的新 ID 也會加進去。
    卡片已經有 ID、而且整份只有這一個定義 → 原樣回傳,不動 行;否則擺一個新的(D6)。
    ⚠ 只數**行尾的定義**:連回這張卡片的 [[…#^ct-…]] 不算重複(算了會換掉 ID、連結反而斷)。 */
@@ -1932,29 +1962,42 @@ class 寫手 {
     }));
   }
 
-  /* U43–U45(mockup v14 Q27 定案)把整個封存區**移出**看板:
-     建一份 `<封存區的名字><移出後綴>.md`(預設同資料夾),那一段原文搬進去,
-     **建檔成功了才**從看板筆記裡刪掉那一段。回傳 { 檔: 新檔路徑, 張: 幾張 },失敗回傳 false。
+  /* U43–U45 → 1.7.1-F1(ADR-002 D1–D4、D9):把整個封存區**移出**看板,接在 `<看板名> Archive.md` 最後面。
+     A = 已經連上的 Archive(插件.找Archive);null → 在 夾(空 = 看板的資料夾)建 `<看板名> Archive.md`。
+     順序:寫 Archive → 兩邊的 yaml(processFrontMatter)→ **最後才**從看板拿掉那一段。回傳 { 檔: Archive 路徑, 張 },失敗回傳 false。
      ⚠⚠ 兩個檔案不可能「一次原子寫入」(寫手規則 1 只保證單一檔案)。
-       順序一定是「先建新檔 → 再刪原文」:中間掛掉最壞是兩邊都有(看得到、救得回);
-       反過來先刪再建,建失敗就直接吃掉使用者整區的卡片。
-     ⚠ 同名的檔案已經在了就在後面加序號,**絕對不覆蓋**(跟 轉新格式 的備份一樣)。 */
-  async 移出分區(檔, 標名, 檔底, 夾) {
+       順序一定是「先寫目的地 → 再刪原文」:中間掛掉最壞是兩邊都有(看得到、救得回);
+       反過來先刪再建,建失敗就直接吃掉使用者整區的卡片。任何一步失敗就停,看板一個字都不動。
+     ⚠ 檔名撞到別的檔案(不是這份看板的 Archive)就在後面加序號,**絕對不覆蓋**。 */
+  async 移出分區(檔, 標名, A, 夾) {
     return await this.排隊做(async () => {
-      const v = this.app.vault;
-      let 路 = null, 張 = 0;
+      const v = this.app.vault, 日 = 日字(new Date());
+      let 張 = 0;
       try {
         const 段 = 抓分區(await v.read(檔), 標名);
         if (!段) { new Notice(this.T.lost); return false; }
         張 = 段.張;
-        const 本夾 = (檔.parent && 檔.parent.path && 檔.parent.path !== "/") ? 檔.parent.path : "";
-        const 用夾 = String(夾 || "").replace(/^\/+|\/+$/g, "") || 本夾;
-        const 底 = (用夾 ? 用夾 + "/" : "") + 淨檔名(檔底);
-        路 = 底 + ".md";
-        for (let i = 2; v.getAbstractFileByPath(路) && i < 200; i++) 路 = 底 + " " + i + ".md";
-        await v.create(路, 段.段);
+        const 名 = 封存原名(標名) || 標名;
+        if (A) {
+          const ok = await this.安全改(A, (文) => ({ 文: 接到尾(文, 成對方區(段.段, 名, 日, 文, " (" + 日 + ")")) }));
+          if (ok === false) throw new Error("Archive 寫不進去");
+        } else {
+          const 本夾 = (檔.parent && 檔.parent.path && 檔.parent.path !== "/") ? 檔.parent.path : "";
+          const 用夾 = String(夾 || "").replace(/^\/+|\/+$/g, "") || 本夾;
+          const 底 = (用夾 ? 用夾 + "/" : "") + 淨檔名(檔.basename + " Archive");
+          let 路 = 底 + ".md";
+          for (let i = 2; v.getAbstractFileByPath(路) && i < 200; i++) 路 = 底 + " " + i + ".md";
+          A = await v.create(路, 成對方區(段.段, 名, 日, "", ""));
+        }
+        const mc = this.app.metadataCache, fm = this.app.fileManager;
+        await fm.processFrontMatter(A, (y) => {
+          y["card-table-source"] = "[[" + mc.fileToLinktext(檔, A.path, true) + "]]";
+          y["card-table"] = "archive";
+          y["card-table-archived"] = 日;
+        });
+        await fm.processFrontMatter(檔, (y) => { y["card-table-archive"] = "[[" + mc.fileToLinktext(A, 檔.path, true) + "]]"; });
       } catch (e) {
-        console.error("[card-table] 移出:新檔建不起來,原文一個字都沒動", e);
+        console.error("[card-table] 移出:Archive 沒寫好,看板一個字都沒動", e);
         new Notice(this.T.moveOutFailed);
         return false;
       }
@@ -1963,7 +2006,25 @@ class 寫手 {
         if (!段) return { 誤: this.T.lost };
         return { 文: 段.剩, 值: true };
       });
-      return ok === false ? false : { 檔: 路, 張: 張 };
+      return ok === false ? false : { 檔: A.path, 張: 張 };
+    });
+  }
+
+  /* 1.7.1-F2(ADR-002 D5):Archive 的一區搬回看板 —— 反過來:**先寫看板、最後才從 Archive 拿掉**。
+     名字去掉搬出時加的 ` (日)`;看板已經有同名的標題 → `## 名字 (搬回 日)`(不併)。`[archived::]` 拿掉。回傳張數,失敗 false。 */
+  async 搬回分區(A, 標名, 看) {
+    return await this.排隊做(async () => {
+      const 日 = 日字(new Date());
+      const 段 = 抓分區(await this.app.vault.read(A), 標名);
+      if (!段) { new Notice(this.T.lost); return false; }
+      const 名 = 標名.replace(封存尾Re, "");
+      const ok = await this.安全改(看, (文) => ({ 文: 接到尾(文, 成對方區(段.段, 名, null, 文, " (" + this.T.movedBack + " " + 日 + ")")) }));
+      if (ok === false) return false;
+      const ok2 = await this.安全改(A, (文) => {
+        const s = 抓分區(文, 標名);
+        return s ? { 文: s.剩, 值: true } : { 誤: this.T.lost };
+      });
+      return ok2 === false ? false : 段.張;
     });
   }
 
@@ -2815,9 +2876,18 @@ class 看板視圖 extends TextFileView {
   getIcon() { return 圖示名; }
   getDisplayText() { return this.file ? this.file.basename : this.T.board; }
   getViewData() { return this.內文; }
+  /* 1.7.1-F3(ADR-002 D6/D7):這份是不是 Archive —— 直接看內文的 yaml(metadataCache 剛開檔時可能還沒索引到) */
+  get 是Archive() {
+    const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(this.內文 || "");
+    return !!m && /^card-table:[ \t]*["']?archive["']?[ \t]*$/m.test(m[1]);
+  }
+  // 未完成 / 已完成 的開關:Archive 用自己的一份(預設兩個都開),不動到別的看板共用的設定
+  get 顯設() {
+    return this.是Archive ? (this.本地顯 = this.本地顯 || { 未完成: true, 完成: true, 封存: false }) : (this.插件.設定.排程顯示 || {});
+  }
   setViewData(data, clear) {
     this.內文 = data || "";
-    if (clear) { this.狀態.編修 = null; this.狀態.改留 = null; }
+    if (clear) { this.狀態.編修 = null; this.狀態.改留 = null; if (this.是Archive) this.狀態.篩 = { 型: "全部" }; }
     /* ⚠⚠ 隨打隨存的關鍵一步。我們自己寫檔之後 Obsidian 會回頭呼叫這裡,
        照原樣重畫就等於把正在打字的 textarea 砍掉重建 —— 游標歸零、注音打到一半的字消失。
        所以自動存的那一下會先設一個很短的「略過到」時窗,只更新內文、不重畫。
@@ -2995,7 +3065,7 @@ class 看板視圖 extends TextFileView {
   }
   我是誰() { const n = 讀我是誰(); return (n && this.名單.indexOf(n) >= 0) ? n : null; }
   是封存(k) { return /archive|封存/i.test(k.分類); }
-  是逾期(k) { return !!k.起日 && k.迄日 < this.今 && !k.完成; }
+  是逾期(k) { return !this.是Archive && !!k.起日 && k.迄日 < this.今 && !k.完成; }      // CR-1.7.1-01:Archive 沒有逾期
 
   /* ---- 篩選 ---- */
   現在區間() {
@@ -3084,7 +3154,7 @@ class 看板視圖 extends TextFileView {
      面板開著、而且右邊選了某一區。 */
   get 看封存區() { return !!(this.狀態.設定模式 && this.狀態.封存看); }
   合顯示(k) {
-    const 設 = this.插件.設定.排程顯示 || {};
+    const 設 = this.顯設;
     /* 1.6.3:正在看封存區(或設定面板上按了 🗄 的**預覽**)—— 清單只剩那一區的卡片。
        預覽的 封存看 是還沒封存的分類名(例「紅色」),所以這裡比的是分類、不再先問 是封存()
        (使用者 09-20:「分類區設定 按封存 會顯示一個預覽 跳到右邊分類封存區」)。 */
@@ -3392,6 +3462,19 @@ class 看板視圖 extends TextFileView {
        這一列本身就是一行字,沒有標題列。框線、圓角、底色在 .tk-今列 自己寫。 */
     列.addClass("tk-今列");
     列.setAttribute("role", "button"); 列.setAttribute("tabindex", "0");
+    /* 1.7.1-F3(ADR-002 D6,使用者 09-23「篩到月份」):Archive 這一列寫 🗄〈看板名〉的 Archive · 月份範圍,點了開看板 */
+    if (this.是Archive) {
+      const 看 = this.插件.找看板(this.file);
+      const 名 = 看 ? 看.basename : this.file.basename.replace(/ Archive$/, "");
+      列.setAttribute("aria-label", T.archiveOf.replace("NAME", 名));
+      列.style.gap = "6px";
+      圖(列, "archive", 13);
+      列.createDiv({ text: [T.archiveOf.replace("NAME", 名), 月範圍字(this.卡片)].filter(Boolean).join(" · ") }).addClass("tk-今字");
+      const 開 = () => { if (看) this.app.workspace.openLinkText(看.path, this.file.path); };
+      列.onclick = 開;
+      列.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 開(); } };
+      return;
+    }
     列.setAttribute("aria-label", T.backToToday);
     const 回 = () => { this.回到今天(); this.畫(); };
     列.createDiv({ text: 日期範圍字(this.今) }).addClass("tk-今字");
@@ -3452,7 +3535,7 @@ class 看板視圖 extends TextFileView {
 
   /* 標題列右邊的 ⋯:平常收著;按了往左彈出「全部 · 未完成|已完成 · 封存區」,樣子跟沒收起來一樣(使用者 v4 留言) */
   畫顯示彈出(頭, 全) {
-    const T = this.T, s = this.狀態, 設 = this.插件.設定.排程顯示 || {};
+    const T = this.T, s = this.狀態, 設 = this.顯設;
     const 鈕 = (父, 字, 圖名, 亮, 做, 類) => {
       const b = 父.createDiv();
       b.addClass("tk-段鈕"); if (類) b.addClasses(類.split(" "));   // addClass 只收一個 class,帶空白會丟例外、整份畫不出來
@@ -3575,10 +3658,11 @@ class 看板視圖 extends TextFileView {
       /* 1.6.5-U3(使用者 09-22「按全部之後 日曆右邊要顯示 全部」→ Q11 A 案):
          「全部」是一個篩選狀態,但它的按鈕只畫在行事曆的標題列上,行事曆一收就看不見了。
          現在改成:全部模式時**年格中間寫「全部」並亮起**、箭頭變灰不能點 —— 位置固定,隨時看得到。 */
-      const 全選 = f.型 === "全部";
+      const 全選 = f.型 === "全部" && !this.是Archive;      // CR-1.7.1-01:Archive 有自己的「全部」格,年格照寫年份
       const g = 格(條, ["tk-大"], 年選 || 全選);
       const 週段 = this.層區間("週");
-      const 跨週 = 週段.起.slice(0, 4) !== 週段.迄.slice(0, 4);
+      // 1.7.1-B1:只有選了週才看跨週(換年游標到 1/1,那一週常常跨年,年格被寫成 26–27)
+      const 跨週 = f.型 === "7天內" && 週段.起.slice(0, 4) !== 週段.迄.slice(0, 4);
       /* 1.6.5-B1:行事曆選了**跨年的區間**時,年格也要跟著跨(例「26–27」),
          不然年格寫著一個年份、實際篩的卻是兩年。 */
       const 區 = this.現在區間();
@@ -3639,6 +3723,16 @@ class 看板視圖 extends TextFileView {
       { 名: T.longTerm, 鍵: "週期", 色: "var(--color-purple, #8a6ed4)", 圖示: ["refresh-ccw-dot", "refresh-ccw", "repeat"],
         數: () => this.清單池(全).filter(k => k.循環).length }
     ].forEach(定 => {
+      /* CR-1.7.1-01(使用者 09-23「已逾期按鈕改成全部按鈕,因為 archive 比較需要全部」):
+         Archive 沒有逾期(是逾期 回 false),那一格換成「全部」—— 同一個位置、同一種格子 */
+      if (this.是Archive && 定.鍵 === "逾期") {
+        const g = 格(條, ["tk-大", "tk-小"], f.型 === "全部");
+        數(g, this.清單池(全).length);
+        中(g).createSpan({ text: T.all });
+        g.setAttribute("aria-label", T.all);
+        g.onclick = () => { s.篩 = { 型: "全部" }; s.開行事曆 = false; this.畫(); };
+        return;
+      }
       const g = 格(條, ["tk-大", "tk-小"], f.型 === 定.鍵);
       數(g, 定.數(), 定.色);
       const c = 中(g);
@@ -3990,7 +4084,10 @@ class 看板視圖 extends TextFileView {
         m.showAtMouseEvent(e);
       };
     }
-    小鈕(["ellipsis"], T.sectionsAndPeople, 切設定);
+    const 設鈕 = 小鈕(["ellipsis"], T.sectionsAndPeople, 切設定);
+    /* CR-1.7.1-01(使用者 09-23「archive 一樣要有搜尋區,只是不能發送」):Archive 的新增區只當搜尋用 ——
+       打字照樣搜尋、圓點照樣篩區;送出鈕變淡不能按(送出新增 也擋),⋯(分類設定)不見、位置留著。 */
+    if (this.是Archive) 設鈕.style.visibility = "hidden";
 
     // ---- 本體:透明的輸入框 + 小的送出鈕(詳細編輯:分隔線、高的內容框、送出自己一排) ----
     if (詳) 外塊.createDiv().addClass("tk-分隔");
@@ -4034,6 +4131,7 @@ class 看板視圖 extends TextFileView {
     送.title = (選值 ? (T.add + " · " + 選值) : T.add) + " → " + this.新增去向文() + "\n" + 送出提示字(T);
     送.onclick = () => this.送出新增();
     送.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this.送出新增(); } };
+    if (this.是Archive) { 送.style.opacity = "0.35"; 送.style.cursor = "not-allowed"; 送.setAttribute("aria-disabled", "true"); 送.title = T.archiveNoAdd; }
     if (詳) {
       // 詳細編輯:送出鈕自己一排、靠右,寫「送出」
       送.remove();
@@ -4103,11 +4201,12 @@ class 看板視圖 extends TextFileView {
         b.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); 做(e); } };
         return b;
       };
-      具鈕(["log-out", "arrow-right-from-line", "arrow-right"], T.moveOut, () => this.問移出(標, 原名, 張));
+      const 移字 = T.moveOut.replace("FILE", this.Archive名());
+      具鈕(["log-out", "arrow-right-from-line", "arrow-right"], 移字, () => this.問移出(標, 原名, 張));
       具鈕(["ellipsis"], T.more, (e) => {
         const m = new Menu();
         m.addItem(i => i.setTitle(T.restoreSection).setIcon("archive-restore").onClick(() => this.還原封存區(標, 原名)));
-        m.addItem(i => i.setTitle(T.moveOut).setIcon("log-out").onClick(() => this.問移出(標, 原名, 張)));
+        m.addItem(i => i.setTitle(移字).setIcon("log-out").onClick(() => this.問移出(標, 原名, 張)));
         m.addSeparator();
         m.addItem(i => {
           i.setTitle(T.deleteAllSection).setIcon("trash-2").onClick(() => this.問整批刪(標, 原名, 張));
@@ -4159,18 +4258,21 @@ class 看板視圖 extends TextFileView {
     if (ok) { this.狀態.封存看 = null; new Notice("↩ " + 原名); }
   }
 
-  /* U43 / U44(Q27 定案):按 → 問一次,確定就把整區搬到
-     `<封存區的名字><移出後綴>.md`(預設同資料夾;路徑和後綴在 Obsidian 設定頁可改)。 */
+  /* U43 / U44 → 1.7.1-F1:按 → 問一次,確定就把整區接到這份看板的 Archive(沒有就建 `<看板名> Archive.md`)。
+     確認框寫「N 個連結會斷」(0 個不寫,Canvas 裡的不算)。 */
+  Archive名() { const A = this.插件.找Archive(this.file); return A ? A.basename : 淨檔名(this.file.basename + " Archive"); }
   問移出(標, 原名, 張) {
-    const T = this.T, 設 = this.插件.設定;
-    const 檔底 = 淨檔名(原名 + (設.移出後綴 || ""));
-    const 夾 = String(設.移出資料夾 || "").replace(/^\/+|\/+$/g, "");
-    const 本夾 = (this.file && this.file.parent && this.file.parent.path !== "/") ? this.file.parent.path : "";
-    const 顯 = ((夾 || 本夾) ? (夾 || 本夾) + "/" : "") + 檔底 + ".md";
-    const 文 = T.moveOutAsk.replace("NAME", 原名).replace("CNT", String(張)).replace("FILE", 顯);
+    const T = this.T, 插 = this.插件, A = 插.找Archive(this.file);
+    const ids = new Set(this.卡片.filter(k => k.分類 === 標 && k.ID).map(k => k.ID));
+    const 斷 = 插.數連結(this.file, ids, 標);
+    const 文 = T.moveOutAsk.replace("NAME", 原名).replace("CNT", String(張)).replace("FILE", this.Archive名())
+      + (斷 ? "\n\n" + T.linksBreak.replace("N", String(斷)) : "");
     new 確認框(this.app, 文, T.moveOutYes, async () => {
-      const r = await this.插件.寫手.移出分區(this.file, 標, 檔底, 夾);
-      if (r && r.檔) { this.狀態.封存看 = null; new Notice("→ " + r.檔); }
+      const r = await 插.寫手.移出分區(this.file, 標, A, 插.設定.移出資料夾);
+      if (!r || !r.檔) return;
+      this.狀態.封存看 = null;
+      if (!(插.設定.看板檔案 || {})[r.檔]) { (插.設定.看板檔案 = 插.設定.看板檔案 || {})[r.檔] = true; await 插.存設定(); }   // D7
+      new Notice("→ " + r.檔);
     }).open();
   }
 
@@ -5062,6 +5164,29 @@ class 看板視圖 extends TextFileView {
     根.empty();
     const T = this.T;
     const 顯 = this.過濾(全);
+    /* 1.7.1-F3(ADR-002 D6,PRD §2):Archive 一區一塊(照筆記裡的順序),標題 = 名字 · 月份範圍 · 封存日;⋯ = 搬回看板。沒有卡片的區不畫。 */
+    if (this.是Archive) {
+      const 看 = this.插件.找看板(this.file);
+      this.分類清單.forEach(名 => {
+        const 卡們 = 顯.filter(k => k.分類 === 名);
+        if (!卡們.length) return;
+        const 段 = 抓分區(this.內文, 名);
+        const 封 = 段 && 段.段.split("\n").map(t => 封存日Re.test(t.trim()) && /::[ \t]*([^\])]*)/.exec(t)).find(Boolean);
+        const 標 = [名, 月範圍字(卡們), 封 ? T.archivedOn.replace("D", 封[1].trim()) : ""].filter(Boolean).join(" · ");
+        const 塊 = this.畫卡片塊(根, { 標題: 標, 卡們: 卡們, 全: 全, 點色: this.插件.分類色(名.replace(封存尾Re, "")),
+          選單: (e) => {
+            const m = new Menu();
+            if (看) m.addItem(i => i.setTitle(T.moveBack.replace("FILE", 看.basename)).setIcon("undo-2").onClick(async () => {
+              const n = await this.插件.寫手.搬回分區(this.file, 名, 看);
+              if (n !== false) new Notice("← " + 看.basename + " · " + n);
+            }));
+            // CR-1.7.1-01(使用者 09-23):每一區也能整區送到 Canvas(畫面上看得到的那幾張,跟清單 ⋯ 同一套)
+            m.addItem(i => i.setTitle(T.sendSectionToCanvas).setIcon("layout-dashboard").onClick(() => this.送到Canvas(卡們)));
+            m.showAtMouseEvent(e);
+          } });
+      });
+      return;
+    }
     /* ⚠ 1.4.5:置頂的卡片獨立一張表,放在最上面;主清單只剩沒置頂的。
        以前置頂混在主清單最前面,標題寫「本日 3 張」底下卻多了兩張別天的置頂卡,數字對不上,
        也分不出哪幾張是「因為今天」、哪幾張是「因為置頂」才出現的。
@@ -5130,6 +5255,13 @@ class 看板視圖 extends TextFileView {
       圖備(前, 設.前圖示, 13);
       前.setAttribute("aria-label", 設.標題);
     }
+    if (設.點色) {
+      // 1.7.1-F3:Archive 一區一塊,第一個圖示的位置(22)放分類色的圓點
+      const 前 = 頭.createDiv();
+      前.addClass("tk-頭圖");
+      const 點 = 前.createDiv(); 點.addClass("tk-封點");
+      st(點, "margin:0;background:" + 設.點色 + ";");
+    }
     if (設.圖示) {
       // 1.5.1:置頂表的標題列只放 📌 圖示,字留在 aria-label
       const 圖框 = 頭.createDiv();
@@ -5151,6 +5283,15 @@ class 看板視圖 extends TextFileView {
     if (設.帶工具) this.畫標題膠囊(頭);
     頭.createDiv().addClass("tk-撐");
     if (設.帶工具) this.畫工具群(頭);
+    if (設.選單) {
+      // 1.7.1-F2:Archive 每一區自己的 ⋯(搬回看板),跟清單表的工具 ⋯ 同一個位置
+      const b = 頭.createDiv();
+      b.addClass("tk-頭鈕");
+      b.setAttribute("role", "button"); b.setAttribute("tabindex", "0");
+      b.setAttribute("aria-label", T.more);
+      圖(b, "ellipsis", 14);
+      b.onclick = (e) => { e.stopPropagation(); 設.選單(e); };
+    }
     if (收) return 塊;
     if (設.帶工具 && this.狀態.融合中) this.畫融合列(塊, 設.全);
     const 身外 = 塊.createDiv();
@@ -5376,6 +5517,10 @@ class 看板視圖 extends TextFileView {
       m.addItem((i) => i.setTitle(T.exportPng).setIcon("image").onClick(() => this.輸出()));
       // 1.6.9-F1:畫面上看得到的(時間篩選 + 搜尋,含置頂)= 畫清單 的 過濾(全)
       m.addItem((i) => i.setTitle(T.sendListToCanvas).setIcon("layout-dashboard").onClick(() => this.送到Canvas(this.過濾(this.卡片))));
+      // 1.7.1(ADR-002 D6):連上了 Archive 才有「開啟〈Archive 名〉」
+      const A = this.file && this.插件.找Archive(this.file);
+      if (A && A.path !== this.file.path) m.addItem((i) => i.setTitle(T.openArchive.replace("FILE", A.basename)).setIcon("archive")
+        .onClick(() => this.app.workspace.openLinkText(A.path, this.file.path)));
       // 版面寬度只對桌機有意義(手機、窄分頁本來就用滿畫面)。1.6.3:看 觸 / 密,不看 窄
       if (!this.觸 && !this.密) {
         m.addSeparator();
@@ -5535,7 +5680,7 @@ class 看板視圖 extends TextFileView {
     /* 拖曳排序:整列可以拖。
        ⚠ 只在「分類顏色順序」以外的情況才有意義 —— 排序若是自動算的,
          拖完下次重畫又跳回去。所以拖曳只在排序選「檔案順序」時開放。 */
-    if (this.插件.設定.排序 === "檔案" && !未定) {
+    if (this.插件.設定.排序 === "檔案" && !未定 && !this.是Archive) {      // 1.7.1-F3:Archive 不能拖
       列.draggable = true;
       列.ondragstart = (e) => {
         this.拖的是 = k;
@@ -6040,6 +6185,8 @@ class 看板視圖 extends TextFileView {
       st(乙, 具樣(編修中 ? "var(--text-accent)" : "var(--text-muted)", 20) +
         (編修中 ? "border-color:var(--text-accent);" : ""));
       圖(乙, 編修中 ? "check" : "pencil", 13);
+      // 1.7.1-F3(ADR §8):Archive 不能改內容 —— ✎ 不見、位置留著(原則 11:⋯ 不跳位置)。visibility:hidden 點不到也 tab 不到
+      if (this.是Archive) 乙.style.visibility = "hidden";
       乙.title = 編修中 ? T.finish : T.edit;
       乙.onclick = async (e) => {
         e.stopPropagation();
@@ -7061,6 +7208,7 @@ class 看板視圖 extends TextFileView {
      ============================================================ */
   async 送出新增() {
     const T = this.T, s = this.狀態;
+    if (this.是Archive) { new Notice(T.archiveNoAdd); return; }      // CR-1.7.1-01:Archive 不能新增(Enter 也走這裡)
     // 1.6.3(ADR 1.6.3-01)主題、指派人從輸入框裡拿:#主題(前面或後面,最多 3 個)、@名字
     const 析 = 析輸入(this.內輸 ? this.內輸.value : s.新內容, this.名單);
     // C22(使用者 09-20:「要限制使用者不能打超過六個字」):新打的主題最多 6 個中文字寬,截掉的說一聲
@@ -7356,7 +7504,7 @@ class 看板視圖 extends TextFileView {
          ② 設定開的話,浮到最上面捲過去(排序預設就是「最近編修的最上面」,打勾會蓋時戳)
          ③ 三秒內圓點變成「↺」,按了就退回去 */
   async 切完成(k) {
-    const T = this.T, 設 = this.插件.設定.排程顯示;
+    const T = this.T, 設 = this.顯設;
     const 變完成 = !k.完成;
     const 取消釘 = 變完成 && !!this.插件.設定.完成取消置頂;
     const ok = await this.插件.寫手.改首行(this.file, k, (首) => 改零件(首, this.名單, p => {
@@ -7533,7 +7681,7 @@ class 看板視圖 extends TextFileView {
   }
 
   async 切封存(k, 已封存, 指定到) {
-    const T = this.T, 設 = this.插件.設定.排程顯示;
+    const T = this.T, 設 = this.顯設;
     const 原 = k.分類;                  // 封存之前在哪一區:「復原」要回到這裡
     const 到 = 已封存 ? (指定到 || k.原分類 || this.分類清單.find(x => !/archive|封存/i.test(x)) || "紅色") : 封存區;
     const ok = await this.插件.寫手.搬分類(this.file, k, 到, this.名單);
@@ -7667,6 +7815,7 @@ module.exports = class 卡片日誌看板 extends Plugin {
       try {
         const c = this.app.metadataCache.getCache(路);
         const fm = c && c.frontmatter;
+        if (fm && fm["card-table"] === "archive") return true;      // 1.7.1(ADR-002 D7)
         const v = fm ? (fm["看板"] !== undefined ? fm["看板"] : fm["card-board"]) : undefined;
         if (v === undefined || v === null || v === "") return false;
         return !/忽略|ignore|skip|false/i.test(String(v));
@@ -8038,6 +8187,40 @@ module.exports = class 卡片日誌看板 extends Plugin {
   }
 
   async 存設定() { await this.saveData(this.設定); }
+
+  /* 1.7.1(ADR-002 D3):看板 ↔ Archive 互相找。照 yaml 的連結找,對方也要指回自己;
+     yaml 找不到 → 照檔名 `<夾>/<看板名> Archive.md`(Archive 找看板沒有檔名退路)。回傳 TFile 或 null。 */
+  找對方(檔, 鍵, 回鍵, 退路) {
+    const mc = this.app.metadataCache;
+    const 連 = (f, k) => { const c = f && mc.getFileCache(f); const l = c && (c.frontmatterLinks || []).find(x => x.key === k); return l ? mc.getFirstLinkpathDest(l.link, f.path) : undefined; };
+    // 對方指回自己、沒寫、或連結解析不到(改名後沒自動更新連結)都算;明確指到別份才不認(D3:兩份看板搶同一份 Archive)
+    const 認 = (f) => f && f !== 檔 && f.extension === "md" && [undefined, null, 檔].indexOf(連(f, 回鍵)) >= 0;
+    const f = 連(檔, 鍵);
+    if (認(f)) return f;
+    const g = 退路 && this.app.vault.getAbstractFileByPath(退路);
+    return 認(g) ? g : null;
+  }
+  找Archive(看) {
+    const 夾 = String(this.設定.移出資料夾 || "").replace(/^\/+|\/+$/g, "") || (看.parent && 看.parent.path !== "/" ? 看.parent.path : "");
+    return this.找對方(看, "card-table-archive", "card-table-source", (夾 ? 夾 + "/" : "") + 淨檔名(看.basename + " Archive") + ".md");
+  }
+  找看板(A) { return this.找對方(A, "card-table-source", "card-table-archive", null); }
+  /* 1.7.1(PRD 5.3,D8 的縮小版):別的筆記裡有幾個連結指到這份看板的這些 ID(Set,含 ^)或這個標題。只算不改,.canvas 不算。 */
+  數連結(看, ids, 標) {
+    const mc = this.app.metadataCache;
+    let n = 0;
+    this.app.vault.getMarkdownFiles().forEach(f => {
+      const c = mc.getFileCache(f);
+      if (!c) return;
+      (c.links || []).concat(c.embeds || []).forEach(l => {
+        const i = l.link.indexOf("#");
+        if (i < 0) return;
+        const 尾 = l.link.slice(i + 1);
+        if ((尾[0] === "^" ? ids.has(尾) : 尾 === 標) && mc.getFirstLinkpathDest(l.link.slice(0, i) || f.path, f.path) === 看) n++;
+      });
+    });
+    return n;
+  }
   重畫所有看板() {
     this.app.workspace.getLeavesOfType(視圖種類).forEach(l => {
       try { l.view.畫(); } catch (e) {}
@@ -8317,6 +8500,21 @@ class 選Canvas框 extends SuggestModal {
    每一項:[Lucide 圖示名, 標題, 說明]
    ============================================================ */
 const 更新介紹 = {
+  // 1.7.1-D1:1.7.0 沒有彈窗,這一版一起介紹
+  "1.7.1": {
+    "zh-TW": [
+      ["archive", "封存區移到 Archive", "封存區的 → 把整區搬到「<看板名> Archive」這一份筆記,一直接在同一份後面;看板和 Archive 互相連著,清單的「⋯」可以直接開 Archive。別的筆記有連結會斷的話,搬之前會先告訴你幾個。"],
+      ["undo-2", "Archive 可以搬回來", "Archive 用看板打開:一區一塊,寫著卡片的月份範圍和封存日期。可以搜尋、用圓點篩區、打勾、留言,不能新增或改內容;每一區的「⋯」可以搬回看板、或整區送到 Canvas。"],
+      ["calendar", "行事曆和時間篩選(1.7.0)", "行事曆的月份、回到本月、整年、全部都搬進標題列;時間篩選的字放不下會自動縮。年份按 ▶ 不會再寫成「26–27」。"],
+      ["pencil", "小修正(1.7.0)", "詳細編輯時圓點不再往下跳;已完成的卡片滑過色條顯示 ↶;色條變窄,只有標題的卡片色條加高。"]
+    ],
+    "en": [
+      ["archive", "Archive sections to one Archive note", "The → on an archived section moves it to “<board> Archive”, always appended to the same note. The board and its Archive link to each other, and the list “⋯” opens the Archive. If links in other notes would break, you are told how many first."],
+      ["undo-2", "Move sections back", "An Archive opens as a board: one block per section, with its month range and archive date. Search, filter by the section dot, tick and comment still work — no new cards or content edits. Each section's “⋯” moves it back to the board or sends it to a Canvas."],
+      ["calendar", "Calendar and time filter (1.7.0)", "The calendar's month, This month, Year and All are in its title bar; time-filter labels shrink to fit. Pressing ▶ on the year no longer shows “26–27”."],
+      ["pencil", "Small fixes (1.7.0)", "The section dot stays put in detailed edit; done cards show ↶ on hover; slimmer colour bars, taller on title-only cards."]
+    ]
+  },
   "1.6.9": {
     "zh-TW": [
       ["layout-dashboard", "送到 Canvas", "卡片的「⋯」送一張、清單標題列的「⋯」送整份清單。選一個 Canvas 或新增一個,一張卡片一個框,已經在裡面的不會重複放;框的大小照卡片內容量,長的卡片不用捲。"],
@@ -8467,6 +8665,11 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.7.1",
+    ["封存區移到「<看板名> Archive」,一直接在同一份後面,看板和 Archive 互相連著;Archive 一區一塊,可以搜尋、篩區、打勾、留言,也能搬回看板。",
+     "年份按 ▶ 不會再寫成「26–27」;修掉 Obsidian 審核的三個 CSS 警告。"],
+    ["Archived sections move to “<board> Archive”, appended to one note that links back to the board; the Archive shows one block per section, supports search, section filter, ticking and comments, and can move sections back.",
+     "The year tile no longer shows “26–27” after ▶; three CSS warnings from the Obsidian review are fixed."]],
   ["1.7.0",
     ["行事曆的月份、回到本月、整年、全部都搬進標題列,左上角是關閉;詳細編輯時圓點不再往下跳,已完成的卡片滑過顯示 ↶。",
      "時間篩選的字放不下會自動縮(手機的本日格不寫星期);色條變窄、只有標題的卡片色條加高,幾個圖示和日期重新對齊。"],
@@ -8877,11 +9080,7 @@ class 設定頁 extends PluginSettingTab {
        1.6.1 全部轉成新格式(使用者要求,先給他測)。平常不需要:舊寫法照讀、改到才轉。
        對象 = 記住用卡片看板開的筆記(看板檔案[路徑] === true)而且檔案還在。 */
     標(T.setFormat);
-    /* U44(mockup v14 Q27 定案):封存區「移出」出去的檔名後綴和資料夾。
-       檔名 = 封存區的名字 + 後綴;資料夾空白 = 跟看板筆記同一個資料夾。 */
-    new Setting(c).setName(T.moveOutSuffix).setDesc(T.moveOutSuffixDesc)
-      .addText(t => t.setPlaceholder(預設設定.移出後綴).setValue(設.移出後綴 || "")
-        .onChange(async (v) => { 設.移出後綴 = String(v || "").replace(/[\r\n]+/g, " ").trim(); await 存(false); }));
+    /* U44 → 1.7.1:封存區「移出」到的 `<看板名> Archive.md` 放哪個資料夾(空白 = 跟看板筆記同一個)。後綴設定拿掉了(ADR-002 D10)。 */
     new Setting(c).setName(T.moveOutFolder).setDesc(T.moveOutFolderDesc)
       .addText(t => t.setPlaceholder("Archive/2026").setValue(設.移出資料夾 || "")
         .onChange(async (v) => { 設.移出資料夾 = String(v || "").replace(/[\r\n]+/g, " ").trim(); await 存(false); }));

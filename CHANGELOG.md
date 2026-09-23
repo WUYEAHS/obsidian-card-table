@@ -5,6 +5,22 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.7.1
+
+**Archive loop.** Archived sections move to one Archive note that links back to the board, and can move back.
+
+### New
+1. **Move out to `<board> Archive.md`** (1.7.1-F1, ADR-002): the → on an archived section appends it to the board's Archive note (created next to the board, or in the "move-out folder"). The section is written as `## name` with `[archived:: date]` below; a name already in the Archive gets ` (date)`. Board and Archive link to each other in their properties (`card-table-archive` / `card-table-source`), so renaming the board keeps them connected. Card IDs that clash with ones already in the Archive get a new ID. The confirmation says how many links in other notes will break (Canvas not counted). The Archive is written first and the section is removed from the board last.
+2. **Archive view** (1.7.1-F3, CR-1.7.1-01): a note with `card-table: archive` opens as a board — the top row reads "Archive of `<board>`" with the month range (click it to open the board), the list is one block per section with its month range and archive date, it opens on "All" with done and not-done cards. The Overdue tile is replaced by an **All** tile (nothing in an archive is overdue). Search and the section dot filter work as usual; the send button is disabled and there is no ✎, so no new cards or content edits; ticking and comments still work. The list "⋯" on the board has "Open `<Archive>`".
+3. **Move back** (1.7.1-F2): each section's "⋯" in the Archive moves it back to the board (the board is written first). A name already on the board gets ` (moved back date)`. The same "⋯" sends the section to a Canvas.
+
+### Changed
+1. The "suffix for moved-out files" setting is gone; files moved out by earlier versions are left as they are.
+
+### Bug fixes
+1. Pressing ▶ on the year tile showed `26–27` (the week of 1 January spans two years); the year tile only follows the week when the week is selected (1.7.1-B1).
+2. Three CSS warnings from the Obsidian plugin review — `text-indent`, `:has()`, `scrollbar-width/color` — are removed with no visible change (1.7.1-R1).
+
 ## 1.7.0
 
 **Small fixes.** A tidier calendar title bar, steadier detailed edit, and time-filter labels that fit.

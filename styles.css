@@ -949,8 +949,7 @@
 .tk-board .tk-篩格.tk-亮 .tk-篩箭 { color:var(--text-accent); }
 /* 1.6.5-U3:全部模式時年格寫「全部」,前後年沒有意義 —— 箭頭變淡、不反白 */
 .tk-board .tk-篩格 .tk-篩箭.tk-箭關 { color:var(--text-faint); opacity:0.45; }
-.tk-board .tk-篩格 .tk-篩箭.tk-箭關:hover { background:transparent; color:var(--text-faint); }
-/* U21(Q29 / mockup v16 的 .two):格子中間是上下兩排 —— 上排張數 25、下排字或圖示 25(52 − 25 − 25 = 2 的縫)。
+.tk-board .tk-篩格 .tk-篩箭.tk-箭關:hover { background:transparent; color:var(--text-faint); }/* U21(Q29 / mockup v16 的 .two):格子中間是上下兩排 —— 上排張數 25、下排字或圖示 25(52 − 25 − 25 = 2 的縫)。
    箭頭不在這個盒子裡,照舊跨整格高(1.4.9:才會跟本日那一格的箭頭齊平)。
    沒有張數的格子(月 / 週、詳細編輯的小篩)帶 .tk-篩單 → 那一排置中。 */
 .tk-board .tk-篩兩 {
