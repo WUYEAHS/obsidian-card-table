@@ -209,7 +209,7 @@ const 字典 = {
     weekMonRolling: "週一起,這一週改成今天起七天", weekSunRolling: "週日起,這一週改成今天起七天",
     weekMonthStart: "每月 1 號起,每七天一段",
     backDiscard: "返回(放棄這次的修改)", discardAsk: "這次的修改還沒儲存,確定要放棄嗎?", discard: "放棄修改",
-    sectionNamePh: "分類名稱", addSection: "新增分類", deleteSection: "刪除這個分類",
+    sectionNamePh: "分類名稱", addSection: "新增分類", deleteSection: "刪除這個分類", dragToReorder: "拖曳排序",
     filterSection: "只看「N」這一區",
     sectionLimit: "分類最少 1 個、最多 10 個", sectionNameEmpty: "分類名稱不能空白",
     sectionReserved: "分類名稱不能有「封存」或 archive,那是封存區專用的",
@@ -372,7 +372,7 @@ const 字典 = {
     weekMonRolling: "Monday; this week is seven days from today", weekSunRolling: "Sunday; this week is seven days from today",
     weekMonthStart: "From the 1st of each month, seven days at a time",
     backDiscard: "Back (discard these changes)", discardAsk: "You have unsaved changes. Discard them?", discard: "Discard",
-    sectionNamePh: "Section name", addSection: "Add section", deleteSection: "Delete this section",
+    sectionNamePh: "Section name", addSection: "Add section", deleteSection: "Delete this section", dragToReorder: "Drag to reorder",
     filterSection: "Show only “N”",
     sectionLimit: "Keep between 1 and 10 sections", sectionNameEmpty: "A section needs a name",
     sectionReserved: "Section names cannot contain “archive”, that name belongs to the archive section",
@@ -1775,8 +1775,17 @@ class 寫手 {
         if (b.名 !== null && !b.新 && !b.刪 && 改.has(b.名)) b.頭 = b.頭.replace(/^(#{1,6}\s+).*$/, (全, 井) => 井 + 改.get(b.名));
       });
       const 留 = 塊.filter(b => !b.刪);
-      // 動過的那幾段(新增的、搬進卡片的):後面還有標題的話,結尾留一行空白。沒動過的段落照原樣
-      留.forEach((b, i) => { if (b.動 && i < 留.length - 1) 補空行(b); });
+      // ④ 排序(1.6.7-U6b):把「名字在 計畫.順序 裡」的區塊挑出來照順序排好,再填回它們原本佔的那幾個位置
+      let 動過序 = false;
+      if (計畫.順序 && 計畫.順序.length) {
+        const 終名 = (b) => (改.has(b.名) ? 改.get(b.名) : b.名);   // ⚠ ③ 只改了 b.頭,b.名 還是舊名字
+        const 位 = [], 挑 = [];
+        留.forEach((b, i) => { if (b.名 !== null && 計畫.順序.indexOf(終名(b)) >= 0) { 位.push(i); 挑.push(b); } });
+        挑.sort((x, y) => 計畫.順序.indexOf(終名(x)) - 計畫.順序.indexOf(終名(y)));   // sort 是穩定的:同名的兩區維持原本先後
+        位.forEach((i, n) => { if (留[i] !== 挑[n]) 動過序 = true; 留[i] = 挑[n]; });
+      }
+      // 動過的那幾段(新增的、搬進卡片的、排序動到的):後面還有標題的話,結尾留一行空白。沒動過的段落照原樣
+      留.forEach((b, i) => { if ((b.動 || 動過序) && i < 留.length - 1) 補空行(b); });
       const 出 = [];
       留.forEach(b => { if (b.頭 !== null) 出.push(b.頭); 出.push(...b.身); });
       return { 文: 出.join("\n"), 值: true };
@@ -4696,9 +4705,40 @@ class 看板視圖 extends TextFileView {
     st(分表, "display:flex;flex-direction:column;gap:6px;min-width:0;max-height:92px;overflow-y:auto;");
     const 張數 = {};
     this.卡片.forEach(k => { 張數[k.分類] = (張數[k.分類] || 0) + 1; });
+    // 1.6.7-U6:拖曳排序(只有桌機、超過一個分類才畫把手)
+    let 拖中 = null, 上半 = true;
+    const 清線 = () => { [...分表.children].forEach(x => x.style.boxShadow = ""); };
     活.forEach((項, i) => {
       const 列 = 分表.createDiv();
       st(列, "display:flex;align-items:center;gap:6px;min-width:0;");
+      const 可拖 = !this.觸 && 活.length > 1;          // ⚠ 看 觸(裝置),不看 密(寬度)——CLAUDE.md 的窄螢幕規則
+      if (可拖) {
+        const 把 = 列.createDiv();
+        st(把, "display:inline-flex;align-items:center;justify-content:center;flex:0 0 14px;width:14px;" +
+               "height:22px;cursor:grab;line-height:0;color:var(--text-faint);");
+        圖備(把, ["grip-vertical", "grip"], 13);       // ⚠ 一律用 圖備,Lucide 改過名字
+        把.setAttribute("aria-label", T.dragToReorder);
+        // ⚠ 只有從把手按下去才打開 draggable,放開就關掉:整列常駐 draggable 會讓名字輸入框選不了字(Chromium)
+        把.onmousedown = () => { 列.draggable = true; };
+        列.onmouseup = 列.ondragend = () => { 列.draggable = false; 拖中 = null; 清線(); 列.style.opacity = ""; };
+        列.ondragstart = (e) => { 拖中 = 項; e.dataTransfer.effectAllowed = "move"; 列.style.opacity = "0.4"; };
+        列.ondragover = (e) => {
+          if (!拖中 || 拖中 === 項) return;
+          e.preventDefault();                          // ⚠ 不 preventDefault 就不會觸發 drop
+          上半 = e.offsetY < 列.offsetHeight / 2;
+          清線(); 列.style.boxShadow = "inset 0 " + (上半 ? "2px" : "-2px") + " 0 var(--interactive-accent)";
+        };
+        列.ondragleave = 清線;
+        列.ondrop = (e) => {
+          e.preventDefault(); 清線();
+          if (!拖中 || 拖中 === 項) return;
+          const a = 草.分類;                            // ⚠ 動的是 草.分類(含已刪的),不是 活
+          a.splice(a.indexOf(拖中), 1);
+          a.splice(a.indexOf(項) + (上半 ? 0 : 1), 0, 拖中);
+          拖中 = null;
+          重畫();                                      // 既有的 重畫():改草稿 → 畫新增區,不寫檔
+        };
+      }
       色圓(列, this.草分類色(項, i), (v, 先不重畫) => { 項.色 = v; if (!先不重畫) 重畫(); });
       const 名 = 列.createEl("input", { type: "text" });
       名.value = 項.名;
@@ -4805,18 +4845,21 @@ class 看板視圖 extends TextFileView {
     活人.forEach(x => { if (x.原) 舊人色[x.id] = this.插件.人色(x.原); });
 
     const 找活 = (項) => { let x = 項; for (let i = 0; x && x.刪 && i < 50; i++) x = 草.分類.find(y => y.id === x.搬到); return (x && !x.刪) ? x : null; };
+    // 1.6.7-U6b:剛按了封存的那一區不參與排序(慣例:封存排後面),只剩一個分類就不用排
+    const 順序 = 活.filter(x => !x.封存).map(x => 淨(x.名));
     const 計畫 = {
       新增: 活.filter(x => !x.原).map(x => 淨(x.名)),
       刪: 草.分類.filter(x => x.刪 && x.原).map(x => {
         const 到 = 找活(x) || 活[0];
         return [x.原, 到.原 ? { 名: 到.原, 新: false } : { 名: 淨(到.名), 新: true }];
       }),
-      改名: 活.filter(x => x.原 && (x.封存 || 淨(x.名) !== x.原)).map(x => [x.原, x.封存 ? 封存題(淨(x.名)) : 淨(x.名)])
+      改名: 活.filter(x => x.原 && (x.封存 || 淨(x.名) !== x.原)).map(x => [x.原, x.封存 ? 封存題(淨(x.名)) : 淨(x.名)]),
+      順序: 順序.length > 1 ? 順序 : null
     };
 
     this.__存設中 = true;
     try {
-      if (計畫.新增.length || 計畫.刪.length || 計畫.改名.length) {
+      if (計畫.新增.length || 計畫.刪.length || 計畫.改名.length || 計畫.順序) {
         const ok = await this.插件.寫手.改分類們(this.file, 計畫);
         if (!ok) return;             // 寫手已經說過為什麼了;草稿留著,可以再按一次
       }

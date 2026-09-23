@@ -258,6 +258,58 @@ window.__ctBoardTest = 'running';
       ok('U43 missing section: no file, no write', 無2 === false && (await 讀()) === 前文 &&
         !app.vault.getAbstractFileByPath((f.parent.path === '/' ? '' : f.parent.path + '/') + 'x-card table-archive.md'), 無2);
     }
+    /* 14. 1.6.7(U6b)分類拖曳排序寫檔:改分類們() 加的排序步驟只搬整段,不碰卡片一個字。
+       直接叫寫手,不透過 DOM(拖放事件用程式模擬又慢又假)。 */
+    {
+      const 區段 = (文, 名) => {   // 從 ## 名 開始到下一個 ## 為止(或檔尾),只看非空白行
+        const 行 = 文.split('\n');
+        const i = 行.findIndex(t => t.trim() === '## ' + 名);
+        if (i < 0) return null;
+        let j = i + 1;
+        while (j < 行.length && !/^##\s/.test(行[j])) j++;
+        return 行.slice(i, j).filter(t => t.trim());
+      };
+      await P.寫手.改分類們(f, { 新增: ['甲', '乙'], 刪: [], 改名: [] });
+      await P.寫手.新增卡片(f, '甲', '- [ ] #甲卡 [due:: 2026-09-16]', ['\t內容甲']);
+      await P.寫手.新增卡片(f, '乙', '- [ ] #乙卡 [due:: 2026-09-16]', ['\t內容乙']);
+      let 文 = await 讀();
+      const 甲前 = 區段(文, '甲'), 乙前 = 區段(文, '乙');
+
+      // U6b-1 純排序:乙 排到 甲 前面,兩區內容逐行(非空白)完全一樣,別的分類位置不動
+      await P.寫手.改分類們(f, { 新增: [], 刪: [], 改名: [], 順序: ['乙', '甲'] });
+      文 = await 讀();
+      ok('U6b-1 乙 moved before 甲', 文.indexOf('## 乙') >= 0 && 文.indexOf('## 甲') > 文.indexOf('## 乙'), 文);
+      ok('U6b-1 甲 content untouched', JSON.stringify(區段(文, '甲')) === JSON.stringify(甲前), [區段(文, '甲'), 甲前]);
+      ok('U6b-1 乙 content untouched', JSON.stringify(區段(文, '乙')) === JSON.stringify(乙前), [區段(文, '乙'), 乙前]);
+      ok('U6b-1 sections not in 順序 stay put', /## 1[\s\S]*## 2[\s\S]*## 3/.test(文), 文);
+
+      // U6b-2 順序裡有不存在的名字(模擬別台裝置刪掉了那個分類):不報錯,甲 乙 照排
+      const r2 = await P.寫手.改分類們(f, { 新增: [], 刪: [], 改名: [], 順序: ['不存在', '甲', '乙'] });
+      ok('U6b-2 unknown name in 順序 does not fail the write', !!r2, r2);
+      文 = await 讀();
+      ok('U6b-2 甲 moved before 乙', 文.indexOf('## 甲') >= 0 && 文.indexOf('## 乙') > 文.indexOf('## 甲'), 文);
+
+      // U6b-3 同一次改名 + 排序:比對用新名字,不會排錯
+      await P.寫手.改分類們(f, { 新增: [], 刪: [], 改名: [['甲', '甲甲']], 順序: ['乙', '甲甲'] });
+      文 = await 讀();
+      ok('U6b-3 rename+sort: 乙 before 甲甲', 文.indexOf('## 乙') >= 0 && 文.indexOf('## 甲甲') > 文.indexOf('## 乙'), 文);
+      ok('U6b-3 card content kept', /#甲卡/.test(文) && /#乙卡/.test(文) && /內容甲/.test(文) && /內容乙/.test(文), 文);
+
+      // U6c:自動色不要跟著跳 —— 位置變了(存設草 那條既有的釘住路徑)顏色要維持原樣
+      v.設草 = v.建設草();
+      let 草 = v.設草;
+      const A = 草.分類.find(x => x.原 === '3'), B = 草.分類.find(x => x.原 === '4');
+      ok('U6c setup: 3/4 exist with no custom color', !!A && !!B && !A.色 && !B.色, 草.分類.map(x => [x.原, x.色]));
+      const 舊色A = P.分類色('3');
+      草.分類.splice(草.分類.indexOf(A), 1);
+      草.分類.splice(草.分類.indexOf(B) + 1, 0, A);   // 模擬把「3」拖到「4」後面
+      await v.存設草();
+      ok('U6c auto color pinned after position change', P.分類色('3') === 舊色A, [舊色A, P.分類色('3')]);
+      v.狀態.設定模式 = false; v.設草 = null;
+
+      // 清掉這一段自己加的分類,不留在檔案裡影響後面的檢查
+      await P.寫手.改分類們(f, { 新增: [], 刪: [['乙', { 名: '1', 新: false }], ['甲甲', { 名: '1', 新: false }]], 改名: [] });
+    }
     out.push('--- 最後的檔案 ---\n' + 後);
   } catch (e) {
     out.push('FAIL exception ' + e.stack);

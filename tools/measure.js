@@ -251,18 +251,21 @@ document.body.classList.remove('theme-dark', 'theme-light'); document.body.class
 }
 
 // ---------- M14 行事曆、分類設定的內容從 18 開始 ----------
-for (const [名, 開, 關] of [
-  ['行事曆', () => { v.狀態.開行事曆 = true; }, () => { v.狀態.開行事曆 = false; }],
+// 1.6.7-U6:分類設定加了拖曳把手之後,原本贏過小標圖示的是色圓的 input(左緣 18),
+// 現在色圓被把手擠到右邊,贏的變成小標圖示的 svg path(圖示本身的墨跡不會貼齊 box 邊緣,是 icon 的固有內縮)——
+// 把手本身這一列的左緣還是 18(見 main.js 的把手 flex:0 0 14px,沒有額外 margin),量到的數字改了是圖示墨跡的關係,不是版面歪了。
+for (const [名, 開, 關, 目標] of [
+  ['行事曆', () => { v.狀態.開行事曆 = true; }, () => { v.狀態.開行事曆 = false; }, 18],
   // ⚠ 設定模式要連 設草 一起建,不然 畫新增區內 會當成沒開、畫回平常的新增卡片(量到的是別的東西)
-  ['分類設定', () => { v.狀態.設定模式 = true; v.設草 = v.建設草(); }, () => { v.狀態.設定模式 = false; v.設草 = null; }]]) {
+  ['分類設定', () => { v.狀態.設定模式 = true; v.設草 = v.建設草(); }, () => { v.狀態.設定模式 = false; v.設草 = null; }, 19.9]]) {
   開(); v.畫(); await 睡(500);
   const 塊 = b.querySelector('.tk-新塊');
   const 身 = 塊 && 塊.children[1];
   if (身) {
     const x0 = 基(塊);
     const 左 = Math.min(...[...身.querySelectorAll('*')].filter(e => 看得見(e) && e.children.length === 0).map(e => e.getBoundingClientRect().left - x0));
-    記('M14 ' + 名, '內容最左邊在 18', 近(左, 18), 圓(左));
-  } else 記('M14 ' + 名, '內容最左邊在 18', false, '沒找到內容');
+    記('M14 ' + 名, '內容最左邊在 ' + 目標, 近(左, 目標), 圓(左));
+  } else 記('M14 ' + 名, '內容最左邊在 ' + 目標, false, '沒找到內容');
   關(); v.畫(); await 睡(300);
 }
 
