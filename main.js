@@ -23,13 +23,13 @@
    ============================================================ */
 
 const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, WorkspaceLeaf, setIcon, addIcon,
-  MarkdownRenderer, Component, getIcon } = require("obsidian");
+  MarkdownRenderer, Component, getIcon, SuggestModal, MarkdownRenderChild } = require("obsidian");
 
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260923v3";
-const 插件版本 = "1.6.8";
+const 看板版本 = "260923v4";
+const 插件版本 = "1.6.9";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -147,7 +147,10 @@ const 字典 = {
     editPosDesc: "內容很長的時候,編修框會一次撐開很多行。不處理的話瀏覽器會把畫面拉到框的底部。",
     editPosKeep: "原地不動（預設）", editPosTop: "拉到最上面", editPosNone: "交給瀏覽器",
     pinnedBlock: "置頂", addBlock: "新增卡片", filterBlock: "時間篩選", fold: "收合", unfold: "展開", lastEdited: "最後編輯",
-    copyCardLink: "複製卡片連結", linkCopied: "已複製卡片連結",
+    copyCardLink: "複製卡片", linkCopied: "已複製卡片:貼到 Canvas 或筆記會顯示整張卡片",
+    sendToCanvas: "送到 Canvas", sendListToCanvas: "目前的清單送到 Canvas", newCanvas: (n) => "新增 " + n,
+    pickCanvas: "送到哪一個 Canvas?", sentToCanvas: (c, n, m) => "已送到 " + c + ":" + n + " 張" + (m ? "(" + m + " 張已經在裡面)" : ""),
+    cardsLost: (n) => "," + n + " 張找不到", cardNotInView: "這張卡片不在目前的篩選裡", canvasBroken: "這個 Canvas 檔讀不懂(JSON 壞了),沒有寫入",
     meName: "我",
     donate: "支持這個外掛", donateDesc: "卡片看板是一個人利用下班時間做的。覺得好用的話,可以請作者喝杯咖啡。",
     donateBtn: "在 Ko-fi 贊助",
@@ -311,7 +314,10 @@ const 字典 = {
     editPosDesc: "A long card opens a tall editor. Left alone, the browser scrolls to the bottom of it.",
     editPosKeep: "Leave it where it is (default)", editPosTop: "Pull it to the top", editPosNone: "Let the browser decide",
     pinnedBlock: "Pinned", addBlock: "New card", filterBlock: "Time filters", fold: "Collapse", unfold: "Expand", lastEdited: "Last edited",
-    copyCardLink: "Copy card link", linkCopied: "Card link copied",
+    copyCardLink: "Copy card", linkCopied: "Card copied: paste into a Canvas or note to show the whole card",
+    sendToCanvas: "Send to Canvas", sendListToCanvas: "Send this list to Canvas", newCanvas: (n) => "New " + n,
+    pickCanvas: "Send to which Canvas?", sentToCanvas: (c, n, m) => "Sent to " + c + ": " + n + (n === 1 ? " card" : " cards") + (m ? " (" + m + " already there)" : ""),
+    cardsLost: (n) => ", " + n + " not found", cardNotInView: "This card isn't in the current filter", canvasBroken: "Couldn't read this Canvas file (broken JSON). Nothing was written.",
     meName: "me",
     donate: "Support this plugin", donateDesc: "Card Table is built by one person in spare time. If it helps you, you can buy the author a coffee.",
     donateBtn: "Support on Ko-fi",
@@ -949,13 +955,29 @@ function 卡尾(行, 起, 迄) {
    ⚠ 冪等:位置已經對的卡片,跑完一字不差(轉整份第二次要改到 0 張)。 */
 const 清單項Re = /^\s+(?:[-*+]|\d+[.)])\s/;
 const ID尾Re = /[ \t]+\^ct-[A-Za-z0-9_-]+[ \t]*$/;
+/* 1.6.9-B1(ADR-001 D3):ID 被手動擠到內容行的尾巴(例如子待辦 `- [ ] x ^ct-…`)—— 也要認得。
+   code block 裡的不算。回傳 [行號, ID] 由上往下。 */
+function 內容尾ID們(行, 起, 迄) {
+  const 出 = [];
+  let 圍 = false;
+  for (let i = 起 + 1; i <= 迄; i++) {
+    if (/^\s*(```|~~~)/.test(行[i])) { 圍 = !圍; continue; }
+    if (圍 || 讀編行(行[i]) || 純IDRe.test(內文之(行[i]))) continue;
+    const m = /[ \t](\^ct-[A-Za-z0-9_-]+)[ \t]*$/.exec(行[i]);
+    if (m) 出.push([i, m[1]]);
+  }
+  return 出;
+}
 function 擺ID(行, 起, 迄, id) {
   let 找 = null;
+  const 尾們 = 內容尾ID們(行, 起, 迄);
   for (let i = 迄; i > 起; i--) {                       // 由下往上,splice 才不會讓前面的行號跑掉
     const e = 讀編行(行[i]);
     if (e && e.ID) { 找 = e.ID; 行[i] = 行[i].replace(ID尾Re, ""); continue; }   // 只拿掉尾巴,時戳原樣
     const x = 內文之(行[i]);
-    if (純IDRe.test(x)) { 找 = x; 行.splice(i, 1); 迄--; }
+    if (純IDRe.test(x)) { 找 = x; 行.splice(i, 1); 迄--; continue; }
+    const 尾 = 尾們.find(p => p[0] === i);
+    if (尾) { 找 = 尾[1]; 行[i] = 行[i].replace(ID尾Re, ""); }
   }
   id = id || 找;
   if (!id) return 迄;
@@ -1219,7 +1241,9 @@ function 收尾(k, 人Re, 名單) {
   k.編修時 = e ? (e.日 + " " + e.分) : null;                     // 顯示用,到分鐘
   k.編修戳 = e ? (e.日 + " " + e.分 + ":" + e.秒) : null;        // 排序和辨識用,到秒
   // 1.6.4(B3)Canvas 的 ^ct-… ID;1.6.8:單獨一行的也算(有子清單時 擺ID 放在那裡)
-  k.ID = (e && e.ID) || k.行.map(內文之).find(x => 純IDRe.test(x)) || null;
+  // 1.6.9-B1:擠到內容行尾巴的也算(寫的時候 擺ID 放回原位)
+  k.ID = (e && e.ID) || k.行.map(內文之).find(x => 純IDRe.test(x)) ||
+    ((內容尾ID們([""].concat(k.行), 0, k.行.length)[0] || [])[1]) || null;
 
   const 純 = 拆 ? [拆.文].concat(拆.標籤).filter(Boolean).join(" ") : "";
   k.內容行 = [純].filter(Boolean);
@@ -1420,6 +1444,44 @@ function 淨檔名(s) {
     .replace(/-{2,}/g, "-").replace(/\s+/g, " ").trim().replace(/^[.\-]+/, "").slice(0, 80).trim();
   return x || "archive";
 }
+/* 1.6.9-F1:從 取ID 抽出來的純函式。有 = 這份筆記裡已經用掉的 ID(Set),補的新 ID 也會加進去。
+   卡片已經有 ID、而且整份只有這一個定義 → 原樣回傳,不動 行;否則擺一個新的(D6)。
+   ⚠ 只數**行尾的定義**:連回這張卡片的 [[…#^ct-…]] 不算重複(算了會換掉 ID、連結反而斷)。 */
+function 補ID(行, 卡x, 有) {
+  if (卡x.ID) {
+    const 定 = new RegExp("(^|[ \\t])" + 卡x.ID.replace(/[-^]/g, "\\$&") + "[ \\t]*$", "gm");
+    if ((行.join("\n").match(定) || []).length === 1) return 卡x.ID;
+  }
+  let id;
+  do id = "^ct-" + Math.random().toString(36).slice(2, 8).padEnd(6, "0"); while (有.has(id));
+  有.add(id);
+  擺ID(行, 卡x.起, 卡x.迄, id);          // 傳了 id → 卡片裡原本那個(重複的)被收掉、換成新的;不呼叫 蓋卡
+  return id;
+}
+/* 1.6.9-F1:在 Canvas 的 JSON 加檔案節點(純函式)。節點們 = [{ 路徑, id, 高 }]。
+   放在現有東西的右邊、由上往下疊;同一個 檔案#ID 已經在裡面就不放。回傳 { 文, 加, 已有 };JSON 壞了回 null(不修、不寫)。
+   CR-1.6.9-01:節點們 可以帶 寬(沒給就 400);已經在裡面的節點大小不動。 */
+function Canvas加節點(文, 節點們) {
+  let d;
+  try { d = String(文 || "").trim() ? JSON.parse(文) : {}; } catch (e) { return null; }
+  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+  d.nodes = Array.isArray(d.nodes) ? d.nodes : []; d.edges = Array.isArray(d.edges) ? d.edges : [];
+  const 在 = new Set(d.nodes.filter(n => n.type === "file").map(n => n.file + (n.subpath || "")));
+  const 數 = (v) => Number(v) || 0;
+  const 右 = d.nodes.length ? Math.max(...d.nodes.map(n => 數(n.x) + 數(n.width))) + 60 : 0;
+  let y = d.nodes.length ? Math.min(...d.nodes.map(n => 數(n.y))) : 0, 加 = 0, 已有 = 0;
+  const 亂碼16 = () => Array.from({ length: 16 }, () => (Math.random() * 16 | 0).toString(16)).join("");
+  節點們.forEach(p => {
+    const 鍵 = p.路徑 + "#" + p.id;
+    if (在.has(鍵)) { 已有++; return; }
+    在.add(鍵);
+    d.nodes.push({ id: 亂碼16(), type: "file", file: p.路徑, subpath: "#" + p.id, x: 右, y: y, width: p.寬 || 400, height: p.高 });
+    y += p.高 + 20; 加++;
+  });
+  return { 文: 加 ? JSON.stringify(d, null, "\t") : 文, 加: 加, 已有: 已有 };
+}
+// 送到 Canvas 的節點高度的**退路**:照內容行數估。平常用 插件.量框()(CR-1.6.9-01,實際畫出來量)
+function 估高(k) { return Math.max(120, 64 + 22 * (k.內容原 || []).length); }
 
 class 寫手 {
   constructor(app, T) {
@@ -1553,20 +1615,47 @@ class 寫手 {
 
   /* 1.6.8-F1(ADR-001 D4/D6):卡片沒有 ID 就寫一個,**不蓋 [ed::]**(加 ID 不算編輯)。回傳 ID;失敗 false。
      同一份筆記裡有別張卡片也定義了同一個 ID(複製貼上)→ 按的這張換新的,另一張不動。
-     ⚠ 只數**行尾的定義**:筆記裡連回這張卡片的 [[…#^ct-…]] 不算重複(算了會換掉 ID、連結反而斷)。 */
+     ⚠ 只數**行尾的定義**(見 補ID)。 */
   async 取ID(檔, 卡, 名單) {
     let id = null;
     const ok = await this.排隊做(() => this.改卡片(檔, 卡, 名單, (行, 卡x) => {
-      const 全 = 行.join("\n");
-      if (卡x.ID) {
-        const 定 = new RegExp("(^|[ \\t])" + 卡x.ID.replace(/[-^]/g, "\\$&") + "[ \\t]*$", "gm");
-        if ((全.match(定) || []).length === 1) { id = 卡x.ID; return null; }    // 已經有、沒重複:不寫
-      }
-      const 有 = new Set(全.match(/\^ct-[A-Za-z0-9_-]+/g) || []);
-      do id = "^ct-" + Math.random().toString(36).slice(2, 8).padEnd(6, "0"); while (有.has(id));
-      擺ID(行, 卡x.起, 卡x.迄, id);          // 傳了 id → 卡片裡原本那個(重複的)被收掉、換成新的;不呼叫 蓋卡
+      id = 補ID(行, 卡x, new Set(行.join("\n").match(/\^ct-[A-Za-z0-9_-]+/g) || []));
+      if (id === 卡x.ID) return null;          // 已經有、沒重複:不寫
     }));
     return ok ? id : false;
+  }
+
+  /* 1.6.9-F1:一次幫很多張卡片取 ID —— **一次原子寫入**(不要在迴圈裡呼叫 取ID:30 張 = 30 次寫入,中間 Sync 還可能插進來)。
+     回傳 { 得: { 卡.鍵: ID }, 丟: [找不到 / 含糊的卡片] };寫入失敗 false。
+     ⚠ 定位文 全部用**原本的 文** 先找完,再由下往上擺 —— 擺ID 會 splice,邊找邊改(或由上往下)後面的行號就跑掉了。 */
+  async 取多ID(檔, 卡們, 名單) {
+    let 得 = {}, 丟 = [];
+    const ok = await this.排隊做(() => this.安全改(檔, (文) => {
+      得 = {}; 丟 = [];                        // 舊版 Obsidian 的退路會重跑 換(),每次從頭算
+      const 位們 = [], 用過 = new Set();
+      卡們.forEach(k => {
+        const 位 = 定位文(文, k, 名單);
+        if (!位 || 位.含糊) { 丟.push(k); return; }
+        if (用過.has(位.卡.起)) { 丟.push(k); return; }   // 兩張畫面上的卡片指到同一張(不該發生):寧可少送,不要兩個 ID
+        用過.add(位.卡.起);
+        位們.push([k, 位.卡]);
+      });
+      const 行 = 文.split("\n"), 有 = new Set(文.match(/\^ct-[A-Za-z0-9_-]+/g) || []);
+      位們.sort((a, b) => b[1].起 - a[1].起).forEach(([k, 卡x]) => { 得[k.鍵] = 補ID(行, 卡x, 有); });
+      return { 文: 行.join("\n") };             // 全部都已經有 ID 時跟原文一樣
+    }));
+    return ok ? { 得: 得, 丟: 丟 } : false;
+  }
+
+  /* 1.6.9-F1:在 .canvas 加檔案節點。走同一條佇列、同一個 安全改(Canvas 開著也一樣,Obsidian 會把新內容讀進去)。
+     回傳 { 加, 已有 };JSON 壞了跳 Notice、不寫,回 false。 */
+  async 加Canvas節點(檔, 節點們) {
+    let 果 = null;
+    const ok = await this.排隊做(() => this.安全改(檔, (文) => {
+      果 = Canvas加節點(文, 節點們);
+      return 果 ? { 文: 果.文 } : { 誤: this.T.canvasBroken };
+    }));
+    return ok ? 果 : false;
   }
 
   /* 只改／刪一行:找到那一行(用留言 id 或整行比對)換掉它 */
@@ -5179,9 +5268,28 @@ class 看板視圖 extends TextFileView {
     const id = await this.插件.寫手.取ID(this.file, k, this.名單);
     if (!id) return;                                      // 找不到 / 含糊:寫手已經跳 Notice
     // 來源路徑給 "":給自己的路徑,Obsidian 會產生同一份筆記內的 [[#^…]],貼到別處就壞了
-    const 連 = this.app.fileManager.generateMarkdownLink(this.file, "", "#" + id);
+    // CR-1.6.9-02:前面加 !(嵌入),貼到 Canvas 或筆記直接是整張卡片(改 ADR-001 D8;要連結就刪掉 !)
+    const 連 = "!" + this.app.fileManager.generateMarkdownLink(this.file, "", "#" + id);
     try { await navigator.clipboard.writeText(連); new Notice(this.T.linkCopied); }
     catch (e) { new Notice(連, 8000); }                    // 剪貼簿被擋(少數手機):至少看得到、可以手動抄
+  }
+
+  /* 1.6.9-F1:一張(卡片 ⋯)或目前清單(清單 ⋯)送到 Canvas,一張一個檔案節點(subpath #^ct-…)。
+     沒有 ID 的一次補齊(寫手.取多ID,一次原子寫入);送完只跳 Notice,不打開 Canvas(Q7)。 */
+  async 送到Canvas(卡們) {
+    if (!卡們 || !卡們.length) return;
+    if (this.狀態.編修) await this.收掉編修();
+    const 檔 = await new 選Canvas框(this.app, this.file).選();
+    if (!檔) return;
+    const r = await this.插件.寫手.取多ID(this.file, 卡們, this.名單);
+    if (!r) return;
+    const 節點們 = [];
+    for (const k of 卡們.filter(x => r.得[x.鍵])) {        // CR-1.6.9-01:一張一張畫出來量(30 張 < 1 秒)
+      const 框 = await this.插件.量框(k, this.file.path);
+      節點們.push({ 路徑: this.file.path, id: r.得[k.鍵], 寬: 框.寬, 高: 框.高 });
+    }
+    const 果 = 節點們.length ? await this.插件.寫手.加Canvas節點(檔, 節點們) : { 加: 0, 已有: 0 };
+    if (果) new Notice(this.T.sentToCanvas(檔.basename, 果.加, 果.已有) + (r.丟.length ? this.T.cardsLost(r.丟.length) : ""));
   }
 
   畫卡片工具選單(盒, k, 已封存, 具樣) {
@@ -5215,6 +5323,7 @@ class 看板視圖 extends TextFileView {
       }
       // 1.6.8-F1:封存的卡片也有(連結要指得到)
       m.addItem((i) => i.setTitle(T.copyCardLink).setIcon("link").onClick(() => this.複製卡片連結(k)));
+      m.addItem((i) => i.setTitle(T.sendToCanvas).setIcon("layout-dashboard").onClick(() => this.送到Canvas([k])));   // 1.6.9-F1
       // 窄螢幕的主題那一行不顯示最後編輯時間(1.4.5),收在這裡
       if (k.編修時 && this.顯示編時) {
         m.addSeparator();
@@ -5265,6 +5374,8 @@ class 看板視圖 extends TextFileView {
         .onClick(() => { s.融合中 = !s.融合中; s.融合選 = {}; this.重畫清單(); }));
       // 1.6.2(B7):只留長圖;PDF 拿掉了(Obsidian 會擋開新視窗,手機也沒有列印)
       m.addItem((i) => i.setTitle(T.exportPng).setIcon("image").onClick(() => this.輸出()));
+      // 1.6.9-F1:畫面上看得到的(時間篩選 + 搜尋,含置頂)= 畫清單 的 過濾(全)
+      m.addItem((i) => i.setTitle(T.sendListToCanvas).setIcon("layout-dashboard").onClick(() => this.送到Canvas(this.過濾(this.卡片))));
       // 版面寬度只對桌機有意義(手機、窄分頁本來就用滿畫面)。1.6.3:看 觸 / 密,不看 窄
       if (!this.觸 && !this.密) {
         m.addSeparator();
@@ -7483,6 +7594,8 @@ module.exports = class 卡片日誌看板 extends Plugin {
       try { return !window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return true; }
     };
     this.registerView(視圖種類, (leaf) => new 看板視圖(leaf, this));
+    // 1.6.9-F2:Canvas / ![[…#^ct-…]] / hover 預覽裡的卡片畫成看板的卡片(唯讀)
+    this.registerMarkdownPostProcessor((el, ctx) => this.嵌入卡片(el, ctx));
     // 1.6.2(B4):卡片裡的 [[連結]] 滑過去有頁面預覽;要不要按 Ctrl 在 Obsidian「頁面預覽」的設定裡改
     try { this.registerHoverLinkSource(視圖種類, { display: "Card Table", defaultMod: false }); } catch (e) {}
     this.addSettingTab(new 設定頁(this.app, this));
@@ -7972,12 +8085,167 @@ module.exports = class 卡片日誌看板 extends Plugin {
      ⚠ 顏色是綁在**分類(## 標題)**上,不是綁在卡片上。
        所以把自訂色刪掉,卡片一張都不會受影響 ——
        那一區只是退回「照順序自動配」的顏色而已。 */
-  分類色(名) {
+  /* 1.6.9-F2:序 = 那一份筆記的分類順序(嵌入的卡片用)。有給就照它配自動色,**不動全域的 分類序** ——
+     那是開著的看板在用的,改了別份看板的顏色會跟著換。 */
+  分類色(名, 序) {
     const 自訂 = this.設定.分類顏色 && this.設定.分類顏色[名];
     if (自訂 && 標籤色[自訂]) return 標籤色[自訂];
     if (是色碼(自訂)) return 自訂;
     if (!名 || 名 === "—" || /archive|封存/i.test(名)) return 標籤色["灰"];
-    return 標籤色[自動色名[this.分類序序號(名) % 自動色名.length]];
+    const i = 序 ? Math.max(0, 序.indexOf(名)) : this.分類序序號(名);
+    return 標籤色[自動色名[i % 自動色名.length]];
+  }
+
+  /* 1.6.9-F2(做法 A,唯讀):嵌入的卡片畫成看板的卡片。只在嵌入裡(Canvas 節點、![[…]]、hover 預覽)——
+     看板筆記自己的閱讀模式、一般筆記、沒有 ^ct- 的待辦完全不變(使用者:只在嵌入)。
+     POC(2026-09-23):嵌入裡 getSectionInfo(el).text **只有那張卡片**(lineStart 0);
+     呼叫的當下 el 還沒掛上去,只能等掛上去再用 closest 判斷在不在嵌入裡。 */
+  嵌入卡片(el, ctx) {
+    const s = ctx && ctx.getSectionInfo && ctx.getSectionInfo(el);
+    if (!s || !/\^ct-/.test(s.text)) return;          // 每一段都會呼叫(一份筆記幾百段),第一關要便宜
+    const 段 = s.text.split("\n").slice(s.lineStart, s.lineEnd + 1).join("\n");
+    if (!/\^ct-/.test(段)) return;
+    const 卡 = 解析卡片(段, this.設定.指派人 || []);
+    if (卡.length !== 1 || !卡[0].ID || 卡[0].起 !== 0) return;       // 剛好一張、有 ID、從第一行開始
+    /* 1.6.9-B2:等掛上去最多 3 秒(以前 20 格 ≈ 0.3 秒)—— Canvas 捲動 / 縮放時晚一點才把節點掛上去,
+       等不到就放棄,那張就留著 Obsidian 的原文畫法(EU #13 抓到,30 張裡 2 張)。 */
+    const 限 = Date.now() + 3000;
+    const 等 = () => {
+      if (!el.isConnected) { if (Date.now() < 限) requestAnimationFrame(等); return; }
+      if (!el.closest(".markdown-embed, .canvas-node, .hover-popover")) return;
+      if (el.closest(".tk-board")) return;               // 卡片內容裡又嵌了卡片:看板自己畫,不要套兩層
+      this.畫唯讀卡片(el, 卡[0], ctx.sourcePath, ctx);
+    };
+    requestAnimationFrame(等);
+  }
+
+  /* 長相照看板的卡片(色條、📌、指派人、主題膠囊、日期、內容)—— 外層掛 tk-board tk-窄,直接吃看板的 CSS(原則 10),
+     tk-嵌卡 只補「不是捲動容器」和「不能按」那幾條。子待辦的框 disabled(做法 B 才能按)。
+     點卡片(不是點連結)→ 開那份看板、捲到那張、閃一下。 */
+  畫唯讀卡片(el, k, 路徑, ctx) {
+    const T = this.T;
+    // 分類 = ^ct 那一行上面最近的標題;順序 = 那一份筆記的標題(拿掉封存),跟看板的 設分類順序 一樣
+    let 分類 = "—", 序 = [];
+    const 快 = this.app.metadataCache.getCache(路徑);
+    if (快 && 快.headings) {
+      const b = 快.blocks && k.ID && 快.blocks[k.ID.slice(1)];     // 量框 時卡片可能還沒有 ID
+      const 行 = b ? b.position.start.line : -1;
+      快.headings.forEach(h => {
+        const n = String(h.heading).trim();
+        if (行 >= 0 && h.position.start.line < 行) 分類 = n;
+        if (序.indexOf(n) < 0 && !/archive|封存/i.test(n)) 序.push(n);
+      });
+    }
+    el.empty();
+    const 殼 = el.createDiv({ cls: "tk-board tk-窄 tk-嵌卡" });
+    const 列 = 殼.createDiv({ cls: "tk-列" });
+    列.style.setProperty("--tk-sec", this.分類色(分類, 序));
+    if (k.完成) 列.addClass("tk-完劃");
+    const 條 = 列.createDiv({ cls: "tk-色條" });        // 順序跟看板一樣:色條在前、📌 在後(CSS 用 ~ 找)
+    if (k.完成) 條.addClass("tk-色條-完");
+    條.setAttribute("aria-label", 分類);
+    if (k.置頂) {
+      列.addClass("tk-有釘"); 列.addClass("tk-頂列");
+      const 釘 = 列.createDiv({ cls: "tk-釘 tk-溝釘 tk-已釘" });
+      st(釘, "display:inline-flex;line-height:0;");
+      圖(釘, "pin", 9);
+    }
+    const 格 = 列.createDiv({ cls: "tk-格" });
+    const 題行 = 格.createDiv({ cls: "tk-題行" });
+    st(題行, "display:flex;gap:6px;margin-bottom:4px;min-width:0;min-height:" + 主題高 + "px;align-items:flex-start;flex-wrap:nowrap;");
+    const 左組 = 題行.createDiv({ cls: "tk-題左" });
+    st(左組, "display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;flex:1 1 auto;min-height:" + 主題高 + "px;");
+    if (k.指派) 左組.createDiv({ cls: "tk-頭像", text: 頭字(k.指派) }).setAttribute("aria-label", k.指派);
+    (k.主題們 && k.主題們.length ? k.主題們 : (k.主題 ? [k.主題] : [])).forEach(題 => {
+      左組.createDiv({ cls: "tk-主題", text: 截寬(題, 主題顯寬) }).setAttribute("aria-label", "#" + 題);
+    });
+    const 右組 = 題行.createDiv({ cls: "tk-題右" });
+    if (k.留言.length) {
+      const d = 右組.createDiv();
+      st(d, "display:inline-flex;align-items:center;gap:3px;font-size:0.68em;color:var(--text-faint);white-space:nowrap;");
+      圖(d, "message-square", 11);
+      d.createSpan({ text: String(k.留言.length) });
+    }
+    if (k.起日) {
+      const 日 = 右組.createDiv({ cls: "tk-date", text: 日期範圍字(k.起日, k.迄日) });
+      st(日, "padding:2px 2px;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
+        "font-variant-numeric:tabular-nums;font-size:0.8em;font-weight:600;line-height:1.4;" +
+        (k.起日 === 日字(new Date()) ? "color:var(--text-accent);" : ""));
+    }
+    // 內容:跟看板的 畫md 一樣交給 Obsidian 的 Markdown 渲染(看板上長什麼樣,這裡就長什麼樣)
+    const 主題們 = k.主題們 && k.主題們.length ? k.主題們 : (k.主題 ? [k.主題] : []);
+    let 原 = k.內容原 || [];
+    const 首 = 原.findIndex(t => t.trim());
+    if (首 >= 0 && 主題們.some(題 => 原[首].trim() === "#" + 題 || 原[首].trim() === 題)) 原 = 原.slice(0, 首).concat(原.slice(首 + 1));
+    let 渲 = null;          // 回傳渲染的 promise:量框() 要等它畫完才量
+    if (原.length) {
+      const 文 = 格.createDiv({ cls: "tk-md markdown-rendered" });
+      try {
+        const 件 = new MarkdownRenderChild(文);
+        ctx.addChild(件);
+        const p = MarkdownRenderer.render(this.app, 顯示md(原, T), 文, 路徑, 件);
+        const 關 = () => 文.querySelectorAll("input").forEach(b => { b.disabled = true; });
+        關(); if (p && p.then) 渲 = p.then(關, () => {});
+      } catch (e) {
+        文.empty();
+        (k.內容行 || []).forEach((t, i) => 畫預覽行(文.createDiv(), t, (k.內容符 || [])[i] || "", () => {}, this.app, 路徑, T));
+        文.querySelectorAll("input").forEach(b => { b.disabled = true; });
+      }
+    }
+    殼.onclick = (e) => {
+      if (e.target.closest("a, .internal-link, .external-link, .tag, input")) return;
+      e.preventDefault(); e.stopPropagation();
+      this.開到卡(路徑, k.ID);
+    };
+    return 渲;
+  }
+
+  /* CR-1.6.9-01:送到 Canvas 的框照內容量 —— 用 畫唯讀卡片 在看不見的地方畫一次(跟 Canvas 裡同一個長相),量高度。
+     預設 400 寬;量出來超過 640 就改 560 寬再量;高不設上限(字全部看得到)。畫不出來才退回 估高。
+     Canvas 檔案節點的外框(2026-09-23 在 Canvas 量的):卡片比節點窄 45、節點要比卡片高 15(再留 5)。
+     嵌入的圖片高度要等載入 —— 不等,一個先算 200。 */
+  async 量框(k, 路徑) {
+    const 外寬 = 45, 外高 = 20, 父 = new Component();
+    父.load();
+    const 台 = document.body.createDiv({ cls: "markdown-preview-view markdown-rendered" });
+    st(台, "position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;font-size:var(--font-text-size);");
+    const 量 = async (寬) => {
+      台.empty();
+      台.style.width = (寬 - 外寬) + "px";
+      const el = 台.createDiv();
+      await this.畫唯讀卡片(el, k, 路徑, { addChild: (c) => 父.addChild(c) });
+      const 圖 = el.querySelectorAll(".internal-embed").length + [...el.querySelectorAll("img")].filter(i => !i.closest(".internal-embed")).length;
+      // × 1.03:看不見的地方畫出來比 Canvas 裡矮一點(實測短卡差 4、30 行差 12)—— 框寧可大一點,不要切到字
+      return el.offsetHeight * 1.03 + 外高 + 4 + 圖 * 200;
+    };
+    try {
+      let 寬 = 400, 高 = await 量(寬);
+      if (高 > 640) { 寬 = 560; 高 = await 量(寬); }
+      return { 寬: 寬, 高: Math.max(120, Math.ceil(高)) };
+    } catch (e) {
+      console.error("[card-table] 量框失敗,改用估的", e);
+      return { 寬: 400, 高: 估高(k) };
+    } finally { 台.remove(); 父.unload(); }
+  }
+
+  /* 1.6.9-F2:開那份看板(開著就用那個分頁),等畫好找到 ID 那張 → 捲過去閃一下;不在目前篩選裡 → Notice。
+     看板筆記開起來會被 setViewState 的攔截切成看板,這裡不要自己再切一次。 */
+  async 開到卡(路徑, id) {
+    const 檔 = this.app.vault.getAbstractFileByPath(路徑);
+    if (!檔) return;
+    const ws = this.app.workspace;
+    let leaf = ws.getLeavesOfType(視圖種類).find(l => l.view && l.view.file && l.view.file.path === 路徑);
+    if (!leaf) { leaf = ws.getLeaf("tab"); await leaf.openFile(檔); }
+    ws.setActiveLeaf(leaf, { focus: true });
+    const 截止 = Date.now() + 3000;
+    const 試 = () => {
+      const v = leaf.view;
+      const 有 = v && v.getViewType && v.getViewType() === 視圖種類 && (v.卡片 || []).some(x => x.ID === id);
+      if (!有) { if (Date.now() < 截止) setTimeout(試, 100); return; }
+      const k = v.過濾(v.卡片).find(x => x.ID === id);      // 過濾 回傳的是另一批物件,用 ID 找,不用 indexOf
+      if (k) v.浮到最上(k); else new Notice(this.T.cardNotInView);
+    };
+    試();
   }
   人色(名) {
     const 自訂 = this.設定.指派人顏色 && this.設定.指派人顏色[名];
@@ -8003,6 +8271,39 @@ class 確認框 extends Modal {
   onClose() { this.contentEl.empty(); }
 }
 
+/* 1.6.9-F1:選一個 Canvas。第一項固定是「新增 〈筆記名〉.canvas」(跟看板筆記同一個資料夾,有了就加 2、3 —— Q8),
+   其他照最近修改排。選() 回傳 TFile;取消 null。
+   ⚠ Obsidian 選了之後是先 onClose 再 onChooseSuggestion —— 所以 onClose 晚一拍才當作取消。 */
+class 選Canvas框 extends SuggestModal {
+  constructor(app, 看板檔) {
+    super(app);
+    this.看板檔 = 看板檔;
+    const 夾 = (看板檔.parent && 看板檔.parent.path && 看板檔.parent.path !== "/") ? 看板檔.parent.path + "/" : "";
+    let n = 1;
+    do this.新路 = 夾 + 看板檔.basename + (n > 1 ? " " + n : "") + ".canvas"; while (app.vault.getAbstractFileByPath(this.新路) && ++n);
+    this.setPlaceholder(語().pickCanvas);
+  }
+  選() { return new Promise(r => { this.了 = (x) => { if (r) { r(x); r = null; } }; this.open(); }); }
+  getSuggestions(q) {
+    const s = String(q || "").toLowerCase();
+    const 們 = this.app.vault.getFiles().filter(f => f.extension === "canvas" && f.path.toLowerCase().includes(s))
+      .sort((a, b) => b.stat.mtime - a.stat.mtime);
+    return [{ 新: true }].concat(們);
+  }
+  renderSuggestion(x, el) {
+    if (x.新) { el.setText(語().newCanvas(this.新路.split("/").pop())); return; }
+    el.createDiv({ text: x.basename });
+    st(el.createEl("small", { text: x.path }), "color:var(--text-muted);");
+  }
+  async onChooseSuggestion(x) {
+    this.選了 = true;                     // 建新檔要等一下,onClose 那一拍不可以先回 null
+    if (!x.新) { this.了(x); return; }
+    try { this.了(await this.app.vault.create(this.新路, '{"nodes":[],"edges":[]}')); }
+    catch (e) { console.error("[card-table] 建 Canvas 失敗", e); new Notice(String(e && e.message || e)); this.了(null); }
+  }
+  onClose() { setTimeout(() => { if (!this.選了 && this.了) this.了(null); }, 0); }
+}
+
 /* ============================================================
    更新介紹(1.6.1 起每一版都要有,使用者明講)
    ------------------------------------------------------------
@@ -8013,6 +8314,20 @@ class 確認框 extends Modal {
    每一項:[Lucide 圖示名, 標題, 說明]
    ============================================================ */
 const 更新介紹 = {
+  "1.6.9": {
+    "zh-TW": [
+      ["layout-dashboard", "送到 Canvas", "卡片的「⋯」送一張、清單標題列的「⋯」送整份清單。選一個 Canvas 或新增一個,一張卡片一個框,已經在裡面的不會重複放;框的大小照卡片內容量,長的卡片不用捲。"],
+      ["square-dashed", "Canvas 裡長得像卡片", "Canvas、嵌入 ![[…]] 和滑過預覽裡的卡片,畫成跟看板一樣的卡片(唯讀)。點一下跳回看板那張;在 Canvas 裡雙擊編輯時看到的是原文。"],
+      ["copy", "複製卡片", "「複製卡片連結」改成「複製卡片」:貼到 Canvas 或筆記就是整張卡片;只要連結的話,把前面的 ! 刪掉。"],
+      ["bug", "修掉兩個 bug", "卡片 ID 跑到子待辦後面時,看板現在認得、下次寫入會放回原位;Canvas 放很多張卡片時,捲動或縮放不會再有幾張留著原文。"]
+    ],
+    "en": [
+      ["layout-dashboard", "Send to Canvas", "Card “⋯” sends one card; the list “⋯” sends the whole list. Pick a Canvas or create one — one frame per card, cards already there are skipped, and each frame is sized to fit the card."],
+      ["square-dashed", "Cards look like cards in Canvas", "In a Canvas, an embed ![[…]] or a hover preview, cards are drawn the way the board draws them (read-only). Click one to jump back to it on the board; double-click in Canvas still edits the raw text."],
+      ["copy", "Copy card", "“Copy card link” is now “Copy card”: paste it into a Canvas or note to show the whole card. For a plain link, delete the ! in front."],
+      ["bug", "Two bug fixes", "A card ID that slipped below a sub-todo is now recognised and moved back on the next write; Canvases with many cards no longer leave a few as raw text when you scroll or zoom."]
+    ]
+  },
   "1.6.8": {
     "zh-TW": [
       ["link", "複製卡片連結", "卡片的「⋯」多了「複製卡片連結」:貼到別的筆記就能連回這張卡片;貼到 Canvas 時在前面加 !,整張卡片(連子待辦)都會顯示出來。"],
@@ -8149,6 +8464,11 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.6.9",
+    ["卡片可以送到 Canvas(一張或整份清單),框照內容量大小;Canvas、嵌入和預覽裡的卡片畫成看板的樣子,點了回看板。",
+     "「複製卡片連結」改成「複製卡片」,貼上就是整張卡片;修掉卡片 ID 跑到子待辦後面、Canvas 有幾張沒畫成卡片的 bug。"],
+    ["Cards can be sent to a Canvas (one card or the whole list), each frame sized to its content; cards in Canvas, embeds and previews look like board cards and click back to the board.",
+     "“Copy card link” is now “Copy card” and pastes the whole card; fixed an ID stuck below a sub-todo and a few Canvas cards left as raw text."]],
   ["1.6.8",
     ["卡片可以複製連結了(「⋯」→ 複製卡片連結),貼到 Canvas 前面加 ! 就是整張卡片;在看板改內容不會再弄丟卡片 ID。",
      "分類設定可以拖曳排序,筆記裡的 ## 分類跟著換。(1.6.7 沒發出去,併在這一版。)"],

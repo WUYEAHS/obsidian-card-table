@@ -7,10 +7,10 @@
   const path = require('path');
   const src = fs.readFileSync(path.join(app.vault.adapter.basePath, app.plugins.manifests['card-table'].dir, 'main.js'), 'utf8');
   const C = class {};
-  const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C,
+  const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C, SuggestModal: C, MarkdownRenderChild: C,
     WorkspaceLeaf: C, debounce: f => f, setIcon: () => {}, addIcon: () => {} };
   const M = new Function('require', 'module', src +
-    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 擺ID, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限};')(
+    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 擺ID, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限, 補ID, Canvas加節點};')(
     () => stub, { exports: {} });
   const out = [];
   const eq = (name, a, b) => out.push((a === b ? 'ok   ' : 'FAIL ') + name + (a === b ? '' : '\n   got: ' + JSON.stringify(a) + '\n  want: ' + JSON.stringify(b)));
@@ -131,9 +131,50 @@
   eq('擺ID two IDs keep the top one', 擺(['- [ ] #a', '\t^ct-one', '\t- x', E + ' ^ct-two'], null), '- [ ] #a\n\t^ct-one\n\t- x\n' + E + '|3');
   eq('擺ID given id replaces the old', 擺(['- [ ] #a', '\tfoo', E + ' ^ct-old'], '^ct-new'), '- [ ] #a\n\tfoo\n' + E + ' ^ct-new|2');
   eq('擺ID moves misplaced ID (ed tail -> before list)', 擺(['- [ ] #a', '\t- x', E + ' ^ct-abc123'], null), '- [ ] #a\n\t^ct-abc123\n\t- x\n' + E + '|3');
+  // 1.6.9-B1(ADR-001 D3):ID 被擠到子待辦 / 內容行尾巴 → 認得、寫的時候放回原位;code block 裡的不算
+  eq('1.6.9-B1 ID on sub-todo tail is read', M.解析卡片(['- [ ] #a', '\t說明', '\t- [ ] 子 ^ct-sq0001', E].join('\n'), 名單)[0].ID, '^ct-sq0001');
+  eq('1.6.9-B1 擺ID moves ID off the sub-todo tail', 擺(['- [ ] #a', '\t說明', '\t- [ ] 子 ^ct-sq0001', E], null),
+    '- [ ] #a\n\t說明\n\t^ct-sq0001\n\t- [ ] 子\n' + E + '|4');
+  eq('1.6.9-B1 擺ID moves ID off a plain content tail', 擺(['- [ ] #a', '\tfoo ^ct-sq0002', E], null), '- [ ] #a\n\tfoo\n' + E + ' ^ct-sq0002|2');
+  擺同('1.6.9-B1 ^ct- inside a code block is left alone', ['- [ ] #a', '\t```', '\tx ^ct-incode', '\t```', E]);
+  eq('1.6.9-B1 ^ct- inside a code block is not the card ID', M.解析卡片(['- [ ] #a', '\t```', '\tx ^ct-incode', '\t```', E].join('\n'), 名單)[0].ID, null);
   eq('收尾 bare ID line -> k.ID, not content, key unchanged',
     (k => [k.ID, k.內容行.join(','), k.基鍵].join('|'))(M.解析卡片(['- [ ] #a', '\t^ct-abc123', '\t- x', E].join('\n'), 名單)[0]),
     '^ct-abc123|x|[a] x');
+  // ---- 1.6.9 F1:補ID(取多ID 由下往上)、Canvas加節點 ----
+  {
+    const 文 = ['## 1', '- [ ] #a', '\t- x', E, '- [ ] #b', '\tfoo', E + ' ^ct-bbb111', '- [ ] #c', E, '- [ ] #d', E + ' ^ct-bbb111', ''].join('\n');
+    const 行 = 文.split('\n'), 有 = new Set(文.match(/\^ct-[A-Za-z0-9_-]+/g) || []);
+    const 卡 = M.解析卡片(文, 名單);
+    const 得 = {};
+    卡.slice().sort((a, b) => b.起 - a.起).forEach(k => { 得[k.主題] = M.補ID(行, k, 有); });
+    const 後 = M.解析卡片(行.join('\n'), 名單);
+    eq('補ID many bottom-up: each card has its own ID', 後.map(k => k.ID === 得[k.主題]).join(','), 'true,true,true,true');
+    eq('補ID many: all distinct', new Set(後.map(k => k.ID)).size, 4);
+    eq('補ID duplicate ID sent together: one keeps it, the other gets a new one', [得.b, 得.d].filter(x => x === '^ct-bbb111').length, 1);
+    const 單 = ['## 1', '- [ ] #b', '\tfoo', E + ' ^ct-bbb111'];
+    eq('補ID unique existing ID -> unchanged', M.補ID(單.slice(), M.解析卡片(單.join('\n'), 名單)[0], new Set(['^ct-bbb111'])), '^ct-bbb111');
+    eq('補ID sub-list card -> own line', 行.slice(1, 4).join('|').replace(/\^ct-\w+/, 'ID'), '- [ ] #a|\tID|\t- x');
+  }
+  {
+    const 節 = [{ 路徑: 'a/b.md', id: '^ct-aaa111', 高: 120 }, { 路徑: 'a/b.md', id: '^ct-bbb222', 高: 200 }];
+    const 空 = M.Canvas加節點('', 節);
+    const d = JSON.parse(空.文);
+    eq('Canvas加節點 empty file -> 2 file nodes', [空.加, 空.已有, d.nodes.length, d.edges.length].join(','), '2,0,2,0');
+    eq('Canvas加節點 node shape', [d.nodes[0].type, d.nodes[0].file, d.nodes[0].subpath, d.nodes[0].x, d.nodes[0].y, d.nodes[0].width, d.nodes[0].height, /^[0-9a-f]{16}$/.test(d.nodes[0].id)].join(','),
+      'file,a/b.md,#^ct-aaa111,0,0,400,120,true');
+    eq('Canvas加節點 stacks down', d.nodes[1].y, 140);
+    const 有 = JSON.stringify({ nodes: [{ id: 'x', type: 'text', text: 'hi', x: -100, y: 50, width: 300, height: 100 },
+      { id: 'y', type: 'file', file: 'a/b.md', subpath: '#^ct-bbb222', x: 0, y: -30, width: 400, height: 100 }], edges: [{ id: 'e' }] }, null, '\t');
+    const r = M.Canvas加節點(有, 節), d2 = JSON.parse(r.文);
+    eq('Canvas加節點 existing -> right of everything, top-aligned, dup skipped', [r.加, r.已有, d2.nodes.length, d2.nodes[2].x, d2.nodes[2].y, d2.edges.length].join(','), '1,1,3,460,-30,1');
+    eq('Canvas加節點 keeps other nodes untouched', JSON.stringify(d2.nodes.slice(0, 2)), JSON.stringify(JSON.parse(有).nodes));
+    const 全有 = M.Canvas加節點(r.文, 節);
+    eq('Canvas加節點 all already there -> text unchanged', [全有.加, 全有.已有, 全有.文 === r.文].join(','), '0,2,true');
+    eq('CR-1.6.9-01 Canvas加節點 uses the given width', JSON.parse(M.Canvas加節點('', [{ 路徑: 'a.md', id: '^ct-w', 寬: 560, 高: 700 }]).文).nodes[0].width, 560);
+    eq('Canvas加節點 broken JSON -> null', M.Canvas加節點('{"nodes": [', 節), null);
+    eq('Canvas加節點 JSON array -> null', M.Canvas加節點('[]', 節), null);
+  }
   const 有ID文 = ['## 1', '', '- [ ] #a [due:: 2026-09-16]', '\t- x', E + ' ^ct-abc123', '- [ ] #b', '\tfoo', E + ' ^ct-def456', ''].join('\n');
   const 轉ID = M.轉整份(有ID文, 名單);
   eq('1.6.8-B1 轉整份 keeps ID, places by shape',

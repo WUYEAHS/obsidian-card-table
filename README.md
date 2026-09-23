@@ -81,6 +81,7 @@ then reload Obsidian and enable **Card Table - Dated Tasks**.
 - **Edit in place** — Obsidian's Live Preview editor right in the card, saved as you type; to-dos inside a card can be ticked.
 - **Pinned, repeating, archived** — a pinned table on top, `[repeat:: every 2 weeks]`, archive before delete.
 - **Merge and export** — combine several cards into one, or export the current view to PNG or PDF.
+- **Canvas and links** — send one card or the whole list to a Canvas, or Copy card and paste it into a Canvas or note; it shows as a card there, and a click goes back to the board.
 
 ### Sections
 - **Colour and status in one** — name the red section *Waiting* and every card in it is waiting.
@@ -173,7 +174,7 @@ The first line is the card: pin, title, dates, repeat, assignee. Below it come t
 | Repeat record | `[done:: 2026-08-25]` (repeating cards only) | — | After the content |
 | Comment | `[cm:: 2026-09-11 14:20\|Alex] text` | `．💬{2026-09-11 14:20\|Alex} text` | After the content |
 | Last edited (written by the plugin) | `[ed:: 2026-09-11 14:20]` | `✎{2026-09-11 14:20}` (on the first line) | Always the card's last line |
-| Card ID (written only when you press "Copy card link") | `^ct-abc123` | — | After `[ed:: …]`, or on its own line before the first sub-item |
+| Card ID (written only when you press "Copy card" or "Send to Canvas") | `^ct-abc123` | — | After `[ed:: …]`, or on its own line before the first sub-item |
 | Archive | `## Archive` | Same | Section heading |
 | Long-term | — | `#long-term` (no special meaning since 1.5; kept as a plain tag) | — |
 

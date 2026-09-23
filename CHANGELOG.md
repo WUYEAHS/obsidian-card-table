@@ -5,6 +5,28 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.6.9
+
+**Cards on a Canvas.** Send cards to a Canvas in one step, and cards embedded in a Canvas or note now look like cards.
+
+### New
+1. **Send to Canvas** (1.6.9-F1): card "⋯" sends one card, the list "⋯" sends the whole current list. Pick an existing `.canvas` or create a new one next to the note; one frame per card, cards already on that Canvas are skipped, and it works while the Canvas is open. Cards without an ID get one (one write for the whole batch).
+2. **Embedded cards look like cards** (1.6.9-F2): in a Canvas, an embed `![[note#^ct-…]]` or a hover preview, the card is drawn with the board's own layout (section colour bar, title, date, content — read-only). Click the card to jump back to it on the board. Double-click in Canvas still edits the raw text.
+3. **Frames sized to the content** (CR-1.6.9-01): each new Canvas frame is measured from the rendered card, so long cards get a wider, taller frame and nothing needs scrolling. Frames already on the Canvas keep their size.
+4. **Copy card** (CR-1.6.9-02): "Copy card link" is now "Copy card" and copies `![[note#^ct-…]]` — paste it into a Canvas or note to show the whole card; delete the `!` for a plain link.
+
+### Bug fixes
+1. A card ID that ended up after a sub-todo (e.g. after manual editing) was not recognised: copying again added a second ID. The board now reads it and moves it back to the card's own line on the next write (1.6.9-B1).
+2. Scrolling or zooming a Canvas with many cards left a few of them as raw text; the board now waits longer for Canvas to attach late nodes (1.6.9-B2).
+
+### Notes
+- Editing a card on the board does not resize its Canvas frame; scroll inside it or drag it bigger.
+- Sending many cards stacks them in one tall column. Layout options are planned for a later version.
+- If two devices add an ID to the same card before syncing, the next write keeps one ID and links to the other break. Rare; not fixed in this version.
+
+### Internal
+1. Card ID extreme-case check (1.6.9-S1): 13 cases, script `tools/eu-test.js`; two bugs found and fixed (above).
+
 ## 1.6.8
 
 **Link to a card.** A card can now be linked from other notes and Canvas, and its ID survives every edit. This release also ships 1.6.7 (drag to reorder sections): its tag was pushed without bumping the version, so no files were attached and nobody received it.

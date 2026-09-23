@@ -468,5 +468,5 @@ check4 抓切字溢出,measure 抓對不齊,改版面兩個都跑。新的 UI �
 ## Git
 
 - remote:`https://github.com/WUYEAHS/obsidian-card-table.git`,branch `main`
-- 命令列沒設 credential helper,**push 用 GitHub Desktop**
+- **commit 完直接用命令列 `git push`**(2026-09-23 使用者同意;1.6.8 起命令列 push 成功過)。失敗再退回 GitHub Desktop
 - `git` 在 `%LOCALAPPDATA%\GitHubDesktop\...\git\cmd`,已加進使用者 PATH

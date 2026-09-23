@@ -1334,3 +1334,19 @@
 .tk-board.tk-滑亮 .tk-列:hover {
   background-image:linear-gradient(var(--background-modifier-hover), var(--background-modifier-hover));
 }
+/* 1.6.9-F2 嵌入的卡片(Canvas、![[…#^ct-…]]、hover 預覽)。外層掛 tk-board tk-窄,長相全部沿用看板的卡片規則;
+   這裡只補兩件事:它不是捲動容器(.tk-board 本來是整頁高、自己捲),以及它不能按(做法 A,唯讀)——
+   色條滑過不變粗、不出 ✓,整張的游標是「點了回看板」。 */
+.tk-board.tk-嵌卡 {
+  height:auto;
+  overflow:visible;
+  scrollbar-gutter:auto;
+  overscroll-behavior:auto;
+  cursor:pointer;
+}
+.tk-board.tk-嵌卡 .tk-列 { background-image:none; }
+.tk-board.tk-嵌卡 .tk-色條,
+.tk-board.tk-嵌卡 .tk-色條:hover { width:7px; cursor:inherit; }
+.tk-board.tk-嵌卡 .tk-主題,
+.tk-board.tk-嵌卡 .tk-頭像 { cursor:inherit; }
+.tk-board.tk-嵌卡 .tk-色條:hover ~ .tk-釘.tk-溝釘.tk-已釘 { width:7px; color:var(--text-accent); }

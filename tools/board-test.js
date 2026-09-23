@@ -318,7 +318,7 @@ window.__ctBoardTest = 'running';
       const fs = require('fs'), 路 = require('path');
       const src = fs.readFileSync(路.join(app.vault.adapter.basePath, app.plugins.manifests['card-table'].dir, 'main.js'), 'utf8');
       const C = class {};
-      const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C,
+      const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C, SuggestModal: C, MarkdownRenderChild: C,
         WorkspaceLeaf: C, debounce: g => g, setIcon: () => {}, addIcon: () => {} };
       const M = new Function('require', 'module', src + '\n;return {解析卡片};')(() => stub, { exports: {} });
       const 名 = v.名單;
@@ -415,6 +415,78 @@ window.__ctBoardTest = 'running';
         if (c3 && c3.備份) { const 備3 = app.vault.getAbstractFileByPath(c3.備份); if (備3) await app.vault.trash(備3, true); }
         const r = await 範圍對('ID子', 子);
         ok('1.6.8-B1 convert keeps ID, block = whole card', r.對, [c3, r]);
+      }
+      // 1.6.9-F1:送 3 張(1 張沒 ID、1 張已經在 Canvas)→ 一次寫入、加 2、已有 1;每張的 ID Obsidian 認得到
+      const 等到 = async (fn, ms) => { for (let t = 0; t < (ms || 6000); t += 100) { const x = fn(); if (x) return x; await 等(100); } return fn(); };
+      const cvPath = 'ZZ-board-test.canvas', emPath = 'ZZ-board-test-embed.md';
+      const 舊cv = app.vault.getAbstractFileByPath(cvPath); if (舊cv) await app.vault.trash(舊cv, true);
+      const 碼 = (await 卡('ID碼')).ID;
+      const cv = await app.vault.create(cvPath, JSON.stringify({ nodes: [{ id: 'aaaaaaaaaaaaaaaa', type: 'file', file: f.path, subpath: '#' + 碼, x: 0, y: 0, width: 400, height: 120 }], edges: [] }, null, '\t'));
+      const 開們 = [];
+      try {
+        await 寫後(() => P.寫手.新增卡片(f, 'ID區', '- [ ] #IDC新 [due:: 2026-09-16]', ['\t沒有 ID 的卡片', '\t- [ ] 子一', '\t- [x] 子二', '\t[ed:: 2026-09-10 09:00]']));
+        const 長行 = Array.from({ length: 30 }, (_, i) => '\t第 ' + (i + 1) + ' 行:這是一張很長的卡片,每一行都有一些字,看框夠不夠高');
+        await 寫後(() => P.寫手.新增卡片(f, 'ID區', '- [ ] #IDC長 [due:: 2026-09-16]', 長行.concat(['\t[ed:: 2026-09-10 09:00]'])));
+        const 送 = [await 卡('IDC新'), await 卡('ID子'), await 卡('ID碼'), await 卡('IDC長')];
+        const 前mtime = f.stat.mtime;
+        let 寫幾次 = 0; const 聽 = app.vault.on('modify', (x) => { if (x === f) 寫幾次++; });
+        const r = await 寫後(() => P.寫手.取多ID(f, 送, 名));
+        app.vault.offref(聽);
+        const 新id = r && r.得[送[0].鍵];
+        ok('1.6.9-F1 取多ID: one write, new ID only for the card without one',
+          r && 寫幾次 === 1 && r.丟.length === 0 && /^\^ct-[a-z0-9]{6,}$/.test(String(新id)) && r.得[送[1].鍵] === 子 && r.得[送[2].鍵] === 碼, [r, 寫幾次, 前mtime]);
+        const 範 = await 範圍對('IDC新', 新id);
+        ok('1.6.9-F1 new ID: Obsidian block = whole card', 範.對, 範);
+        // CR-1.6.9-01:框照內容量(短的 400 寬、30 行的 560 寬)
+        const 節們 = [];
+        for (const k of 送) { const 框 = await P.量框(k, f.path); 節們.push({ 路徑: f.path, id: r.得[k.鍵], 寬: 框.寬, 高: 框.高 }); }
+        ok('CR-1.6.9-01 short card 400 wide, long card 560 wide and taller than 640', 節們[0].寬 === 400 && 節們[0].高 >= 120 && 節們[3].寬 === 560 && 節們[3].高 > 640,
+          節們.map(n => n.寬 + 'x' + n.高));
+        const 果 = await P.寫手.加Canvas節點(cv, 節們);
+        const d = JSON.parse(await app.vault.read(cv));
+        ok('1.6.9-F1 canvas: added 3, 1 already there, 4 file nodes', 果 && 果.加 === 3 && 果.已有 === 1 && d.nodes.length === 4 &&
+          d.nodes.every(n => n.type === 'file' && n.file === f.path) && new Set(d.nodes.map(n => n.subpath)).size === 4, [果, d]);
+        ok('CR-1.6.9-01 node already there keeps its size', d.nodes[0].width === 400 && d.nodes[0].height === 120, d.nodes[0]);
+        const 再 = await P.寫手.加Canvas節點(cv, 節們);
+        ok('1.6.9-F1 canvas: sending again adds nothing', 再 && 再.加 === 0 && 再.已有 === 4, 再);
+        // 1.6.9-F2:Canvas 裡 4 張畫成卡片;嵌入的筆記 1 張;看板筆記自己的閱讀模式 0 張
+        const cl = app.workspace.getLeaf('tab'); 開們.push(cl);
+        await cl.openFile(cv);
+        const 嵌數 = await 等到(() => { const n = cl.view.containerEl.querySelectorAll('.canvas-node .tk-嵌卡').length; return n >= 4 ? n : 0; });
+        ok('1.6.9-F2 canvas: 4 embedded cards drawn as cards', 嵌數 === 4, 嵌數);
+        await 等(500);
+        // 原本就在的 ID碼 那個節點是測試自己寫的 120 高,不算
+        const 捲 = [...cl.view.containerEl.querySelectorAll('.canvas-node')].filter(n => n.querySelector('.tk-嵌卡') && !n.textContent.includes('ID碼')).map(n => {
+          const pv = n.querySelector('.markdown-preview-view'); return pv.scrollHeight - pv.clientHeight; });
+        ok('CR-1.6.9-01 measured nodes show the whole card (no scrolling)', 捲.length === 3 && 捲.every(x => x <= 1), 捲);
+        const 新卡el = [...cl.view.containerEl.querySelectorAll('.tk-嵌卡')].find(x => x.textContent.includes('IDC新'));
+        ok('1.6.9-F2 canvas: sub-todos visible and disabled', !!新卡el && 新卡el.querySelectorAll('input[type=checkbox]').length === 2 &&
+          [...新卡el.querySelectorAll('input[type=checkbox]')].every(b => b.disabled) && 新卡el.querySelectorAll('input:checked').length === 1,
+          新卡el && 新卡el.innerHTML.slice(0, 400));
+        ok('1.6.9-F2 canvas: colour bar uses the section colour', !!新卡el && 新卡el.querySelector('.tk-列').style.getPropertyValue('--tk-sec') === P.分類色('ID區', (app.metadataCache.getFileCache(f).headings || []).map(h => h.heading).filter(n => !/archive|封存/i.test(n))),
+          新卡el && 新卡el.querySelector('.tk-列').style.getPropertyValue('--tk-sec'));
+        const em = await app.vault.create(emPath, '# 嵌入\n\n![[' + f.basename + '#' + 新id + ']]\n\n- [ ] 一般待辦 ^ct-notacard\n');
+        const el2 = app.workspace.getLeaf('tab'); 開們.push(el2);
+        await el2.setViewState({ type: 'markdown', state: { file: emPath, mode: 'preview' } });
+        const 嵌2 = await 等到(() => el2.view.containerEl.querySelectorAll('.markdown-embed .tk-嵌卡').length);
+        ok('1.6.9-F2 ![[…#^ct-…]] in a note: drawn as a card, plain task untouched', 嵌2 === 1 && el2.view.containerEl.querySelectorAll('.tk-嵌卡').length === 1, 嵌2);
+        P.設定.看板檔案 = Object.assign({}, P.設定.看板檔案, { [f.path]: false });
+        const rl = app.workspace.getLeaf('tab'); 開們.push(rl);
+        await rl.setViewState({ type: 'markdown', state: { file: f.path, mode: 'preview' } });
+        await 等到(() => rl.view.containerEl.querySelectorAll('.task-list-item').length, 3000);
+        await 等(500);
+        ok('1.6.9-F2 board note reading mode: 0 embedded cards', rl.view.getViewType() === 'markdown' && rl.view.containerEl.querySelectorAll('.tk-嵌卡').length === 0,
+          [rl.view.getViewType(), rl.view.containerEl.querySelectorAll('.tk-嵌卡').length]);
+        const emf = app.vault.getAbstractFileByPath(emPath); if (emf) await app.vault.trash(emf, true);
+      } finally {
+        開們.forEach(l => l.detach());
+        // Canvas 關分頁時會再存一次,太早丟垃圾桶會被它重新建出來 —— 丟完等一下再看一次
+        for (let 次 = 0; 次 < 4; 次++) {
+          await 等(800);
+          const 剩 = [cvPath, emPath].map(p => app.vault.getAbstractFileByPath(p)).filter(Boolean);
+          if (!剩.length) break;
+          for (const x of 剩) await app.vault.trash(x, true);
+        }
       }
     }
     out.push('--- 最後的檔案 ---\n' + 後);
