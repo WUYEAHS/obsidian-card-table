@@ -6272,6 +6272,8 @@ class 看板視圖 extends TextFileView {
   畫內容區(文區, k, 編修中) {
     /* 1.6.1 所見即所得:閱讀時每一行的長相照抄即時預覽編輯器(見 畫預覽行)。 */
     const 符們 = k.內容符 || [];
+    const 列 = 文區.closest(".tk-列");   // .tk-無文:只有主題的卡片,色條下緣退到 3(styles.css,取代 :has)
+    if (列) 列.removeClass("tk-無文");
     if (編修中) {
       /* ⚠ 1.3:編修框改成看得出邊界的一個框(跟留言的輸入框同一套長相)。
          以前是「透明的 textarea 直接躺在卡片上」,進了編輯模式畫面幾乎沒變,
@@ -6398,7 +6400,7 @@ class 看板視圖 extends TextFileView {
     let 原 = k.內容原 || [];
     const 首非空 = 原.findIndex(t => t.trim());
     if (首非空 >= 0 && 首行重複(原[首非空].trim())) 原 = 原.slice(0, 首非空).concat(原.slice(首非空 + 1));
-    if (!原.length) return;
+    if (!原.length) { if (列) 列.addClass("tk-無文"); return; }
     const 開 = !!this.狀態.展開[k.鍵] || !!this.狀態.展開全部;
     const 多 = 原.filter(t => t.trim()).length > 2;
     const 要收 = 多 && !開;

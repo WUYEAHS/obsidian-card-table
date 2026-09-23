@@ -353,18 +353,19 @@
   padding-top:var(--list-spacing);
   padding-bottom:var(--list-spacing);
 }
-.tk-board .tk-預覽行.tk-預覽-清單 { padding-left:calc(5px + 0.93em); text-indent:-0.93em; }
-.tk-board .tk-預覽行.tk-預覽-編號 { padding-left:calc(5px + 1.4em); text-indent:-1.4em; }
-.tk-board .tk-預覽行.tk-預覽-待辦 { padding-left:calc(5px + 2.8em); text-indent:-2.8em; }
+/* 懸掛縮排:整行往右推,符號用負的左外距拉回來(1.7.1 前:Obsidian 審核報 text-indent 在 1.5.8 只部分支援) */
+.tk-board .tk-預覽行.tk-預覽-清單 { padding-left:calc(5px + 0.93em); }
+.tk-board .tk-預覽行.tk-預覽-編號 { padding-left:calc(5px + 1.4em); }
+.tk-board .tk-預覽行.tk-預覽-待辦 { padding-left:calc(5px + 2.8em); }
 .tk-board .tk-預覽符 { padding-inline-start:0.75em; }
-/* .list-bullet 是 inline-flex(自己是一個區塊),會繼承行的負 text-indent,把「-」擠出去、寬度變 0 */
-.tk-board .tk-預覽符 .list-bullet { text-indent:0; }
+.tk-board .tk-預覽-清單 > .tk-預覽符 { margin-inline-start:-0.93em; }
+.tk-board .tk-預覽-編號 > .tk-預覽符 { margin-inline-start:-1.4em; }
 .tk-board .tk-預覽行 .list-number { color:var(--list-marker-color); }
 .tk-board .tk-預覽行 .task-list-label { margin-inline-start:-0.25em; }
+.tk-board .tk-預覽行.tk-預覽-待辦 > .task-list-label { margin-inline-start:-3.05em; }
 .tk-board .tk-預覽行 .task-list-item-checkbox {
   margin:0 0.25em 0 0.85em;
   vertical-align:middle;
-  text-indent:0;
 }
 /* 1.6.2(B4)卡片內容用 Obsidian 自己的 Markdown 渲染(main.js 的 畫md),標準是「跟 Obsidian 的閱讀模式一樣」。
    字級、行高、左邊 5px 沿用上面的所見即所得數字(跟即時預覽編輯器同一套);段落、清單、表格的間距交給 Obsidian,
@@ -507,7 +508,8 @@
 /* CR-1.6.6-03:畫了 📌 的列,色條從 24 開始(把 8–20 讓給 📌,中間留 4) */
 .tk-board .tk-列.tk-有釘 > .tk-色條 { top:24px; }
 /* 1.7.0-U9(使用者 09-23「只有標題的卡片色線太短」):列只有 39 高,24–31 只剩 7px → 下緣退到 3,24–36 = 12(跟 📌 8–20 一樣高) */
-.tk-board .tk-列.tk-有釘:has(.tk-內盒 > .tk-文區:empty) > .tk-色條 { bottom:3px; }
+/*   .tk-無文 由 畫內容區() 掛(以前用 :has,Obsidian 審核說會拖慢整頁的樣式計算) */
+.tk-board .tk-列.tk-有釘.tk-無文 > .tk-色條 { bottom:3px; }
 .tk-board .tk-色條 .tk-色勾 { display:none; }
 .tk-board .tk-色條:hover, .tk-board .tk-色條:focus-visible {
   width:11px;
@@ -1216,7 +1218,6 @@
 }
 /* U41(Q39 / Q40):面板裡的清單可以捲,捲軸**細、深灰、不要漸層**。
    顏色走 Obsidian 的變數(視覺基準:深淺色自動跟著變,不寫死色碼)。 */
-.tk-board .tk-細捲 { scrollbar-width:thin; scrollbar-color:var(--scrollbar-thumb-bg) transparent; }
 .tk-board .tk-細捲::-webkit-scrollbar { width:6px; height:6px; }
 .tk-board .tk-細捲::-webkit-scrollbar-thumb { background:var(--scrollbar-thumb-bg); border-radius:3px; }
 .tk-board .tk-細捲::-webkit-scrollbar-track { background:transparent; }
