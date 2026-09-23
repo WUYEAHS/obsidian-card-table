@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260923v1";
-const 插件版本 = "1.6.5";
+const 看板版本 = "260923v2";
+const 插件版本 = "1.6.6";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -846,8 +846,15 @@ function 拆首行(首, 名單) {
   const 拿 = 拿欄(m[3]);
   let 本 = 拿.剩.replace(/^[ \t]+/, "");
   const 值 = (k) => { const f = 拿.欄.find(x => x.鍵 === k); return f ? f.值 : null; };
+  /* 1.6.6-B1(使用者:「link[anything] 後面放 [#主題] 主題會沒有生效」):
+     主題Re 是 `^` 開頭比對,前面已經有一個 [文字](url) 連結的話整條就比對失敗,
+     後面真正的 [主題] 永遠比對不到。先把開頭連續的 markdown 連結跳過去,主題可能接在它們後面。 */
+  const 連結頭Re = /^\[(?:[^\]\n]){1,120}\]\([^)\n]*\)\s*/;
+  let 連結前綴 = "", 略m;
+  while ((略m = 連結頭Re.exec(本))) { 連結前綴 += 略m[0]; 本 = 本.slice(略m[0].length); }
   const 主 = 主題Re.exec(本);
   if (主) 本 = 本.slice(主[0].length);
+  本 = 連結前綴 + 本;                 // 連結不是主題,原樣放回內容裡
   // 日期:start / due;沒有的話看舊的 ＠{} / @{} 標記
   const 始 = (日式Re.exec(值("start") || "") || [])[1] || null;
   const 到 = (日式Re.exec(值("due") || "") || [])[1] || null;
@@ -2578,10 +2585,6 @@ function 清掉落點線() {
     document.querySelectorAll(".tk-board .tk-列").forEach(x => { x.style.boxShadow = ""; });
   } catch (e) {}
 }
-function 分類樣式類(色) {
-  return "padding:1px 9px;border-radius:11px;white-space:nowrap;" +
-    "color:" + 色 + ";background:" + 透明(色, 0.16) + ";";
-}
 function 透明(hex, a) {
   const h = String(hex).replace("#", "");
   const 六 = h.length === 3 ? h.split("").map(x => x + x).join("") : h;
@@ -3277,14 +3280,16 @@ class 看板視圖 extends TextFileView {
     曆.onclick = (e) => { e.stopPropagation(); this.切行事曆(); };
     曆.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); this.切行事曆(); } };
     /* 1.6.5-U4(使用者 09-22:「第一 header 改成篩選的日期 不要固定顯示今日日期」):
-       這一列寫的是**正在篩的期間**(跟清單表同一個 篩選標題()),右邊寫這個範圍裡有幾張;
-       今日日期搬到最上面那一列(U5)。點標題列照舊回到今天。 */
+       這一列寫的是**正在篩的期間**(跟清單表同一個 篩選標題());今日日期搬到最上面那一列(U5)。
+       點標題列照舊回到今天。
+       CR-1.6.6-02 §2(使用者:「我還是看得到兩個全部篩選的張數,一個在裡面 icon 右邊、一個在左邊」):
+       這裡本來還寫一次 過濾(全).length,跟 ⋯ 彈出裡 chevron-left 右邊那顆總數是同一個數字 ——
+       拿掉,張數統一看 ⋯(跟 CR-1.6.6-01 §1 清單表同一條規則)。 */
     const 期 = 頭.createDiv({ text: this.篩選標題() });
     期.addClass("tk-頭字"); 期.addClass("tk-今色");
     期.setAttribute("aria-label", T.backToToday);
     頭.onclick = () => { this.回到今天(); this.畫(); };
     頭.createDiv().addClass("tk-撐");
-    頭.createDiv({ text: (this.過濾(全).length + " " + T.cards).trim() }).addClass("tk-頭數");
     this.畫顯示彈出(頭, 全);
     if (收) return;
     const 條 = 塊.createDiv();
@@ -3330,19 +3335,23 @@ class 看板視圖 extends TextFileView {
         設.完成 = (態 === "全部" || 態 === "完成");
         await this.插件.存設定(); this.畫();
       };
-      /* 1.6.5 第二輪(使用者 09-22):
-         ・左邊那顆不寫「全部」兩個字,改成 **tally-2 圖示 + 灰字「全部張數/未完成張數」**;
-         ・已完成 / 未完成兩顆**不寫張數**(數字只留一處,不然三個數字互相干擾)。
-         ⚠ 這兩個數字本來就是**日期篩選之後**的(顯示數() 走 基底 + 合日期),不是整份筆記的總數。 */
-      const 全鈕 = 鈕(段, this.顯示數(全, "全部") + "/" + this.顯示數(全, "未完成"),
-        ["tally-2", "tally", "equal"], 全開, () => 設態("全部"), "tk-全鈕");
+      /* 1.6.6-U10(使用者,推翻 1.6.5-B2 第二輪的定案;CR-1.6.6-01 §1 訂正:
+         「最左邊的 3」指的是**清單表標題列**那顆,不是置頂表、也不是這一顆):
+         左邊那顆是 chevron-left 圖示 + 總張數(圖示在左、數字在右,鈕() 本來就是這個順序);
+         未完成的數字改寫在「未完成」那顆選項後面,已完成那顆不寫數字。 */
+      /* CR-1.6.6-04(使用者:「未完成後面的數字不要粗體,要跟張數一樣的字體」):
+         數字分出來自己一個 span(.tk-鈕數),不跟著 .tk-段鈕.tk-亮 的 font-weight:600 走 ——
+         數字是資料,不是狀態。「全部」那顆一起改,不然同一個彈出裡兩種數字長得不一樣。 */
+      const 數字 = (b, n) => { b.createSpan({ text: String(n) }).addClass("tk-鈕數"); return b; };
+      const 全鈕 = 數字(鈕(段, "", ["chevron-left"], 全開, () => 設態("全部"), "tk-全鈕"),
+        this.顯示數(全, "全部"));
       全鈕.setAttribute("aria-label", T.all);
       const 內 = 段.createDiv();
       內.addClass("tk-段內");
       鈕(內, T.showDone, ["circle-check", "check-circle"],
         全開 || (!!設.完成 && !設.未完成), () => 設態("完成"));
-      鈕(內, T.showTodo, ["circle"],
-        全開 || (!!設.未完成 && !設.完成), () => 設態("未完成"));
+      數字(鈕(內, T.showTodo, ["circle"],
+        全開 || (!!設.未完成 && !設.完成), () => 設態("未完成")), this.顯示數(全, "未完成"));
     }
     const 更 = 頭.createDiv();
     更.addClass("tk-頭鈕");
@@ -3745,27 +3754,12 @@ class 看板視圖 extends TextFileView {
       this.畫設定面板(外塊); return;
     }
 
-    // ---- 詳細編輯模式:標題列是 📅 這張卡片的日期(點了開行事曆);分類圓點和常用主題在第三排 ----
+    // ---- 詳細編輯模式:1.6.6-U4(使用者:「header 日期拿掉,圓點跟常用主題一樣放第一排」)——
+    //    標題列不再放日期,分類圓點、常用主題、循環選單都在第一排;日期改看送出鈕上方的灰字。 ----
     const 詳 = !!s.詳細;
     let 題排 = 頭;
     if (詳) {
-      const 日 = 頭.createDiv();
-      日.addClass("tk-頭圖"); 日.addClass("tk-可點");
-      日.setAttribute("role", "button"); 日.setAttribute("tabindex", "0");
-      日.setAttribute("aria-label", T.calendar);
-      圖備(日, ["calendar", "calendar-days"], 13);
-      const d = this.新增日期();
-      const 日字樣 = 日.createSpan({ text: d.起 ? 日期範圍字(d.起, d.迄) : T.noDate });
-      日字樣.addClass("tk-頭字"); 日字樣.style.marginLeft = "5px"; 日字樣.style.color = "var(--text-normal)";
-      日.onclick = (e) => { e.stopPropagation(); this.切行事曆(); };
-      /* U30(mockup v9 #12,使用者「如果是按循環 在這邊加一個選單」):日期右邊的「🔁 每 2 週 ▾」。
-         U24(Q20,使用者「循環只在 time filter 按循環時才出現選項,通常都是不循環」):
-         **只有時間篩選選到「週期」那格、或這張卡片已經設了循環**才畫,平常不佔位。 */
-      if ((s.篩 || {}).型 === "週期" || s.新循環) this.畫循鈕(頭, "tk-頭循");
       頭.createDiv().addClass("tk-撐");
-      /* ⚠ mockup v16 的詳細編輯**沒有**「[‹ 週 ›][‹ 日 ›]」那一排(舊的 畫小篩)——
-         日期就是標題列上的 📅 + 日期,要改日期點它開行事曆。使用者 09-20 問「日期 layout 改了你有看嗎」,
-         那一排在這裡拿掉了(要找舊的程式看 git 的 畫小篩)。 */
       題排 = 外塊.createDiv();
       題排.addClass("tk-題排");
     }
@@ -3774,6 +3768,9 @@ class 看板視圖 extends TextFileView {
     if (s.新分類 === null || 區.indexOf(s.新分類) < 0) s.新分類 = 區[0] || "紅色";
     const 點座 = 題排.createDiv();
     點座.addClass("tk-點座");
+    /* 1.6.6(使用者臨時加項:「新增卡片的圓點 右移 2pt」):只在**詳細編輯**自己的第一排調整 ——
+       壓縮狀態的標題列圓點是「溝後面第一個東西在 22」那條基準線(U25 / M3 / M17),不能動。 */
+    if (詳) 點座.style.marginLeft = "2px";
     點座.setAttribute("role", "button"); 點座.setAttribute("tabindex", "0");
     const 點 = 點座.createDiv();
     點.addClass("tk-點");
@@ -3790,9 +3787,11 @@ class 看板視圖 extends TextFileView {
     上色();
     /* 1.6.5-U2(使用者 09-22:「換顏色即是篩選特定區域」):
        換分類 = 同時只看那一區(`狀態.區篩`,篩在 基底()),清單標題列會寫一顆「#分類名」膠囊。
-       置頂卡片不在那一區也會一起被篩掉(使用者確認)。預設不篩選:只有真的點過才會設。 */
+       置頂卡片不在那一區也會一起被篩掉(使用者確認)。預設不篩選:只有真的點過才會設。
+       1.6.6-B4(使用者 09-23:「按特定 section 查詢 icon,再切到別的 section,要自動取消原本搜尋的狀態」):
+       點名字只換放置區、不碰篩選狀態,舊篩選會停在原本那一區、跟畫面上換掉的圓點對不起來 —— 换到別區時把舊篩選清掉。 */
     點座.onclick = (e) => { e.stopPropagation(); this.開分類清單(點座, s.新分類,
-      (n) => { s.新分類 = n; this.畫(); },                      // 點名字 = 只換要放到哪一區
+      (n) => { s.新分類 = n; if (s.區篩) s.區篩 = null; this.畫(); },   // 點名字 = 換放置區,順便取消舊篩選
       false,
       (n) => { s.新分類 = n; s.區篩 = n; this.畫(); }); };       // 按 ⊞→ = 順便只看那一區
     const 區篩中 = s.區篩 === s.新分類 && !!s.區篩;
@@ -3811,6 +3810,10 @@ class 看板視圖 extends TextFileView {
     常.addClass("tk-常用列");
     // U26 / U31:新增卡片和詳細編輯兩處的常用主題都可以收合(小箭頭在「☰ 57」右邊,預設收起)
     this.畫常用主題列(常, 全, true);
+    /* 1.6.6-U4(使用者:「按循環時出現的選單 改放在編輯欄位裡面(當選循環卡片時出現)」):
+       循環選單從標題列搬到第一排,跟圓點、常用主題同一排;只有詳細編輯才有這一排,
+       所以只在 詳 底下畫 —— 條件照舊:時間篩選在「週期」、或這張卡片已經設了循環才畫,平常不佔位。 */
+    if (詳 && ((s.篩 || {}).型 === "週期" || s.新循環)) this.畫循鈕(題排);
 
     // ---- 指派人:頭像 + 右上角小 ▾ ----
     let 選值 = "";
@@ -3883,8 +3886,13 @@ class 看板視圖 extends TextFileView {
     送.onclick = () => this.送出新增();
     送.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this.送出新增(); } };
     if (詳) {
-      // 詳細編輯:送出鈕自己一排、靠右,寫「送出」(不寫日期,日期看標題列)
+      // 詳細編輯:送出鈕自己一排、靠右,寫「送出」
       送.remove();
+      /* 1.6.6-U4(使用者:「編輯框的日期拿掉,送出上方要有灰字顯示目前送出的日期」):
+         標題列不再放日期(見上面),改在送出鈕正上方一行灰字,跟著卡片上的日期即時變。 */
+      const 日排 = 外塊.createDiv();
+      日排.addClass("tk-送日");
+      日排.setText(this.新增去向短());
       const 送排 = 外塊.createDiv();
       送排.addClass("tk-送排");
       送排.appendChild(送);
@@ -4141,11 +4149,16 @@ class 看板視圖 extends TextFileView {
     const 滿 = 已選.length >= 主題上限;
     全主題.slice(0, Math.max(12, 釘.length)).forEach(t => {
       const 已釘 = 釘.indexOf(t) >= 0;
+      /* CR-1.6.6-01 §2(使用者訂正②:「x 不應該放在查主題右邊,而是要放在輸入編輯欄位」):
+         這一排是**目錄**(有哪些主題可以用),不是內容 —— 只標「已經選進去了」(淡 accent 外框),
+         不再長 ×。要取消主題就在輸入框裡把 #題 那幾個字刪掉(§2b 的 CM decoration 版本使用者取消了)。
+         點已選中的那顆照舊走 帶入主題():它本來就會偵測重複、不會重複塞字。 */
+      const 選中 = !點題 && 已選.indexOf(t) >= 0;
       const b = 容器.createDiv();
       b.addClass("tk-主題");
       if (已釘) b.addClass("tk-已釘題");
-      const c = this.插件.分類色(this.主題分類(全, t));
-      b.style.color = c; b.style.background = 透明(c, 0.14);
+      if (選中) b.addClass("tk-已選題");
+      // 1.6.6-U7:主題膠囊跟分類脫鉤,這裡也不再讀分類色 —— 跟卡片上的主題膠囊同一種中性色(.tk-主題 的 CSS)。
       const 不能按 = 滿 && 已選.indexOf(t) < 0;
       if (不能按) { b.addClass("tk-題滿"); b.setAttribute("aria-disabled", "true"); }
       else b.setAttribute("role", "button");
@@ -4153,7 +4166,7 @@ class 看板視圖 extends TextFileView {
       b.createSpan({ text: 截寬(t, 主題顯寬) });     // C22 / U16:最多 6 個中文字,全名在 aria-label
       b.setAttribute("aria-label", "#" + t + " · " + (次[t] || 0) +
         (不能按 ? "\n" + T.topicFull : "\n" + (已釘 ? T.unpinTopic : T.pinTopic) + " → 右鍵"));
-      b.onclick = (e) => { e.stopPropagation(); if (不能按) return; if (點題) 點題(t); else this.帶入主題(t); };
+      b.onclick = (e) => { e.stopPropagation(); if (點題) { 點題(t); return; } if (不能按) return; this.帶入主題(t); };
       b.oncontextmenu = (e) => {
         e.preventDefault(); e.stopPropagation();
         const m = new Menu();
@@ -4221,7 +4234,9 @@ class 看板視圖 extends TextFileView {
     熱.forEach(t => {
       const 已釘 = 釘.indexOf(t) >= 0;
       const b = 常框.createEl("button");
-      st(b, 分類樣式類(this.插件.分類色(this.主題分類(全, t))) +
+      // 1.6.6-U7:主題膠囊跟分類脫鉤,不再讀分類色(唯一的呼叫處,順手刪掉 分類樣式類())。
+      st(b, "padding:1px 9px;border-radius:11px;white-space:nowrap;" +
+        "color:var(--text-normal);background:var(--background-modifier-hover);" +
         "font-size:0.72em;height:20px;padding:0 8px;cursor:pointer;white-space:nowrap;" +
         // 一顆就比整個框還長的主題:出省略號,不要撐破框
         "flex:0 0 auto;max-width:100%;overflow:hidden;text-overflow:ellipsis;" +
@@ -4286,6 +4301,11 @@ class 看板視圖 extends TextFileView {
     this.畫();
     setTimeout(() => this.聚焦輸入(), 0);
   }
+
+  /* CR-1.6.6-01 §2b 取消(使用者 2026-09-23):原本這裡有 移除主題(),給常用主題那排的 × 用。
+     × 已經還原拿掉(它屬於「這張卡片有哪些主題」= 輸入框的內容,不屬於「有哪些主題可以用」= 目錄),
+     改長在輸入欄位 tag 上的版本也決定不做,所以整個函式和 T.removeTopic 一起刪掉 ——
+     留著沒人呼叫的函式,下一個人看不出它為什麼在。要取消主題就在輸入框裡把 #題 那幾個字刪掉。 */
 
   搜尋中() { return !!String(this.狀態.搜尋 || "").trim(); }
 
@@ -4865,6 +4885,9 @@ class 看板視圖 extends TextFileView {
        ⚠ 工具「⋯」、搜尋膠囊、融合列只放在**最上面那一張表**(有置頂就是置頂那張)。 */
     const 頂 = 顯.filter(k => k.置頂), 其餘 = 顯.filter(k => !k.置頂);
     if (頂.length) {
+      /* CR-1.6.6-01 §1(訂正上一輪拿錯顆):置頂表**要寫自己這一區的張數** ——
+         那是這一區獨有的資訊(有幾張被釘住),跟 ⋯ 上面的總數不重複。
+         重複的是**清單表**標題列那顆(見下面),它跟 ⋯ 裡的總數是同一個數字。 */
       const 頂塊 = this.畫卡片塊(根, { 標題: T.pinnedBlock, 圖示: "pin", 卡們: 頂, 帶工具: true, 全: 全,
         收合鍵: 置頂收合鍵 });
       /* 1.6.5-U6(C26,使用者 09-22):置頂表和清單表**黏在一起** —— 中間不留空隙(1.5.1 的 5px → 0),
@@ -4932,8 +4955,9 @@ class 看板視圖 extends TextFileView {
       圖框.setAttribute("aria-label", 設.標題);
     }
     /* 1.6.3(mockup v15 Q30、v16):**張數在日期前面** —— 掃的時候先看到「幾張」,再看是哪一天 */
-    /* 1.6.5 第三輪(使用者 09-22:「header 左邊不要顯示灰色張數」):清單表的標題列不寫張數 ——
-       張數現在看 ⋯ 上面那顆(全部/未完成,而且跟著時間篩選走)。置頂表照舊寫,那裡張數是唯一的資訊。 */
+    /* 1.6.5 第三輪(使用者 09-22:「header 左邊不要顯示灰色張數」)+ CR-1.6.6-01 §1:
+       **清單表**不寫張數(它跟 ⋯ 上面那顆總數是同一個數字,寫兩次);
+       **置頂表照寫**(那一區自己有幾張,別的地方看不到)。旗標由 畫清單() 傳。 */
     if (!設.隱張數) 頭.createDiv({ text: (卡們.length + " " + T.cards).trim() }).addClass("tk-頭數");
     /* 1.6.5 第三輪(使用者 09-22:「還是要重複寫日期 這樣比較清楚」):
        清單表的標題列**照舊寫篩選期間**(推翻同一天稍早的 Q14「拿掉」)。 */
@@ -5359,11 +5383,17 @@ class 看板視圖 extends TextFileView {
      字一律從 18px 開始(styles.css 的 .tk-列 > .tk-格),見技能 card-table-ui-rules 的「三條線」。 */
   畫卡片(列, k, 未定) {
     列.__未定 = !!未定;
+    // 1.6.6-U3(使用者:「色條變粗 + 卡片淡底」):不加外框,免得破所見即所得(原則 10)。
+    if (this.狀態.編修 === k.鍵) 列.addClass("tk-編修列");
     this.畫色條(列, k);
     /* 📌 在色條上面(✓ 的上方,使用者 09-19 v7 留言):釘住的一直在;沒釘的滑過卡片才出現,色條往下讓位 */
     if (!未定 && !this.是封存(k)) {
       const 釘 = this.畫釘(列, k);
       釘.addClass("tk-溝釘");
+      /* CR-1.6.6-03(使用者:「pin 改成在色線上面,色線收短留空間給 pin,不要放在上面」):
+         📌 不再疊在色條上,而是排在色條**正上方** —— 色條要往下縮才有位置。
+         只有真的畫了 📌 的列才縮(未定 / 封存區沒有 📌,色條照舊從 8 開始)。 */
+      列.addClass("tk-有釘");
       if (k.置頂) 列.addClass("tk-頂列");
     }
     const 內 = 列.createDiv();
@@ -5441,11 +5471,18 @@ class 看板視圖 extends TextFileView {
        ⚠ 1.4.4:顏色和透明度搬進 CSS(.tk-釘 / .tk-已釘)。以前寫成 inline,
          滑過整列要把它亮起來就只能用 !important 去蓋。 */
     if (k.置頂) 釘.addClass("tk-已釘");
+    /* ⚠ transition 要把 width / background-color 也列進來:這是 inline style,
+       會整條蓋掉 styles.css 那條 —— 只寫 opacity,color 的話,hover 變寬和底色淡入是硬切的。 */
     st(釘, "display:inline-flex;cursor:pointer;line-height:0;user-select:none;flex:0 0 auto;" +
-      "transition:opacity .12s ease,color .12s ease;");
-    // mockup v14/v16:📌 是 12px(溝裡 left 4 / top 5 的那個 12 × 12 盒子)。
-    // ⚠ 以前畫 15:比盒子大,check4 會報「裝不下自己」(14>12),而且圖示邊緣被切掉。
-    圖(釘, "pin", 12);
+      "transition:opacity .12s ease,color .12s ease,width .12s ease,background-color .12s ease;");
+    /* CR-1.6.6-04(使用者:「pin size 可以再放大一點嗎」+「background 大小不要動,裡面的 pin icon 放大」):
+       icon 7 → **9px**,底色膠囊**維持 7 × 12** —— icon 左右各露出 1px(styles.css 那邊 overflow:visible)。
+       ⚠ 要再放大就得動膠囊寬度;check.js 的例外只容許 +3(= icon 最多 10)。
+       ⚠ 這個數字**一定要在這裡給**,不能寫 CSS 去蓋:圖() 會把大小寫成 svg 的 inline style
+         和外面那顆 .cjb-ico span 的 inline width,CSS 規則權重再高也贏不了 inline。
+         1.6.6 就是這樣「修」的(styles.css 寫了 .tk-溝釘 svg{width:7px}),結果 icon 還是 12px、
+         被 7px 的溝 overflow:hidden 切掉半邊,check4 一路報 13 筆 9>7(12 置中溢出右邊 2.5px)。 */
+    圖(釘, "pin", 9);
     釘.title = k.置頂 ? T.unpin : T.pin;
     釘.onclick = (e) => { e.stopPropagation(); this.切置頂(k); };
     return 釘;
@@ -5568,10 +5605,11 @@ class 看板視圖 extends TextFileView {
        個人模式(關掉「使用指派人」)整欄不畫,主題直接從 18 開始。 */
     if (!this.個人) this.畫頭像(左組, k);
     if (編修中) {
-      /* ⚠ R1(UI/UX critic,使用者 09-20 同意):編輯時主題**照樣是分類色膠囊 + 一條底線**,
+      /* ⚠ R1(UI/UX critic,使用者 09-20 同意):編輯時主題**照樣是膠囊 + 一條底線**,
          不變成灰色輸入框 —— 所見即所得(原則 10):字的 x、大小、粗細、顏色都不准變,只多一條底線。
-         尺寸跟 styles.css 的 .tk-主題 一模一樣(高 17、圓角 8、左右內距 2、第一顆往左 2px)。 */
-      const c編 = this.插件.分類色(k.分類);
+         尺寸跟 styles.css 的 .tk-主題 一模一樣(高 17、圓角 8、左右內距 2、第一顆往左 2px)。
+         1.6.6-U7:膠囊改中性色,這裡也跟著用 --background-modifier-hover / --text-normal,不然一按編輯顏色會跳。 */
+      const c編 = "var(--text-normal)", 底編 = "var(--background-modifier-hover)";
       const 題輸 = 左組.createEl("input", { type: "text" });
       題輸.value = k.主題 || "";
       題輸.placeholder = T.topic;
@@ -5586,9 +5624,13 @@ class 看板視圖 extends TextFileView {
          inline 的權重蓋過 class,那條 -2px 就失效,字會比閱讀模式往右多 2px(原則 10 的 WYSIWYG 就破了)。 */
       st(題輸, "flex:0 0 auto;height:17px;min-height:0;margin-top:0;margin-right:0;margin-bottom:0;" +
         "box-sizing:content-box;padding:0 2px;outline:none;" +
-        "border:0;border-bottom:1px solid " + c編 + ";" +
+        /* CR-1.6.6-06(使用者:「主題下方不要特別顏色,不需要 stroke 顏色,fill 就好」):
+           底線改成透明 —— 編輯中只靠**底色**(fill,底編)表示,不再多畫一條線。
+           ⚠ 那 1px 只能變透明、不能拿掉:content-box 之下它算進高度,
+             拿掉主題會往上跳 1px,閱讀 ↔ 編輯就對不齊(原則 10;measure 的 M13 在守這條)。 */
+        "border:0;border-bottom:1px solid transparent;" +
         "line-height:17px;font-size:0.8em;font-weight:700;border-radius:8px;" +
-        "background:" + 透明(c編, 0.16) + ";color:" + c編 + ";");
+        "background:" + 底編 + ";color:" + c編 + ";");
       量題寬();
       /* ⚠ class 一定要掛:點外面結束編輯的那個監聽器靠它認出「這是編輯的一部分」(1.4.6 修)。
          完成編輯() 也是從這一列找這個 class 讀主題,不再用一個掛在 view 上的變數 ——
@@ -5596,7 +5638,9 @@ class 看板視圖 extends TextFileView {
       題輸.addClass("tk-題編");
       /* C22(使用者 09-20:「要限制使用者不能打超過六個字」):打超過 6 個中文字寬就當場不讓他打進去。
          ⚠ 不用 maxlength:那個算的是字元數(中文 6 個 = 英文 6 個),我們要的是**字寬**。
-         ⚠ 注音 / 拼音組字中(isComposing)不動,不然會把打到一半的字吃掉。 */
+         ⚠ 注音 / 拼音組字中(isComposing)不動,不然會把打到一半的字吃掉。
+         ⚠ 1.6.6-U2 一開始做錯地方:這裡是**已經存在的卡片**的主題編輯,已成為卡片的主題不需要 ×
+           (使用者訂正:「應該是放在新增卡片編輯模式的 tag 處」)—— × 移到 畫常用主題列()。 */
       題輸.oninput = (e) => {
         if (e && e.isComposing) { 量題寬(); return; }
         const 短 = 題限(題輸.value);
@@ -5611,20 +5655,18 @@ class 看板視圖 extends TextFileView {
     } else if (k.主題) {
       /* 1.6.3(ADR 1.6.3-01)最多 3 個主題。膠囊樣子在 styles.css 的 .tk-主題
          (圓角 8、左右內距 2、高 17 —— 使用者在 mockup 自己調的)。第一顆往左 2px,字才對齊 18px 那條線。
-         ⚠ mockup v15/v16 Q35 定案(使用者 09-20:「其他做副標」):
-           **只有第一個 # 是主題**(分類色膠囊),第二個以後是**副標**:內文色、沒有底色。
-           以前全部同一個分類色,一張卡片三顆同色膠囊分不出主次(Q23 的暫定 A 作廢)。 */
-      const c = this.插件.分類色(k.分類);
-      (k.主題們 && k.主題們.length ? k.主題們 : [k.主題]).forEach((題, i) => {
+         1.6.6-U7(使用者 09-22:「跟分類脫鉤 或其他更適合的顏色 比較平穩不會重複其他視覺」):
+           膠囊改中性色(styles.css 的 .tk-主題 直接寫死 --background-modifier-hover / --text-normal),
+           不再讀分類色 —— 分類色只留給左邊色條和 `#分類名`。
+         1.6.6-U8(使用者:「複數個也可以每個都顯示一樣」,推翻 mockup v15/v16 Q35「第二個起是副標」):
+           三個主題**畫法完全一樣**,不再分主副標。 */
+      (k.主題們 && k.主題們.length ? k.主題們 : [k.主題]).forEach((題) => {
         const 題籤 = 左組.createDiv();
-        題籤.addClass(i === 0 ? "tk-主題" : "tk-副標");
+        題籤.addClass("tk-主題");
         /* C22 / U16(使用者 09-20 再講一次:「# 不超過 6 個中文字」):膠囊上最多 6 個中文字寬(= 12),
            超過就截掉補「…」;全名在 aria-label(滑過看得到)。 */
         const 短 = 截寬(題, 主題顯寬);
-        畫文字(題籤, i === 0 ? 短 : "#" + 短, this.app, this.file ? this.file.path : "");
-        /* ⚠ 顏色寫成 CSS 變數、不直接寫 color:淺色主題要把字**混黑加深**(Q8:對比 1.8 → 4.9–5.6),
-           規則在 styles.css。寫 inline 的話 Obsidian 切深淺色時不會跟著變(視覺基準:只用 CSS 變數)。 */
-        if (i === 0) { 題籤.style.setProperty("--tk-題色", c); 題籤.style.background = 透明(c, 0.16); }
+        畫文字(題籤, 短, this.app, this.file ? this.file.path : "");
         題籤.setAttribute("aria-label", "#" + 題 + " —— 點一下只看這個主題");
         題籤.onclick = (e) => { e.stopPropagation(); this.帶入主題(題); };
       });
@@ -6129,7 +6171,14 @@ class 看板視圖 extends TextFileView {
        以前是自己一行一行畫(畫預覽行),只認得連結、粗體那幾種,`---` 會變成字、巢狀清單被攤平。
        收合仿聊天軟體:平常露大約兩行,下緣淡出,「⋯⋯查看更多」釘在右下角;
        改成「限制高度」而不是數行數 —— 表格、分隔線沒有「行」可以數。 */
-    const 原 = k.內容原 || [];
+    /* 1.6.6-U5(使用者:「卡片顯示如果有 # 預覽模式 主題統一放在第一行 不要重複」):
+       題行已經把主題畫成膠囊了,內容第一行如果**就是**那個主題(使用者自己在內容裡也打了一次 #主題),
+       畫面上不用再畫一次 —— 只改畫面,檔案裡的字照留。 */
+    const 主題們 = k.主題們 && k.主題們.length ? k.主題們 : (k.主題 ? [k.主題] : []);
+    const 首行重複 = (t) => 主題們.some(題 => t === "#" + 題 || t === 題);
+    let 原 = k.內容原 || [];
+    const 首非空 = 原.findIndex(t => t.trim());
+    if (首非空 >= 0 && 首行重複(原[首非空].trim())) 原 = 原.slice(0, 首非空).concat(原.slice(首非空 + 1));
     if (!原.length) return;
     const 開 = !!this.狀態.展開[k.鍵] || !!this.狀態.展開全部;
     const 多 = 原.filter(t => t.trim()).length > 2;
@@ -6451,6 +6500,10 @@ class 看板視圖 extends TextFileView {
        最後一張卡片那一瞬間整份看板變矮,捲動位置就被夾到新的底,之後回不去。 */
     const ce = this.contentEl, 捲 = ce.scrollTop;
     this.畫內文(格, k, 列);
+    /* CR-1.6.6-07(使用者回報:「編輯時色線沒有保持 hover 的寬度」):
+       ⚠ tk-編修列 掛在**列**上,但這裡只重畫那一格 —— 只有整份重畫(畫卡片)才會跑到那行 addClass,
+         所以按 ✎ 進編輯時色條一直沒變寬。在這裡自己同步一次。 */
+    列.toggleClass("tk-編修列", this.狀態.編修 === k.鍵);
     ce.scrollTop = 捲;
     this.清即時();
   }
@@ -7853,6 +7906,24 @@ class 確認框 extends Modal {
    每一項:[Lucide 圖示名, 標題, 說明]
    ============================================================ */
 const 更新介紹 = {
+  "1.6.6": {
+    "zh-TW": [
+      ["pin", "置頂鈕長在色條上方,不擋分類色", "📌 從「疊在分類色條上」改成排在色條正上方。沒釘的平常隱形,滑過卡片才浮出來;釘住的一直看得到。"],
+      ["tag", "主題膠囊改中性色", "主題不再跟著分類上色 —— 分類色只留給左邊的色條和 #分類名。一張卡片上的三個主題長得完全一樣。"],
+      ["square-pen", "編輯時不再多一個框", "按 ✎ 編輯時,卡片只有淡淡的底色,不再畫一圈框線;主題輸入框下面那條線也拿掉了,字的位置跟閱讀時完全一樣。"],
+      ["calendar", "編輯框不再有日期欄", "日期只從卡片上的日期格改(一個入口)。新增卡片時,送出鈕上面會用灰字寫這張會送出的日期。"],
+      ["list-filter", "張數不再重複寫", "同一個數字以前寫兩次。現在總數只在「⋯」裡,置頂表寫自己那一區有幾張,清單和時間篩選那一列不再重複。"],
+      ["bug", "修掉三個 bug", "連結後面接 [#主題] 現在讀得到;編輯時第一行打 # 不會變成大標題;用分類圓點篩選後換到別區,舊的篩選會跟著清掉。"]
+    ],
+    "en": [
+      ["pin", "The pin sits above the colour bar", "📌 no longer overlaps the section colour bar — it sits right above it. Unpinned cards hide it until you hover the row; pinned cards always show it."],
+      ["tag", "Title capsules are neutral now", "Titles no longer take the section colour — that colour is reserved for the bar on the left and the #section name. All three titles on a card look the same."],
+      ["square-pen", "No extra box while editing", "Editing a card now shows only a soft background tint instead of drawing a frame, and the line under the title input is gone. Text stays exactly where it was when reading."],
+      ["calendar", "No date field in the edit box", "Dates are changed from the date cell on the card — one entry point. When adding a card, a grey line above the submit button tells you which date it will get."],
+      ["list-filter", "Counts are no longer written twice", "The same number used to appear in two places. The total now lives in the “⋯” menu only; the pinned table shows its own count, and the list and time-filter headers no longer repeat it."],
+      ["bug", "Three bug fixes", "A [#title] after a markdown link is parsed again; typing # on the first line while editing no longer turns it into a heading; and switching sections now clears the previous section filter."]
+    ]
+  },
   "1.6.1": {
     "zh-TW": [
       ["file-text", "Tasks、Dataview 讀得懂的格式", "卡片改用 [欄位:: 值]:日期 [due:: 2026-09-16]、區間 [start:: …] [due:: …]、循環 [repeat:: every 2 weeks],Tasks 和 Dataview 的查詢都看得到。"],
@@ -7959,6 +8030,13 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.6.6",
+    ["卡片左邊整理過:📌 排到分類色條的正上方、不再疊著,沒釘的滑過才出現;卡片第一行跟著上移對齊。",
+     "主題膠囊跟分類脫鉤改中性色,三個主題長得一樣;編輯時不再畫框,只有淡底,字的位置跟閱讀時完全一致。",
+     "編輯框拿掉日期欄(日期只從卡片上改),張數不再重複寫;修掉連結後面的主題、編輯時 # 變大標題、換分類沒清舊篩選三個 bug。"],
+    ["The left edge of a card was reworked: 📌 now sits above the section colour bar instead of on top of it, and stays hidden on unpinned cards until you hover; the first row moved up to line up with it.",
+     "Title capsules are neutral instead of section-coloured and all three look alike; editing shows a soft tint instead of a frame, and text stays exactly where it was when reading.",
+     "The edit box lost its date field (dates are changed on the card), counts are no longer written twice, and three bugs were fixed: a title after a link, # becoming a heading while editing, and a stale section filter."]],
   ["1.6.5",
     ["看板最上面多一列今日日期(點了回到今日),時間篩選那一列改寫「現在篩的是哪一段」加張數,分類選單每一列多一顆「只看這一區」。",
      "未完成 / 已完成收成一組三選一,左邊的計數跟著時間篩選走;重複點不再跳動,跨年的區間年格會寫 26–27。",

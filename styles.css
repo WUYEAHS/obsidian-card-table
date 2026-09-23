@@ -300,19 +300,21 @@
    1.3 起編輯時看得到一個框(跟留言的輸入框同一套),不然進不進編輯模式幾乎看不出來。
    ⚠ 內容比主題再縮排一點就夠了 —— 不必在文字裡塞項目符號,
      那會變成使用者要自己管的字(刪一半、貼上時多一顆)。 */
+/* CR-1.6.6-05(使用者:「編輯欄位編輯框要隱藏不顯示,要有一些取代的視覺,
+   例如色線是 hover 的狀態(但不顯示打勾)」):框線、底色、外光暈全部拿掉,
+   改由**色條變成 hover 的寬度(11)**表示「這張正在編輯」(見 .tk-編修列 > .tk-色條)。
+   ⚠ border / padding / margin 的**尺寸一個都不能動**,只把顏色變透明 ——
+     那幾個數字是 1.6.2-CR-02 調出來的,拿掉 1px 框線,字就會從 18 位移、閱讀↔編輯對不齊
+     (原則 10 所見即所得,measure 的 M13 在守這條)。 */
 .tk-board .tk-編框 {
-  border:1px solid var(--text-accent);
+  border:1px solid transparent;
   border-radius:7px;
-  background:var(--background-primary);
+  background:transparent;
   /* 1.6.2(CR-02):框往上挪「上內距 + 框線」,裡面的字才會停在閱讀時的同一個高度(以前一按編輯往下掉 6.5px)。
      框線因此落在主題和內容之間的空隙裡。 */
   padding:3px 6px 6px 0;
   /* 左邊 -1px 抵掉自己的框線,編輯時的字才跟閱讀時一樣停在 18(R1 / 原則 10) */
   margin:-4px 0 4px -1px;
-  box-shadow:0 0 0 2px color-mix(in srgb, var(--text-accent) 14%, transparent);
-}
-@supports not (background: color-mix(in srgb, red 10%, transparent)) {
-  .tk-board .tk-編框 { box-shadow:none; }
 }
 /* 1.6.1 即時預覽編輯器(Obsidian 自己的 CodeMirror,見 main.js 的 建即時編輯)。
    拿掉它當成整頁筆記用的邊距、可讀行寬、底部捲動空白,讓它在卡片裡跟原本的 textarea 一樣大。
@@ -325,6 +327,9 @@
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-contentContainer { min-height:0; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-content { padding:0; min-height:1.55em; font-size:0.94em; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-line { padding-inline:0; }
+/* 1.6.6-B2:卡片內容打 #主題,CM6 當成 markdown 標題放大 —— 只在卡片的即時編輯器裡壓回 1em,不影響一般筆記。 */
+.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-line.HyperMD-header,
+.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-header { font-size:1em; font-weight:inherit; }
 .tk-board .tk-即時編 > .markdown-source-view { flex:1 1 auto; min-width:0; width:100%; }
 /* ⚠ 1.6.1 iPhone 實測:內容框上面空出一大段、字被推到框的最底下。
    Obsidian 手機版為了浮動標題列,給編輯器加了
@@ -450,7 +455,15 @@
   min-width:0;
   margin:0;
   /* 1.6.3(mockup v16 .card):右邊 6px —— ⋯ 的右緣才跟標題列的 ⋯ 對齊 */
-  padding:7px 6px 8px 0;
+  /* CR-1.6.6-07(使用者:「卡片欄位(包括主題、編輯按鈕)整個上移,主題要跟 pin **底部**齊平」):
+     上內距 7 → 3,整格內容往上 4px,主題的底落在 📌 的底 +3。
+     ⚠ 動的是**整個第一行**(主題 / 日期 / ✎ / ⋯ 在同一個 flex 行裡,M8 保證他們共用同一條中線)——
+       這裡只有一個內距在控制,不會有「只有主題動、按鈕沒動」的事。
+     ⚠ 那個 +3 是使用者的視覺微調(「主題往下 1pt」講了三次,一次一格收斂出來的):
+       數學上齊平(0)看起來偏高,因為 📌 的圖形在自己的盒子裡上緣還留了一點空白。
+     ⚠ 色條和 📌 是 absolute(top 8 / 24),不受這個內距影響 —— 動的只有流程內容。
+     ⚠ measure 的 M5e 在守這條。 */
+  padding:3px 6px 8px 0;
   border:0;
   border-radius:0;
   background-color:var(--background-primary);
@@ -467,19 +480,20 @@
 .tk-board.tk-窄 .tk-列 > .tk-格 {
   padding-left:18px;
 }
-/* 分類色條 = 完成鈕:平常 4px,**從 3 開始**(溝的左邊那條紅線,跟 📌 對齊 —— 使用者 09-20:
-   「色線跟 pin 有沒有對齊?回去看 mockup 的輔助線」)。滑過**只往右長**出 ✓、上面浮出分類名;
-   完成 = 綠色,再點一次復原。⚠ 左緣一律 3:滑過時左緣跟著動的話,按的位置會晃(原則 11)。 */
+/* 分類色條 = 完成鈕。1.6.6(使用者:「色線貼齊左邊 table 直線,增加寬度往左貼齊」):
+   從 0 開始、寬度加大到 7(右緣維持在 7,跟 📌 對齊不變)。滑過**只往右長**出 ✓、上面浮出分類名;
+   完成 = 綠色,再點一次復原。⚠ 左緣一律 0:滑過時左緣跟著動的話,按的位置會晃(原則 11)。
+   CR-1.6.6-03(使用者:「pin 改成在色線上面,色線收短留空間給 pin,不要放在上面」):
+   ⚠ 推翻 1.6.6 的「色線可以被 📌 蓋過去」—— 疊在一起時 📌 的背景就是分類色,
+     每張卡片顏色都不一樣,對比失控(dark 模式幾乎看不到,見 CR-1.6.6-02 §1)。
+     現在兩個**上下排開、不重疊**:📌 在 8–20,色條從 24 開始(中間 4px,ui-rules 群組內 4)。
+     沒有 📌 的列(未定 / 封存區)色條照舊從 8 開始 —— 靠 .tk-有釘 區分。 */
 .tk-board .tk-色條 {
   position:absolute;
-  left:3px;
-  /* ⚠ 使用者 09-20:「碰到卡片色線不能動,要**碰到色線** pin 才會移出來」——
-     平常 8(滿版);**滑過卡片一個 px 都不動**;只有滑到色線自己,才往下讓 22px 出來給 📌。
-     不會抖:色條的 ::before 把「算滑到」的範圍一路含到卡片頂端(見底下),
-     色條往下讓位之後游標還在那個範圍裡,不會一直 hover → 離開 → hover。 */
+  left:0;
   top:8px;
   bottom:8px;
-  width:4px;
+  width:7px;
   border-radius:3px;
   background:var(--tk-sec, var(--background-modifier-border));
   color:var(--background-primary);
@@ -488,32 +502,25 @@
   justify-content:center;
   cursor:pointer;
   z-index:1;
-  transition:width .12s ease, left .12s ease;
+  transition:width .12s ease;
 }
-/* 按得到、算「滑到色線」的範圍:左邊只留 3(色條從 3 開始,再往左就跑出板子外面),
-   **上面一路含到卡片頂端** —— 平常色條在 8,所以 -8;讓位之後在 22,所以 -22。
-   這樣色條往下讓位的時候,游標還在同一個範圍裡(不會 hover → 離開 → 又回來地閃),
-   而且從色條往上移到 📌 的路上也不會斷掉。 */
-.tk-board .tk-色條::before {
-  content:"";
-  position:absolute;
-  inset:-8px -5px -6px -3px;
-}
-.tk-board .tk-色條:hover::before, .tk-board .tk-列.tk-頂列 > .tk-色條::before {
-  inset:-22px -5px -6px -3px;
-}
-.tk-board.tk-觸 .tk-色條::before {
-  inset:-22px -9px -8px -3px;
-}
+/* CR-1.6.6-03:畫了 📌 的列,色條從 24 開始(把 8–20 讓給 📌,中間留 4) */
+.tk-board .tk-列.tk-有釘 > .tk-色條 { top:24px; }
 .tk-board .tk-色條 .tk-色勾 { display:none; }
 .tk-board .tk-色條:hover, .tk-board .tk-色條:focus-visible {
-  width:9px;
+  width:11px;
   outline:none;
 }
 .tk-board .tk-色條:hover .tk-色勾, .tk-board .tk-色條:focus-visible .tk-色勾 { display:inline-flex; }
 .tk-board .tk-色條.tk-色條-完 { background:var(--color-green, #3aa76d); }
+/* 1.6.6-U3:編輯中的卡片色條變粗 + 卡片淡底,不加外框(原則 10 所見即所得)。 */
+.tk-board .tk-列.tk-編修列 { background-color:var(--background-modifier-hover); }
+/* CR-1.6.6-08(使用者:「編輯時色線 hover 取消」):編輯中**不再**把色條撐成 hover 的寬度。
+   這裡本來有 `.tk-列.tk-編修列 > .tk-色條 { width:11px }`(CR-05 §3 加的),整條拿掉 ——
+   編輯中還是看得出來:`.tk-編修列` 的卡片淡底還在(下面那條)。
+   ⚠ 色條的粗細從此**只表示滑鼠在上面**,不再兼差表示「正在編輯」—— 一個訊號只講一件事。 */
 .tk-board .tk-色條.tk-色條-復 {
-  width:9px;
+  width:11px;
   background:var(--text-muted);
 }
 .tk-board .tk-色名 {
@@ -534,6 +541,8 @@
 }
 .tk-board .tk-色條:hover .tk-色名 { display:block; }
 /* 主題膠囊(使用者在 mockup 自己調的:圓角 8、左右內距 2、高 17)。第一顆往左 2px,字對齊 18px */
+/* 1.6.6-U7(使用者:「跟分類脫鉤 或其他更適合的顏色 比較平穩不會重複其他視覺」):
+   中性色,Obsidian 的變數,深淺色自動跟著變,不用再混黑加深(Q8 那條淺色主題的特例跟著拿掉)。 */
 .tk-board .tk-主題 {
   display:inline-flex;
   align-items:center;
@@ -550,35 +559,16 @@
   text-overflow:ellipsis;
   cursor:pointer;
   box-sizing:border-box;
-  color:var(--tk-題色, var(--text-normal));
-}
-/* Q8(mockup v10/v12,使用者「ok」):**淺色主題**下膠囊的字太淡(對比 1.8–2.5,看不清楚)——
-   把分類色混黑加深到 4.9–5.6。深色主題不動(那邊本來就夠)。 */
-.theme-light .tk-board .tk-主題 { color:color-mix(in srgb, var(--tk-題色, var(--text-normal)) 58%, #000); }
-@supports not (color: color-mix(in srgb, red 50%, #000)) {
-  .theme-light .tk-board .tk-主題 { color:var(--tk-題色, var(--text-normal)); }
+  color:var(--text-normal);
+  background:var(--background-modifier-hover);
 }
 /* 膠囊的底色從 15 開始、字從 18(內距 2 + 1px 的視覺補正):是第一個的時候往左 2px。
    ⚠ 編修時的主題輸入框(.tk-題編)要用**同一條**規則,不然一按編輯主題就左右跳 2px(原則 10)。 */
 .tk-board .tk-題左 > .tk-主題:first-child,
 .tk-board .tk-題左 > .tk-題編:first-child { margin-left:-2px; }
-/* 1.6.3(mockup v15/v16 Q35):第二個以後的主題是**副標** —— 內文色、沒有底色、沒有膠囊 */
-.tk-board .tk-副標 {
-  display:inline-flex;
-  align-items:center;
-  height:17px;
-  font-size:0.8em;
-  font-weight:500;
-  line-height:1;
-  white-space:nowrap;
-  max-width:100%;
-  min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  cursor:pointer;
-  color:var(--text-normal);
-  box-sizing:border-box;
-}
+/* CR-1.6.6-06:這裡本來有 .tk-題x區 / .tk-題x(1.6.6-U2 的主題 × 移除鈕)。
+   U2 的 × 在 CR-1.6.6-01 §2a 就從 main.js 拿掉了、§2b 也取消了,這幾條**沒有任何元素掛得到** ——
+   照 CLAUDE.md「改版面的坑 #1」刪掉,不要留死規則。 */
 .tk-board .tk-題右 {
   display:flex;
   align-items:center;
@@ -890,8 +880,13 @@
 .tk-board .tk-三態 .tk-段鈕 { border:1px solid transparent; box-sizing:border-box; }
 .tk-board .tk-三態 .tk-段鈕.tk-亮 { border-color:var(--background-modifier-border-hover, var(--text-faint)); }
 .tk-board .tk-三態 .tk-段鈕.tk-全鈕.tk-亮 { color:var(--text-accent); }
-/* 左邊那顆:tally-2 圖示 + **灰色**的「全部/未完成」(使用者 09-22)。數字等寬,切換時不會左右跳 */
-.tk-board .tk-三態 .tk-全鈕 span {
+/* CR-1.6.6-04(使用者:「未完成後面的數字不要粗體,要跟張數一樣的字體」):
+   鈕上的數字 = 跟 .tk-頭數 同一種樣子(11px、灰、不粗、等寬數字),
+   **不跟著 .tk-段鈕.tk-亮 的 font-weight:600 走** —— 數字是資料,粗體是狀態,兩件事。
+   等寬數字:切換時數字不會左右跳。 */
+.tk-board .tk-段鈕 .tk-鈕數 {
+  font-size:11px;
+  font-weight:400;
   color:var(--text-muted);
   font-variant-numeric:tabular-nums;
 }
@@ -1079,6 +1074,9 @@
 .tk-board .tk-主題.tk-已釘題 { box-shadow:inset 0 0 0 1px currentColor; }
 /* U32:輸入框裡已經有 3 個主題 → 還沒選到的膠囊變淡、不能按 */
 .tk-board .tk-主題.tk-題滿 { opacity:0.35; cursor:default; }
+/* CR-1.6.6-01 §2:常用主題那一排的 × 拿掉了(× 屬於「這張卡片現在有哪些主題」,
+   長在輸入欄位的 tag 上,不是長在目錄上)。這裡只留「已經選進去」的淡 accent 外框當提示。 */
+.tk-board .tk-主題.tk-已選題 { box-shadow:inset 0 0 0 1px var(--text-accent); color:var(--text-accent); }
 /* U26 / U31:常用主題的收合箭頭 —— 在「☰ 57」右邊、**沒有底色也沒有框**(狀態靠方向:收起 ⌄ / 展開 ›) */
 .tk-board .tk-題箭 {
   flex:0 0 16px;
@@ -1162,6 +1160,8 @@
 .tk-board .tk-送小.tk-送寬 { width:auto; height:28px; padding:0 12px; font-size:12px; font-weight:700; }
 /* 詳細編輯:送出自己一排、靠右(mockup v16:左邊 18、右邊 6 —— 右緣還是對 ⋯) */
 .tk-board .tk-送排 { display:flex; justify-content:flex-end; padding:0 6px 8px 18px; }
+/* 1.6.6-U4:送出鈕上方一行灰字,寫這張會送出的日期(標題列不再放日期)。 */
+.tk-board .tk-送日 { text-align:right; padding:0 6px 4px 18px; font-size:0.72em; color:var(--text-muted); }
 .tk-board .tk-分隔 { height:1px; margin:0 8px 0 5px; background:var(--background-modifier-border); }
 /* 詳細編輯:小時間篩選(週、日、週期)、主題排 */
 .tk-board .tk-小篩 { display:flex; gap:6px; align-items:center; padding:0 8px 6px 18px; flex-wrap:wrap; }
@@ -1272,37 +1272,64 @@
   border:0; background:transparent; box-shadow:none; outline:none;
   font-size:12.5px; color:var(--text-normal);
 }
-/* 📌 在色條上面(溝的最上面);色條從它底下開始 */
+/* 1.6.6(使用者:「pin 要做在色線上,一起長出來」「pin 不可以溢出色線」):
+   📌 長在色條自己的寬度裡面(left 0、寬度跟色條一樣),疊在色條上緣;色條 hover 變寬,📌 跟著一起變寬 ——
+   不再是色條旁邊另一個獨立的盒子。 */
 .tk-board .tk-釘.tk-溝釘 {
   position:absolute;
-  /* 📌 12px、top 5。色條在 3(溝的左邊,使用者 09-20:「色線跟 pin 有沒有對齊」)。
-     ⚠ 1.6.5(使用者 09-22:「卡片 pin 圖案全部往左 1pt」):📌 的盒子放到 **2** ——
-       Lucide 的 pin 在 12px 的框裡左邊自己留了一點白,盒子對齊 3 時**看起來**比色條偏右。
-       盒子往左 1px 是視覺補正,量測(M5c)的基準跟著改成 2。 */
-  left:2px;
-  top:5px;
-  width:12px;
+  left:0;
+  top:8px;                 /* CR-1.6.6-03:8–20,色條接在 24(中間 4) */
+  width:7px;               /* CR-1.6.6-04(使用者:「background 大小不要動」):底色膠囊維持 7 × 12 */
   height:12px;
+  box-sizing:border-box;
+  border-radius:3px 3px 0 0;
+  border:0;
   display:flex;
   align-items:center;
   justify-content:center;
+  /* CR-1.6.6-04(使用者:「background 大小不要動,裡面的 pin icon 放大」):
+     icon 9 > 盒子 7,**刻意**讓它左右各露出 1px —— 所以不能 overflow:hidden(那會把 pin 切掉半邊,
+     1.6.6 就是這樣切了一輪)。check.js 有一條對應的例外(容許 +3),超過就會被 check4 抓到。 */
+  overflow:visible;
   z-index:2;
+  /* CR-1.6.6-01 §3(使用者:「pin hover stroke 沒有發亮,顏色也不夠清楚」):
+     ⚠ 狀態**不能只靠 opacity** —— 圖示是 stroke 畫的,--text-faint 再不透明也還是淡。
+       換 color 才會「亮」:平常 muted(看得出是一顆鈕)、hover normal、已釘 accent。
+     ⚠ transition 寫在 main.js 的 st() 裡(inline style 會蓋掉這裡),改一邊要看另一邊。 */
+  color:var(--text-muted);
+  /* CR-1.6.6-05(使用者:「沒有 pin 的時候要維持隱藏狀態」):
+     推翻 CR-01 §3 的「平常就看得到 0.55/0.7」—— 沒釘的**完全隱形**,滑過那一列才浮出來;
+     已釘的是永久狀態,一直看得到(下面 .tk-已釘)。 */
   opacity:0;
+  /* CR-1.6.6-02 §1 曾經在這裡塞一層不透明底色,擋住底下的分類色條 ——
+     CR-1.6.6-03 把 📌 移到色條上方、兩個不再重疊,那層底色就不需要了(拿掉)。
+     ⚠ 不要再加回來:平常是透明的,📌 才能跟著卡片底色走(已完成 / 封存的列底色不一樣)。 */
 }
-.tk-board .tk-釘.tk-溝釘 svg { width:12px; height:12px; }
-/* ⚠ 使用者 09-20:「要**碰到色線** pin 才會移出來」—— 不是碰到整張卡片。
-   色條在 DOM 裡排在 📌 前面(見 畫卡片),所以用相鄰選擇器;📌 自己被滑到時也要留著,不然點不到。 */
+/* 1.6.6(使用者:「background 邊框不要有 stroke,要像編輯按鈕一樣有 fill」):
+   不用邊框,跟 ✎ 編輯鈕同一套 —— 只有底色淡入。
+   已釘(tk-已釘)是永久狀態,直接套用同一套「發亮」樣式,不用等滑鼠移過去。
+   CR-1.6.6-03:📌 不再疊在色條上,底下就是卡片自己的底色 —— 混色的第二個顏色回到 transparent
+   (已完成 / 封存的列底色不一樣,跟著走才對)。 */
+.tk-board .tk-釘.tk-溝釘:hover,
+.tk-board .tk-釘.tk-溝釘.tk-已釘 {
+  background-color:color-mix(in srgb, currentColor 22%, transparent);
+}
+@supports not (background: color-mix(in srgb, red 10%, transparent)) {
+  .tk-board .tk-釘.tk-溝釘:hover, .tk-board .tk-釘.tk-溝釘.tk-已釘 { background-color:var(--background-modifier-hover); }
+}
+/* CR-1.6.6-05(使用者:「沒有 pin 的時候要維持隱藏狀態」):滑過那一列 📌 才浮出來(0.7)。
+   ⚠ 掛在整列上,不是只掛色條 —— 不然要先精準滑到 7px 寬的色條才看得到那顆鈕(原則 11「點」)。 */
+.tk-board .tk-列:hover .tk-釘.tk-溝釘 { opacity:0.7; }
+/* hover 才是「最亮」的狀態(跟 ✎ 這些鈕一樣):色跳到 --text-normal。
+   CR-1.6.6-05(使用者:「pin 沒有 hover 跟色線一樣會一起拉寬」):色條 hover 變 11,
+   📌 **要跟著變 11** —— 兩個是同一個視覺單位。平常維持 7(CR-04:「background 大小不要動」)。 */
 .tk-board .tk-色條:hover ~ .tk-釘.tk-溝釘,
 .tk-board .tk-色條:focus-visible ~ .tk-釘.tk-溝釘,
-.tk-board .tk-釘.tk-溝釘:hover { opacity:0.6; }
-.tk-board .tk-列 .tk-釘.tk-溝釘.tk-已釘 { opacity:1; }
-.tk-board.tk-觸 .tk-釘.tk-溝釘 { opacity:0.35; }
-/* 色條往下讓 22px 出來給 📌:**只有滑到色條自己**(或釘住了、或手機)才讓位 —— 滑過卡片不動。
-   游標移到 📌 上面的時候,色條會離開 hover;`:has` 認得的話就讓它繼續留在 22(認不得也只是彈回去,不影響按)。 */
-.tk-board .tk-列.tk-頂列 > .tk-色條, .tk-board.tk-觸 .tk-列 > .tk-色條 { top:22px; }
-.tk-board .tk-列 > .tk-色條:hover, .tk-board .tk-列 > .tk-色條:focus-visible { top:22px; }
-.tk-board .tk-列:has(> .tk-釘.tk-溝釘:hover) > .tk-色條 { top:22px; }
-.tk-board .tk-色條 { transition:width .12s ease, top .12s ease; }
+.tk-board .tk-釘.tk-溝釘:hover { opacity:1; width:11px; color:var(--text-normal); }
+/* 已釘:永久的 accent,而且比 hover 更上面一階(它是狀態,不是滑鼠位置) */
+.tk-board .tk-列 .tk-釘.tk-溝釘.tk-已釘 { opacity:1; color:var(--text-accent); }
+.tk-board .tk-列 .tk-釘.tk-溝釘.tk-已釘:hover,
+.tk-board .tk-色條:hover ~ .tk-釘.tk-溝釘.tk-已釘 { color:var(--interactive-accent); }
 /* 1.6.3 C20:設定「滑過卡片時高亮」(預設關)。用 background-image 疊一層,已完成 / 封存的底色照樣看得到 */
 .tk-board.tk-滑亮 .tk-列:hover {
   background-image:linear-gradient(var(--background-modifier-hover), var(--background-modifier-hover));

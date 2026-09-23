@@ -35,7 +35,10 @@ function 掃(){
     // 自己裝不下自己的內容(而且沒開捲動)
     // 例外:色條的 ::before 是刻意放大的點擊區(往右多 5px),會讓 scrollWidth 多 5,不是真的溢出
     const 點擊區=el.classList.contains('tk-色條') && el.scrollWidth<=el.clientWidth+5 + 1;
-    if(!點擊區 && el.scrollWidth>el.clientWidth+1 && cs.overflowX!=='auto' && cs.overflowX!=='scroll'){
+    // 例外:CR-1.6.6-04,📌 的 icon(9)刻意比底色膠囊(7)大,左右各露 1px。
+    // ⚠ 上限 +3:再大就是真的做壞了(1.6.6 曾經把 12px 的 icon 塞進 7px 的盒子,被切掉半邊)。
+    const 露出的釘=el.classList.contains('tk-溝釘') && el.scrollWidth<=el.clientWidth+3;
+    if(!點擊區 && !露出的釘 && el.scrollWidth>el.clientWidth+1 && cs.overflowX!=='auto' && cs.overflowX!=='scroll'){
       if(o.溢出元素.length<14) o.溢出元素.push(nm.slice(0,34)+'  '+el.scrollWidth+'>'+el.clientWidth);
     }
     // 文字被切掉(葉節點才算)

@@ -73,18 +73,36 @@ if (列) {
   const 條 = 列.querySelector('.tk-色條');
   /* 使用者 09-20:「色線跟 pin 有沒有對齊?回去看 mockup 的輔助線」——
      兩個都對齊到**溝的左邊 3**(v16 的紅線;mockup 自己畫成 4 / 5 是 v7「溝 5–13」時代留下來的)。 */
-  if (條) { const r = 條.getBoundingClientRect(); 記('M5', '色條從 3 開始、4 寬(跟 📌 同一條線)', 近(r.left - x0, 3) && 近(r.right - x0, 7), 圓(r.left - x0) + '–' + 圓(r.right - x0)); }
-  /* Q45(mockup v15):釘住的卡片上方留 22px 給 📌,色條從 22 開始;📌 在 left 4 / top 5 */
+  /* 1.6.6:使用者「色線貼齊左邊 table 直線」—— 從 0 開始、寬度加大到 7(右緣維持在 7,跟 📌 對齊不變)。 */
+  if (條) { const r = 條.getBoundingClientRect(); 記('M5', '色條從 0 開始、7 寬(貼齊左邊、跟 📌 同一右緣)', 近(r.left - x0, 0) && 近(r.right - x0, 7), 圓(r.left - x0) + '–' + 圓(r.right - x0)); }
+  /* CR-1.6.6-03(使用者:「pin 改成在色線上面,色線收短留空間給 pin,不要放在上面」):
+     推翻 1.6.6 的「色條高度固定、📌 直接疊上去」—— 疊在一起時 📌 的背景是分類色,
+     每張卡片都不一樣,對比失控(dark 幾乎看不到)。現在上下排開:📌 8–20、色條從 24 開始,中間 4。 */
   const 頂 = [...b.querySelectorAll('.tk-列.tk-頂列')].find(看得見);
   if (頂) {
     const r0 = 頂.getBoundingClientRect(), 頂條 = 頂.querySelector('.tk-色條'), 釘 = 頂.querySelector('.tk-溝釘');
-    if (頂條) 記('M5b', '釘住的卡片:色條從 22 開始(上面留給 📌)', 近(頂條.getBoundingClientRect().top - r0.top, 22), 圓(頂條.getBoundingClientRect().top - r0.top));
-    /* 1.6.5(使用者 09-22:「卡片 pin 圖案全部往左 1pt」):📌 的盒子改到 **2**(色條還是 3)——
-       圖示在 12px 的框裡自己留了白,盒子對齊 3 時看起來偏右。所以這裡量 2,跟色條差 1 也算對。 */
-    if (釘) { const rp = 釘.getBoundingClientRect(), rc = 頂條 && 頂條.getBoundingClientRect();
-      記('M5c', '📌 在 left 2 / top 5(視覺補正:比色條再往左 1)',
-        近(rp.left - r0.left, 2) && 近(rp.top - r0.top, 5) && (!rc || Math.abs(rp.left - rc.left) <= 2),
-        圓(rp.left - r0.left) + ' / ' + 圓(rp.top - r0.top) + (rc ? ' · 跟色條差 ' + 圓(rp.left - rc.left) : '')); }
+    if (頂條) 記('M5b', '有 📌 的列:色條讓到 top 24(不跟 📌 重疊)', 近(頂條.getBoundingClientRect().top - r0.top, 24), 圓(頂條.getBoundingClientRect().top - r0.top));
+    if (釘) { const rp = 釘.getBoundingClientRect();
+      記('M5c', '📌 在 left 0 / top 8(底 20,色條接在 24)',
+        近(rp.left - r0.left, 0) && 近(rp.top - r0.top, 8),
+        圓(rp.left - r0.left) + ' / ' + 圓(rp.top - r0.top)); }
+    /* CR-1.6.6-03 新增:兩個**不能重疊** —— 📌 的底 ≤ 色條的頂。這是這條規則的本體,
+       上面兩項只是位置;哪天有人把數字調回去,這一項會直接抓到。 */
+    if (頂條 && 釘) { const rp = 釘.getBoundingClientRect(), rb = 頂條.getBoundingClientRect();
+      記('M5d', '📌 和色條不重疊(📌 底 ≤ 色條頂)', rp.bottom <= rb.top + 1,
+        圓(rp.bottom - r0.top) + ' → ' + 圓(rb.top - r0.top)); }
+    /* CR-1.6.6-07(使用者:「主題要跟 pin 高度齊平」→ 追加訂正:「**底部**高度齊平,不是中線齊平」):
+       卡片第一行(主題)的**底** = 📌 的**底** + 3。
+       ⚠ 不是比中心:主題 17 高、📌 12 高,中心對齊的話底部會差 2.5px,看起來就是沒對到。
+       ⚠ 那個 +3 是使用者的視覺微調(「主題往下 1pt」講了三次,一次一格收斂出來的)——
+         數學上齊平看起來偏高,因為 pin 的圖形在自己的盒子裡上緣還留了空白。**不要「修正」成 0。**
+       ⚠ 主題、日期、✎、⋯ 在**同一個 flex 行**,共用同一條中線(M8 在守)——
+         所以只要對齊主題,整行就一起對齊了,不會有「只有主題動」的情況。 */
+    if (釘) { const 題 = 頂.querySelector('.tk-主題') || 頂.querySelector('.tk-題左');
+      if (題) { const rp = 釘.getBoundingClientRect(), rt = 題.getBoundingClientRect();
+        const b釘 = rp.bottom - r0.top, b題 = rt.bottom - r0.top;
+        記('M5e', '卡片第一行(主題)底部 = 📌 底部 + 3(視覺微調)', 近(b題, b釘 + 3),
+          '📌 底 ' + 圓(b釘) + ' / 主題 底 ' + 圓(b題)); } }
   }
   /* 1.6.3(mockup v9 #10):題行**第一個東西**在 18 —— 有指派人是頭像、沒有是空位、
      個人模式才是主題膠囊。以前量的是主題,頭像搬到前面之後那個數字本來就會變。
@@ -153,7 +171,28 @@ if (右緣們.length > 1) {
 }
 
 // ---------- M12 膠囊對比 ≥ 3:1,深淺都量(R5) ----------
-const 色 = (s) => { const m = s.match(/[\d.]+/g) || [0, 0, 0, 0]; return { r: +m[0], g: +m[1], b: +m[2], a: m[3] == null ? 1 : +m[3] }; };
+/* 1.6.6-U7:.tk-主題 直接讀 Obsidian 的 --background-modifier-hover,
+   Chromium 把它的 color-mix() 解成 oklch(...) 字串,而且 canvas fillStyle 原樣吐回來、不會正規化 ——
+   正規表達式硬抓數字會把 alpha 當成 b、alpha 缺席時又預設不透明,整個算錯。
+   自己按公式把 oklch 轉回 sRGB(OKLab → linear sRGB → gamma),再抓數字。 */
+const oklch轉rgb = (s) => {
+  const m = /oklch\(\s*([\d.]+)\s+([\d.]+)\s+(none|[\d.]+)\s*(?:\/\s*([\d.]+))?\s*\)/i.exec(s);
+  if (!m) return null;
+  const L = +m[1], C = +m[2], H = m[3] === 'none' ? 0 : +m[3], A = m[4] == null ? 1 : +m[4];
+  const hr = H * Math.PI / 180, a = C * Math.cos(hr), b = C * Math.sin(hr);
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b, m_ = L - 0.1055613458 * a - 0.0638541728 * b,
+    s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const l = l_ ** 3, mm = m_ ** 3, ss = s_ ** 3;
+  const lr = 4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * ss;
+  const lg = -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * ss;
+  const lb = -0.0041960863 * l - 0.7034186147 * mm + 1.7076147010 * ss;
+  const gam = (x) => { x = Math.max(0, Math.min(1, x)); return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055; };
+  return { r: gam(lr) * 255, g: gam(lg) * 255, b: gam(lb) * 255, a: A };
+};
+const 色 = (s) => {
+  if (/^oklch\(/i.test(s)) { const c = oklch轉rgb(s); if (c) return c; }
+  const m = s.match(/[\d.]+/g) || [0, 0, 0, 0]; return { r: +m[0], g: +m[1], b: +m[2], a: m[3] == null ? 1 : +m[3] };
+};
 const 疊 = (上, 下) => ({ r: 上.r * 上.a + 下.r * (1 - 上.a), g: 上.g * 上.a + 下.g * (1 - 上.a), b: 上.b * 上.a + 下.b * (1 - 上.a), a: 1 });
 const 底色 = (el) => { const 層 = []; for (let e = el; e; e = e.parentElement) { const c = 色(getComputedStyle(e).backgroundColor); if (c.a > 0) { 層.push(c); if (c.a >= 1) break; } }
   return 層.reverse().reduce((下, 上) => 疊(上, 下), { r: 255, g: 255, b: 255, a: 1 }); };

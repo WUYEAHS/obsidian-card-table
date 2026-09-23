@@ -5,6 +5,31 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.6.6
+
+**One signal, one meaning.** The left edge of a card was reworked so the pin and the section colour no longer fight each other, titles stopped borrowing the section colour, and editing stopped drawing a box.
+
+### Bug fixes
+1. A `[#title]` written after a markdown link (`[text](url) [#title]`) is parsed as a title again instead of being swallowed by the link.
+2. Typing `#` on the first line while editing a card no longer renders it as a large markdown heading inside the card editor.
+3. Filtering by the section dot and then switching to another section now clears the previous section filter, and the `#section` capsule in the list header disappears with it.
+4. The colour bar and the card tint now appear as soon as you press ✎ — the editing class was only applied on a full list repaint, so it never showed when editing a single card.
+
+### UX improvements
+1. 📌 moved from *on top of* the section colour bar to directly above it; the bar starts lower to make room. Overlapping meant the pin was drawn on a colour that changes per card, so its contrast was unpredictable (it was nearly invisible in dark mode).
+2. 📌 is hidden on cards that are not pinned and appears when you hover the row; pinned cards always show it, in the accent colour.
+3. The pin icon is larger and no longer clipped — it used to be drawn at 12px inside a 7px box.
+4. Title capsules use a neutral colour instead of the section colour, and all three titles on a card are drawn the same way. Section colour is now reserved for the bar and the `#section` name.
+5. Editing a card shows a soft background tint instead of a frame, glow and background box; the line under the title input is gone too. Text stays at exactly the same position as when reading.
+6. The edit box no longer has a date field — dates are changed from the date cell on the card. When adding a card, a grey line above the submit button shows the date it will get.
+7. Card counts are no longer written twice: the total lives in the "⋯" menu, the pinned table shows its own count, and the list and time-filter headers no longer repeat it. Numbers in the "⋯" menu are no longer bolded when selected.
+8. The first row of a card (title, date, ✎, ⋯) moved up to line up with the pin.
+9. When a card's content starts with the same text as its title, that line is no longer drawn twice.
+
+### Internal
+1. Removed dead code left by a cancelled feature (a title-removal helper, its strings, and the CSS for a button that no longer exists).
+2. `tools/measure.js` gained checks for the new pin geometry (`M5b`–`M5e`), and `tools/check.js` gained a bounded exception for the pin icon that deliberately overflows its capsule by 1px.
+
 ## 1.6.5
 
 **Know what you are looking at.** The board now says, at the top, which day it is, which period is filtered and which section — and the completed filter finally stops flickering.

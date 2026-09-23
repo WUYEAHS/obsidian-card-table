@@ -218,6 +218,12 @@ README.md、CHANGELOG.md,被審核列成建議事項)。
 1. **CSS 寫了規則,但 class 根本沒掛上去。** `tk-釘列`、`tk-循排`、`tk-補排` 都發生過:
    styles.css 有整段規則,main.js 卻沒 `addClass`,於是那段是死的,而且**沒有人會發現** ——
    直到某天補上 class,版面突然變了。加新的版位規則時,順手確認元素真的有那個 class。
+1b. **`圖()` 的大小只能在呼叫端給,不要用 CSS 去蓋。** `圖()`(main.js:2342)把大小寫成 svg 的
+   **inline style** 和外層 `.cjb-ico` span 的 inline width —— CSS 權重再高也贏不了 inline,
+   寫 `.tk-xxx svg { width:7px }` 那條是**死規則**。1.6.6 就是這樣「修」📌 的:規則沒生效,
+   icon 一直是 12px、被 7px 的溝 `overflow:hidden` 切掉半邊,check4 一路報 13 筆 `9>7`,
+   而 PRD 的 AC 已經寫了「已修」。**同理:`st()` 寫的 inline `transition` 會整條蓋掉 CSS 那條** ——
+   少列一個屬性,那個屬性就沒有動畫(📌 的 hover 變寬一直是硬切)。
 2. **flex 是「先斷行、後壓縮」。** 一行差 2px 就會整塊掉到下一行,
    而不是把可壓縮的那塊擠小。窄螢幕的卡頭(📌 ◯ 日期 ··· 指派人 ⋯)因此是 `nowrap`,
    而且**只讓日期縮**(它有省略號);指派人設 `flex-shrink:0` + max-width ——

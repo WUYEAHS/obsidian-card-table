@@ -33,6 +33,10 @@
     '- [x] #a [due:: 2026-09-16] [completion:: 2026-09-17] [priority:: high]');
   eq('pin off', M.拆首行('- [ ] [pin:: off] [a]').頂, false);
   eq('field is not title', M.拆首行('- [ ] [due:: 2026-09-16] 買牛奶').題, null);
+  const L1 = M.拆首行('- [ ] [連結](https://x.com) [主題]');
+  eq('1.6.6-B1 title after markdown link', [L1.題, L1.文].join('|'), '主題|[連結](https://x.com)');
+  const L2 = M.拆首行('- [ ] [a](u1) [b](u2) [主題]');
+  eq('1.6.6-B1 title after two markdown links', L2.題, '主題');
 
   // ---- 舊寫法轉換(蓋卡) ----
   eq('legacy 1.6.0 convert', 蓋(['- [ ] [訂貨] ．每樣兩箱 ＠{2026-09-11 ~ 2026-09-14} #欣明 📌 ✎{2026-09-10 09:12}', '\t．打給廠商了']),
