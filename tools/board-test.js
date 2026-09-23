@@ -137,12 +137,14 @@ window.__ctBoardTest = 'running';
       const ce = v.contentEl;
       const 可見 = (列) => !!列 && 列.getBoundingClientRect().bottom > ce.getBoundingClientRect().top &&
         列.getBoundingClientRect().top < ce.getBoundingClientRect().bottom;
+      // 等實際要的狀態(那一列捲進畫面),不要靠固定秒數
+      for (let i = 0; i < 40 && !可見(v.找列(kb1.鍵)); i++) await 等(50);
       ok('B1 new card visible after normal add (8 pinned ahead of it)', 可見(v.找列(kb1.鍵)), v.找列(kb1.鍵) && v.找列(kb1.鍵).getBoundingClientRect());
       // 模擬「回音重畫」插進來:要看的卡 還沒被清掉(捲動還沒找到那一列)就先假造一個舊座標、叫一次 畫()
       ce.scrollTop = 0;
       v.要看的卡 = kb1.鍵;
       v.畫();
-      await 等(300);
+      for (let i = 0; i < 40 && !可見(v.找列(kb1.鍵)); i++) await 等(50);
       ok('B1 echo repaint re-scrolls instead of freezing at stale scrollTop', 可見(v.找列(kb1.鍵)), { scrollTop: ce.scrollTop });
     }
     // 9. 新增:只有主題

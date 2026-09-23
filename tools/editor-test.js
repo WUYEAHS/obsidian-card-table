@@ -173,8 +173,11 @@ window.__ctEditorTest = 'running';
     ok('undo in editor', !E.getValue().includes('新的一行'), E.getValue());
     步('esc');
     // Esc finishes
+    // 自動存的回音重畫會把編修框重建一次:等它真的在畫面上再按 Esc(以前這裡偶爾抓到 null)
+    await 等到(() => !!v.contentEl.querySelector('.tk-編框 .cm-content'), 3000);
     const cm = v.contentEl.querySelector('.tk-編框 .cm-content');
-    cm.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+    ok('edit box alive before esc', !!cm, 重畫紀錄);
+    if (cm) cm.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
     // 等到「存進去了」而且「完成編輯走完了」(檔案先變,編修框晚一點才關)
     // 1.6.3:12 秒(以前 5 秒,視窗有焦點時失敗過一次);失敗時記下寫手當時忙不忙,分得出是等太短還是真的存檔競爭
     const esc時 = Date.now();

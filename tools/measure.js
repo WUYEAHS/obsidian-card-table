@@ -152,7 +152,9 @@ if (右緣們.length > 1) {
   // ⚠ 標題列上現在有兩顆 .tk-頭鈕(行事曆在前、⋯ 在最後),要點的是最後那一顆
   const 篩塊 = b.querySelector('.tk-篩塊'), 頭鈕們 = 篩塊 ? [...篩塊.children[0].querySelectorAll('.tk-頭鈕')] : [];
   const 鈕 = 頭鈕們[頭鈕們.length - 1];
-  if (鈕) { 鈕.click(); await 睡(350);
+  if (鈕) { 鈕.click();
+    // 等彈出真的畫好(固定 350ms 偶爾還沒到)
+    for (let i = 0; i < 20 && ![...document.querySelectorAll('.tk-段')].some(看得見); i++) await 睡(50);
     // mockup v16:整顆切換(.tk-段)26 高、跟標題列一樣;裡面的鈕(.tk-段鈕)22
     const 段殼 = [...document.querySelectorAll('.tk-段')].filter(看得見).map(e => 圓(e.getBoundingClientRect().height));
     const 段 = [...document.querySelectorAll('.tk-段鈕')].filter(看得見).map(e => 圓(e.getBoundingClientRect().height));
