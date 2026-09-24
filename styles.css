@@ -313,8 +313,9 @@
   /* 1.6.2(CR-02):框往上挪「上內距 + 框線」,裡面的字才會停在閱讀時的同一個高度(以前一按編輯往下掉 6.5px)。
      框線因此落在主題和內容之間的空隙裡。 */
   padding:3px 6px 6px 0;
-  /* 左邊 -1px 抵掉自己的框線,編輯時的字才跟閱讀時一樣停在 18(R1 / 原則 10) */
-  margin:-4px 0 4px -1px;
+  /* 左邊 -1px 抵掉自己的框線,編輯時的字才跟閱讀時一樣停在 18(R1 / 原則 10)。
+     1.7.4-U1:右邊 -6px 抵掉右內距,字的寬度跟閱讀時差 < 1px、框線剛好貼卡片右緣(以前窄 12.6px,長行換行位置不同) */
+  margin:-4px -6px 4px -1px;
 }
 /* 1.6.1 即時預覽編輯器(Obsidian 自己的 CodeMirror,見 main.js 的 建即時編輯)。
    拿掉它當成整頁筆記用的邊距、可讀行寬、底部捲動空白,讓它在卡片裡跟原本的 textarea 一樣大。
@@ -322,7 +323,7 @@
      所以都帶 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 開頭 —— 不用 !important。 */
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 { height:auto; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-editor { background:transparent; height:auto; }
-.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-scroller { padding:0 6px 0 0; overflow:visible; min-height:0; }
+.tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-scroller { padding:0; overflow:visible; min-height:0; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-sizer { max-width:none; margin:0; padding:0; min-height:0; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-contentContainer { min-height:0; }
 .tk-board .tk-即時編 .markdown-source-view.mod-cm6 .cm-content { padding:0; min-height:1.55em; font-size:0.94em; }
@@ -382,12 +383,14 @@
 /* 1.6.3(A2)清單的縮排照即時預覽編輯器(使用者:bullet 閱讀和編輯左右跑掉)。
    編輯器每一行的懸掛縮排 = 那一行符號的實際寬度:「- 」21px、「- [ ] 」31px、「1. 」27px,巢狀多一個 tab 34px
    (字級 15.04px 量的,換成 em 才會跟著字級走)。閱讀模式 Obsidian 一律縮 24.3px,所以 bullet 偏右、待辦和巢狀偏左。
-   巢狀清單的內距 = tab − 上一層符號的寬度,子項才會落在編輯器的同一個位置。 */
+   巢狀清單的內距 = tab − 上一層符號的寬度,子項才會落在編輯器的同一個位置。
+   ⚠ 1.7.4-B2(2026-09-24):這些數字只對**預設佈景主題**。別的主題(例如有綠色強調色的那個)編輯器的待辦和巢狀縮排不一樣,會差 3–4px ——
+   以前 A2 / M13 一直失敗就是測試在別的主題下跑。390(待辦底下的子項)是這次在預設主題下補量的。 */
 .tk-board .tk-md ul > li { margin-inline-start:1.396em; }
 .tk-board .tk-md ul > li.task-list-item { margin-inline-start:2.141em; }
 .tk-board .tk-md ol > li { margin-inline-start:1.795em; }
 .tk-board .tk-md ul > li > ul, .tk-board .tk-md ul > li > ol { padding-inline-start:0.864em; }
-.tk-board .tk-md ul > li.task-list-item > ul, .tk-board .tk-md ul > li.task-list-item > ol { padding-inline-start:0.199em; }
+.tk-board .tk-md ul > li.task-list-item > ul, .tk-board .tk-md ul > li.task-list-item > ol { padding-inline-start:0.106em; }
 .tk-board .tk-md ol > li > ul, .tk-board .tk-md ol > li > ol { padding-inline-start:0.465em; }
 .tk-board .tk-md > :first-child { margin-top:0; }
 .tk-board .tk-md > :last-child { margin-bottom:0; }

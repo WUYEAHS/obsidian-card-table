@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260924v2";
-const 插件版本 = "1.7.3";
+const 看板版本 = "260924v3";
+const 插件版本 = "1.7.4";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -68,10 +68,10 @@ const 字典 = {
     /* 1.7.1(ADR-002)看板 ↔ Archive。N = 幾個、FILE = 對方檔名、NAME = 看板名 */
     linksUpdate: "別的筆記和 Canvas 裡指到這一區的 N 個連結會一起更新(M 份筆記、K 個 Canvas)。",
     linksFailed: "這些筆記裡的連結沒改到:", moveBackAsk: "把「NAME」搬回〈FILE〉?\n這一區的 CNT 張卡片會回到看板的封存區。", moveBackYes: "搬回",
-    movedBackTail: "搬回", movedBackZone: "已搬回〈FILE〉的封存區:NAME(CNT 張)", moveBack: "搬回 FILE", openArchive: "開啟 FILE", archiveOf: "NAME 的 Archive", archivedOn: "封存 D", archiveNoAdd: "Archive 不能新增卡片(可以搜尋、打勾、留言)",
+    movedBackTail: "搬回", movedBackZone: "已搬回〈FILE〉的封存區:NAME(CNT 張)", moveBack: "搬回 FILE", openArchive: "開啟 FILE", archiveOf: "NAME的 Archive", archivedOn: "封存 D", archiveNoAdd: "Archive 不能新增卡片(可以搜尋、打勾、留言)",
     deleteAllSection: "整批刪除這一區(刪掉就沒了)", deleteAllYes: "刪除",
     deleteAllAsk: "整批刪除「NAME」?\n這一區的 CNT 張卡片會直接從筆記裡刪掉,\n不留檔、沒辦法復原。",
-    moveOutFolder: "外掛產生的檔案放哪裡", moveOutFolderDesc: "Archive 筆記、新的 Canvas、轉格式的備份、版面診斷都放這個資料夾,沒有就建。空白 = 「Card Table attachments」。已經有的檔案不搬。",
+    moveOutFolder: "外掛產生的檔案放哪裡", moveOutFolderDesc: "Archive 筆記、新的 Canvas、轉格式的備份、匯出的長圖都放這個資料夾,沒有就建。空白 = 看板所在資料夾裡的「Card Table attachments」。已經有的檔案不搬。",
     justNow: "剛剛", minsAgo: "分鐘前", hoursAgo: "小時前",
     yesterday: "昨天", daysAgo: "天前",
     openBoard: "用卡片看板開啟", openMd: "回到原始 Markdown",
@@ -137,7 +137,7 @@ const 字典 = {
     sectionsHint: "先打開一個看板,這裡才會列出你的分類。", autoColor: "自動",
     jumps: "動作完成後要不要跳轉", jumpDesc: "把篩選調到看得到那張卡片的地方,並捲過去",
     jumpDone: "標成已完成 → 自動勾選「已完成」", jumpTodo: "移回未完成 → 自動勾選「未完成」",
-    jumpArchive: "封存 → 自動勾選「含封存」", jumpToday: "設為今日",
+    jumpArchive: "封存 → 跳到那張卡片", jumpToday: "設為今日",
     calMonthTotal: "這個月 D 張 ‧ N 天有卡片", thisMonth: "回到本月", wholeYear: "整年",
     changing: "更改中…", cancelWord: "取消", more: "更多", less: "收合",
     finish: "完成", undoEdit: "復原這一次編輯(全部刪掉了也退得回來)",
@@ -165,7 +165,7 @@ const 字典 = {
     sendKeyCombo: "Enter 換行；Shift / Ctrl / ⌘ + Enter 送出（預設）", sendKeyEnter: "Enter 送出；Shift + Enter 換行",
     useComments: "使用留言功能", useCommentsDesc: "關掉之後卡片上不再有留言鈕,也不顯示留言。筆記裡已經寫好的留言不會被刪掉,再打開就回來。",
     hoverHighlight: "滑過卡片時高亮", hoverHighlightDesc: "滑鼠停在卡片上時,整張卡片亮一點。",
-    showEditTime: "顯示最後編輯時間", showEditTimeDesc: "卡片右上角的 🕐 時間。關掉只是不顯示,筆記裡的 [ed:: …] 時戳照樣會寫(分辨同名卡片要用)。",
+    showEditTime: "顯示最後編輯時間", showEditTimeDesc: "卡片右上角的最後編輯時間。關掉只是不顯示,筆記裡的 [ed:: …] 時戳照樣會寫(分辨同名卡片要用)。",
     jumpPin: "置頂 → 跳到那張卡片",
     pinTopic: "釘選這個主題", unpinTopic: "取消釘選", topicsPinHint: "所有主題(可以打字查,📌 釘選的會一直排在最前面)",
     showTopics: "展開常用主題", hideTopics: "收起常用主題", topicFull: "主題最多 3 個",
@@ -203,7 +203,7 @@ const 字典 = {
     // ---- 1.5 ----
     editCursor: "按下編輯之後游標在哪裡", editCursorDesc: "電腦版按下編輯會直接把游標放進內容:放在最前面或最後面(手機不會自動聚焦)",
     cursorStart: "最前面（預設）", cursorEnd: "最後面",
-    showSectionName: "顯示分類名稱", showSectionNameDesc: "把分類的標題當成狀態顯示(例如把紅色那一區取名「等回復」):電腦版在完成圓點上方,手機版在主題後面。點名字可以換分類;卡片完成之後改顯示「已完成」。",
+    showSectionName: "顯示分類名稱", showSectionNameDesc: "把分類的標題當成狀態顯示(例如把紅色那一區取名「等回復」),寫在主題後面。點名字可以換分類;卡片完成之後改顯示「已完成」。",
     changeSection: "點一下換分類", changeSectionMenu: "換分類",
     unpinOnDone: "完成時自動取消置頂", unpinOnDoneDesc: "置頂的卡片標成完成,同時取消置頂",
     sectionExists: "已經有叫這個名字的分類了",
@@ -241,7 +241,7 @@ const 字典 = {
     movedBackTail: "moved back", movedBackZone: "Moved back to the archive zone of “FILE”: NAME (CNT)", moveBack: "Move back to FILE", openArchive: "Open FILE", archiveOf: "Archive of NAME", archivedOn: "archived D", archiveNoAdd: "No new cards in an archive (search, tick and comment still work)",
     deleteAllSection: "Delete this whole section (gone for good)", deleteAllYes: "Delete",
     deleteAllAsk: "Delete “NAME” entirely?\nThe CNT cards in this section are removed from the note,\nwith no copy kept and no way back.",
-    moveOutFolder: "Folder for files the plugin creates", moveOutFolderDesc: "Archive notes, new Canvases, conversion backups and layout diagnostics go here; created if missing. Empty = “Card Table attachments”. Existing files are not moved.",
+    moveOutFolder: "Folder for files the plugin creates", moveOutFolderDesc: "Archive notes, new Canvases, conversion backups and exported images go here; created if missing. Empty = “Card Table attachments” in the board's own folder. Existing files are not moved.",
     justNow: "just now", minsAgo: "m ago", hoursAgo: "h ago",
     yesterday: "yesterday", daysAgo: "d ago",
     openBoard: "Open as Card Table", openMd: "Back to raw Markdown",
@@ -306,7 +306,7 @@ const 字典 = {
     sectionsHint: "Open a board first and your sections will be listed here.", autoColor: "Automatic",
     jumps: "Jump after an action", jumpDesc: "Move the filter to where the card is visible, and scroll to it",
     jumpDone: "Marked done → tick Done", jumpTodo: "Back to to do → tick To do",
-    jumpArchive: "Archived → tick Archived", jumpToday: "Move to today",
+    jumpArchive: "Archived → jump to the card", jumpToday: "Move to today",
     calMonthTotal: "D cards this month across N days", thisMonth: "This month", wholeYear: "Year",
     changing: "Changing…", cancelWord: "Cancel", more: "more", less: "less",
     finish: "Done", undoEdit: "Undo this edit (works even if you deleted everything)",
@@ -334,7 +334,7 @@ const 字典 = {
     sendKeyCombo: "Enter for a new line; Shift / Ctrl / ⌘ + Enter to submit (default)", sendKeyEnter: "Enter to submit; Shift + Enter for a new line",
     useComments: "Use comments", useCommentsDesc: "When off, cards have no comment button and comments are hidden. Comments already in the note are kept and come back when you turn this on.",
     hoverHighlight: "Highlight card on hover", hoverHighlightDesc: "Lightens the whole card while the mouse is over it.",
-    showEditTime: "Show last edited time", showEditTimeDesc: "The 🕐 time on each card. Turning it off only hides it; the [ed:: …] stamp is still written to the note (it tells identical cards apart).",
+    showEditTime: "Show last edited time", showEditTimeDesc: "The last-edited time on each card. Turning it off only hides it; the [ed:: …] stamp is still written to the note (it tells identical cards apart).",
     jumpPin: "Pinned → jump to the card",
     pinTopic: "Pin this title", unpinTopic: "Unpin this title", topicsPinHint: "All titles (type to search; pinned ones always come first)",
     showTopics: "Show titles", hideTopics: "Hide titles", topicFull: "Up to 3 titles",
@@ -372,7 +372,7 @@ const 字典 = {
     // ---- 1.5 ----
     editCursor: "Cursor position when editing", editCursorDesc: "On desktop, Edit puts the cursor straight into the content: at the start or the end (phones do not focus automatically)",
     cursorStart: "Start (default)", cursorEnd: "End",
-    showSectionName: "Show section names", showSectionNameDesc: "Show each card's section heading as its status (for example, name the red section “Waiting”): above the done circle on desktop, after the title on phones. Tap the name to move the card to another section; done cards show Done instead.",
+    showSectionName: "Show section names", showSectionNameDesc: "Show each card's section heading as its status (for example, name the red section “Waiting”), shown after the title. Tap the name to move the card to another section; done cards show Done instead.",
     changeSection: "Click to move to another section", changeSectionMenu: "Change section",
     unpinOnDone: "Unpin when marked done", unpinOnDoneDesc: "A pinned card that is marked done is unpinned at the same time",
     sectionExists: "A section with that name already exists",
@@ -3615,7 +3615,8 @@ class 看板視圖 extends TextFileView {
        這裡本來還寫一次 過濾(全).length,跟 ⋯ 彈出裡 chevron-left 右邊那顆總數是同一個數字 ——
        拿掉,張數統一看 ⋯(跟 CR-1.6.6-01 §1 清單表同一條規則)。 */
     const 期 = 頭.createDiv({ text: this.篩選標題() });
-    期.addClass("tk-頭字"); 期.addClass("tk-今色");
+    期.addClass("tk-頭字");
+    if (this.狀態.游標 === this.今) 期.addClass("tk-今色");      // 1.7.4-U4:1.6.5 以前這列固定寫今天才用強調色;現在寫篩選期間,游標在今天才上色
     期.setAttribute("aria-label", T.backToToday);
     頭.onclick = () => { this.回到今天(); this.畫(); };
     頭.createDiv().addClass("tk-撐");
@@ -5028,7 +5029,7 @@ class 看板視圖 extends TextFileView {
       b.setAttribute("role", "button");
       st(b, 圖鈕樣 + (淡 ? "opacity:0.3;cursor:default;" : ""));
       圖備(b, 名們, 13);
-      b.title = 提示;
+      b.setAttribute("aria-label", 提示);          // 1.7.4-U3:R3 圖示鈕用 aria-label(Obsidian 會畫成提示),不用 title
       b.onclick = 動作;
       return b;
     };
@@ -7321,7 +7322,6 @@ class 看板視圖 extends TextFileView {
     st(列, "height:26px;min-height:26px;box-sizing:border-box;overflow:clip;" +
       "display:flex;align-items:center;gap:10px;padding:0 4px;margin-top:12px;" +
       "font-size:0.68em;color:var(--text-faint);letter-spacing:0.04em;user-select:none;" +
-      "border-top:1px solid var(--background-modifier-border);" +
       "contain:layout size;overflow-anchor:none;");
     /* ⚠ 這一條**還是要在**(固定 26px,永遠存在)—— 它是捲動錨點,拿掉的話
        編修框長高時 Mac 上的捲軸滑塊會一直跳。但上面不再放東西:
@@ -7330,6 +7330,7 @@ class 看板視圖 extends TextFileView {
          兩處都很短而且都尊重系統的「減少動態」設定,不需要再給一顆開關。 */
     const 我 = this.我是誰();
     if (我) {
+      列.style.borderTop = "1px solid var(--background-modifier-border)";     // 1.7.4-U5:空的時候不畫橫線(高度照留)
       const sp = 列.createSpan({ text: "· " + 我 });
       sp.style.color = this.插件.人色(我);
       sp.title = T.whoAmIShort;
@@ -8590,10 +8591,10 @@ module.exports = class 卡片日誌看板 extends Plugin {
 
   /* CR-1.6.9-01:送到 Canvas 的框照內容量 —— 用 畫唯讀卡片 在看不見的地方畫一次(跟 Canvas 裡同一個長相),量高度。
      預設 400 寬;量出來超過 640 就改 560 寬再量;高不設上限(字全部看得到)。畫不出來才退回 估高。
-     Canvas 檔案節點的外框(2026-09-23 在 Canvas 量的):卡片比節點窄 45、節點要比卡片高 15(再留 5)。
+     Canvas 檔案節點的外框:卡片比節點窄 45;節點要比卡片高約 70–77(1.7.4-B1,2026-09-24 在預設主題實測:卡片下面 45 + 捲動區底 32;有的主題還多一條 16px 的嵌入標題列。09-23 量的 15 不對)。
      嵌入的圖片高度要等載入 —— 不等,一個先算 200。 */
   async 量框(k, 路徑) {
-    const 外寬 = 45, 外高 = 20, 父 = new Component();
+    const 外寬 = 45, 外高 = 70, 父 = new Component();
     父.load();
     const 台 = document.body.createDiv({ cls: "markdown-preview-view markdown-rendered" });
     st(台, "position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;font-size:var(--font-text-size);");
@@ -8715,7 +8716,18 @@ class 選Canvas框 extends SuggestModal {
    每一項:[Lucide 圖示名, 標題, 說明]
    ============================================================ */
 const 更新介紹 = {
-  "1.7.3": {
+  "1.7.4": {
+    "zh-TW": [
+      ["layout-dashboard", "Canvas 的卡片框夠高", "新送到 Canvas 的長卡片,框照實際量的高度放,不用再捲才看得到最後幾行。"],
+      ["pencil", "編輯和閱讀長得一樣", "按 ✎ 編輯時,長的內容在同一個地方換行;待辦底下的子項、編號底下的子項也對齊了。"],
+      ["settings", "設定頁的說明跟上了", "附件資料夾、跳轉、分類名稱幾段說明改成現在的行為;分類設定的按鈕都有提示。"]
+    ],
+    "en": [
+      ["layout-dashboard", "Canvas frames fit the card", "Long cards sent to a Canvas get a frame as tall as they really are — no more scrolling to see the last lines."],
+      ["pencil", "Editing looks like reading", "Long content wraps at the same place when you press ✎; sub-items under to-dos and numbered items line up too."],
+      ["settings", "Settings say what they do", "The attachment folder, jump and section-name descriptions match current behaviour; section buttons all have tooltips."]
+    ]
+  },  "1.7.3": {
     "zh-TW": [
       ["crosshair", "點卡片 ID 一定跳得到", "卡片裡的 [[看板#^ct-…]] 連結、Canvas 上的卡片,點了會跳到那張卡片並閃一下;不在畫面上時,篩選會自動換到看得到的月份(或打開已完成、封存區)。"],
       ["folder", "附件放在看板旁邊", "Archive、新的 Canvas、備份和長圖改放在看板所在資料夾的「Card Table attachments」。1.7.2 放在最上層的 Archive 照樣找得到。"],
@@ -8908,7 +8920,9 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
-  ["1.7.3",
+  ["1.7.4",
+    ["Canvas 上新送的卡片框照實際高度,不用捲;編輯時長內容在同一個地方換行,巢狀清單也對齊;設定頁的說明跟上現在的行為。"],
+    ["New Canvas cards get frames as tall as the card; long content wraps at the same place while editing and nested lists line up; settings descriptions match current behaviour."]],  ["1.7.3",
     ["點卡片裡的 ID 連結或 Canvas 上的卡片一定跳得到,篩選會自動換到看得到的月份;附件改放在看板所在的資料夾;空的 Archive 不再補 1–5。"],
     ["Card ID links in cards and cards on a Canvas always jump to the card, switching the filter to a month that shows it; attachments go next to the board; empty Archives no longer get sections 1–5."]],
   ["1.7.2",
@@ -9333,8 +9347,8 @@ class 設定頁 extends PluginSettingTab {
     標(T.setFormat);
     /* U44 → 1.7.1:封存區「移出」到的 `<看板名> Archive.md` 放哪個資料夾(空白 = 跟看板筆記同一個)。後綴設定拿掉了(ADR-002 D10)。 */
     new Setting(c).setName(T.moveOutFolder).setDesc(T.moveOutFolderDesc)
-      .addText(t => t.setPlaceholder(預設衍生夾).setValue(設.移出資料夾 || "")
-        .onChange(async (v) => { 設.移出資料夾 = String(v || "").replace(/[\r\n]+/g, " ").trim(); await 存(false); }));
+      .addText(t => { t.inputEl.style.width = "16em"; return t.setPlaceholder(預設衍生夾).setValue(設.移出資料夾 || "")     // 1.7.4-U8:placeholder 放得下
+        .onChange(async (v) => { 設.移出資料夾 = String(v || "").replace(/[\r\n]+/g, " ").trim(); await 存(false); }); });
     const 板們 = () => Object.keys(設.看板檔案 || {})
       .filter(p => 設.看板檔案[p] === true)
       .map(p => this.app.vault.getAbstractFileByPath(p))

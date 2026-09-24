@@ -5,6 +5,18 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.7.4
+
+**The last 1.7: what you edit is what you read.** Closes the 1.7 round; next is 1.8 (mobile layout).
+
+### Fixed
+- Cards sent to a Canvas get a frame as tall as the card really is (the frame used to be 20–40px short on long cards, so they scrolled). Frames already on a Canvas are not changed.
+- The live editor is now exactly as wide as the card's reading view, so long content wraps at the same place when you press ✎ (it was 12.6px narrower).
+- Sub-items under a to-do line up between reading and editing (the last list case that was off, by 2px). Tuned for Obsidian's default theme; other themes may indent differently.
+- The time-filter title bar uses the accent colour only when the cursor is on today.
+- The empty strip at the bottom of the board no longer draws a divider line unless it shows "who is using this computer".
+- Settings: the attachment-folder description says "in the board's own folder" (1.7.3's behaviour), the jump-after-archive switch and the section-name description match the current layout, the folder field is wide enough for its placeholder, and the edit-time description no longer uses an emoji.
+- Section archive / delete buttons in the board settings have proper tooltips (`aria-label`).
 ## 1.7.3
 
 **Card ID links always land.** A hotfix for 1.7.2.

@@ -241,6 +241,9 @@ README.md、CHANGELOG.md,被審核列成建議事項)。
 
 ## 改完一定要跑的檢查
 
+⚠⚠ **所有測試和量測都要在 Obsidian 預設佈景主題下跑**(`app.customCss.theme === ""`,2026-09-24)。A2 / M13 從 1.6.9 起一直「既有的失敗」,
+真正原因是 vault 開著一個社群主題(綠色強調色):它的編輯器待辦 / 巢狀縮排不一樣,Canvas 嵌入還多一條 16px 標題列。量任何版面數字之前先看主題。
+
 改到格式或寫手:`.\tools\run-tests.ps1`(部署 → 語法 → 重載 → 版本 → 格式測試 + 看板寫入測試,要 ALL TESTS PASSED;見技能 `card-table-format-test`)。
 
 ### 版面

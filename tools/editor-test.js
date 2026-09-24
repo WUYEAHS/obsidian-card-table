@@ -133,7 +133,9 @@ window.__ctEditorTest = 'running';
       const 列2 = 找列('雜燴');
       ok('B4 long content collapses', !!列2 && !!列2.querySelector('.tk-md.tk-md-收') && !!列2.querySelector('.tk-更多.tk-更多-收'), '');
     }    步('open 訂貨');
-    const 列 = [...v.contentEl.querySelectorAll('.tk-列')].find(r => r.textContent.includes('訂貨'));
+    // 升版後第一次開看板會跳「更新介紹」彈窗,搶走焦點(1.7.3、1.7.4 各假失敗一次)—— 先關掉
+    document.querySelectorAll('.modal-container .modal-close-button').forEach(b => b.click()); await 等(200);
+    const 列 =[...v.contentEl.querySelectorAll('.tk-列')].find(r => r.textContent.includes('訂貨'));
     const 鈕 = 列 && [...列.querySelectorAll('[aria-label],[title]')].find(b => /^(編輯|Edit)$/.test(b.title || b.getAttribute('aria-label') || ''));
     ok('edit button found', !!鈕, '');
     鈕.click();
