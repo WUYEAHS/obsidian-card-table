@@ -42,6 +42,11 @@ $ver = obsidian eval code="app.plugins.plugins['card-table'].manifest.version"
 $want = (Get-Content (Join-Path $repo 'manifest.json') -Raw | ConvertFrom-Json).version
 Write-Host "loaded $ver, repo $want"
 if ($ver -notmatch [regex]::Escape($want)) { Write-Host 'FAIL version mismatch'; exit 1 }
+# 1.7.4: every layout number is tuned for Obsidian's DEFAULT theme. A community theme made A2 / M13
+# and the Canvas frame test fail for four versions and we called them "known failures". Stop here instead.
+$theme = obsidian eval code="app.customCss.theme || '(default)'"
+Write-Host "theme: $theme"
+if ($theme -notmatch '\(default\)') { Write-Host 'FAIL not the default theme - switch to the default theme before testing'; exit 1 }
 
 # 1.6.5: bring Obsidian to the front BEFORE measuring. A covered window throttles timers and
 # board/editor tests fail for no reason (cost us ~5 wasted runs in 1.6.5). Do not remove.

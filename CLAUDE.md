@@ -71,6 +71,9 @@ Obsidian 從社群外掛安裝或更新時會加這一行,其他部分跟 repo �
 - 手機的版面問題桌機模擬不出來(模擬是 is-tablet):請使用者在手機跑指令「匯出版面診斷」,
   會寫 `ZZ-card-table-版面診斷.md`(每個編輯器由外到內的尺寸、樣式、命中的規則;1.7.2 起在外掛的資料夾,預設 `Card Table attachments/`),同步回來再看。
 
+- ⚠ `obsidian eval` 裡**沒有** `require('obsidian')`(Cannot find module,1.7.3–1.7.4 踩三次):`Component`、`Notice` 從外掛物件或畫面拿。
+- ⚠ PowerShell 5.1 的函式**不要取短名字**:`R` 是 Invoke-History(把 README 寫成空的)、`Rd` 是 rmdir、`W`…。用 `Get-Txt` / `Put-Txt` 這種;寫檔前檢查內容不是空的。
+
 以下是舊的做法(junction / 複製進 `card-table`),留作參考:
 
 vault 的外掛資料夾是**指向這個 repo 的 junction**:
@@ -485,5 +488,6 @@ check4 抓切字溢出,measure 抓對不齊,改版面兩個都跑。新的 UI �
 - **commit 完直接用命令列 `git push`**(2026-09-23 使用者同意;1.6.8 起命令列 push 成功過)。失敗再退回 GitHub Desktop
 - ⚠ commit 訊息**先寫成 scratchpad 的檔案再 `git commit -F <檔>`**。PowerShell 5.1 的 `-F -` 不會讀 stdin(1.6.8、1.6.9 各踩一次)。
   檔案用 `[IO.File]::WriteAllText(檔, 訊息, [Text.UTF8Encoding]::new($false))` 寫 —— `Out-File -Encoding utf8` 會帶 BOM,跑進訊息第一個字(`a4e5b30`)
+- **改了行為,描述它的字一起搜**(2026-09-24,第二次:CR-1.7.2-03 漏長圖、1.7.3 附件夾說明沒跟上):字典的 `…Desc`、README 中英、設定表、更新介紹
 - 刪死程式碼**兩邊都搜**:函式沒人呼叫可以刪,也要反查「本來有人呼叫、現在沒了」(1.6.3 的主題下拉就是這樣不見的);刪 main.js 那一半時,styles.css 和字典那一半也要一起找
 - `git` 在 `%LOCALAPPDATA%\GitHubDesktop\...\git\cmd`,已加進使用者 PATH
