@@ -27,10 +27,12 @@ Obsidian 外掛,把一份 markdown 筆記讀成一張任務卡片表。
 ⚠⚠ **每一版先討論,使用者檢查完才做**:使用者在 Dialogue 文件上確認之前,不寫產品程式、不升版、不 commit。
 - 討論在 vault 的 `0.常用/Card table project/`:使用者寫 Dialogue(第一份是 `v1.6.2 to 1.7 conversation.md`),
   Claude 用 **tandem comments** 逐項回覆(技能 `obsidian-tandem-comments`,裝在使用者層級);正文只動最下面的「Claude REPLY」,不改使用者寫的字。
-- 流程照技能 **`card-table-procedure`**。正本是 vault 的 `Procedure/Working procedure.md`(使用者可以直接改),角色在 `Procedure/Roles.md`。
+- 流程照技能 **`card-table-procedure`**。正本是 vault 的 `0.Procedure/Working procedure.md`(v0.2 短版,使用者可以直接改;舊版和 Roles 在 `0.Procedure/archive/`)。
+  每個文件資料夾(PRD、Dialogue、CR、POC)最上層只放現在這一版,舊的在 `archive/v1.6`、`archive/v1.7`(2026-09-24)。
   文件順序:Dialogue → PRD(使用者簽核)→ CR(簽核後的變更)→ Review pack(每項 ✅/❌ + 證據)→ 發版 → 回顧。每一項一個編號(例:`1.6.2-B1`)。
+- **QA 找到的小問題直接開 CR 併進這一版**,自己驗證沒事就接著升版 + commit + push(使用者明講,2026-09-24);大的、有取捨的照舊先問。不要追問 tag 推了沒(owner 自己確認)。
 - 每次回覆最後附「PM 自我批評」。**QA 使用者下指令才跑**(2026-09-23:版本修完之後他再說),大小版本都在主對話做,不用 subagent(以前的 `card-table-qa` agent 留著不用;UX critic 也拿掉了)。
-- **平常的溝通像 Discord**(使用者明講):每做一件事,在 vault 的 `Diologue/Dev chat.md` 最下面留一兩句(交接頁是 `Procedure/Handoff.md`)(發現、做了什麼、需要什麼),使用者直接在底下回。
+- **平常的溝通像 Discord**(使用者明講):每做一件事,在 vault 的 `Dialogue/Dev chat.md` 最下面留一兩句(交接頁是 `Procedure/Handoff.md`)(發現、做了什麼、需要什麼),使用者直接在底下回。
 - **回顧**(技能 **`card-table-self-review`**)在**大版本的一輪結束時**寫(例:1.6 → 1.7),小的一輪有值得講的才寫;寫在 vault 的 `Reviews/`。
 - repo 的文件用 `.\tools\mirror-docs.ps1` 鏡像到 vault 的 `Repo mirror/`(唯讀;改了 repo 就重跑,鏡像上的 tandem 留言會保留)。新文件的連結加進 `Main navigator.md`。
 - **產品定義(1.6.3 起,使用者明講)**:**只有一種版面 —— 卡片**(以前手機的 div 卡片),桌機和手機一樣,桌機只是比較寬。表格模式拿掉了(維護兩套太累)。

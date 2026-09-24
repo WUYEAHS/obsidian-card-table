@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260924v1";
-const 插件版本 = "1.7.2";
+const 看板版本 = "260924v2";
+const 插件版本 = "1.7.3";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -153,7 +153,7 @@ const 字典 = {
     copyCardLink: "複製卡片 ID", linkCopied: "已複製卡片 ID,請貼到 Canvas 上",
     sendToCanvas: "送到 Canvas", sendListToCanvas: "目前的清單送到 Canvas", sendSectionToCanvas: "這一區送到 Canvas", newCanvas: (n) => "新增 " + n,
     pickCanvas: "送到哪一個 Canvas?", sentToCanvas: (c, n, m) => "已送到 " + c + ":" + n + " 張" + (m ? "(" + m + " 張已經在裡面)" : ""),
-    cardsLost: (n) => "," + n + " 張找不到", cardNotInView: "這張卡片不在目前的篩選裡", canvasBroken: "這個 Canvas 檔讀不懂(JSON 壞了),沒有寫入",
+    cardsLost: (n) => "," + n + " 張找不到", cardNotInView: "找不到這張卡片(ID 可能被刪了)", canvasBroken: "這個 Canvas 檔讀不懂(JSON 壞了),沒有寫入",
     meName: "我",
     donate: "支持這個外掛", donateDesc: "卡片看板是一個人利用下班時間做的。覺得好用的話,可以請作者喝杯咖啡。",
     donateBtn: "在 Ko-fi 贊助",
@@ -322,7 +322,7 @@ const 字典 = {
     copyCardLink: "Copy card ID", linkCopied: "Card ID copied — paste it into a Canvas",
     sendToCanvas: "Send to Canvas", sendListToCanvas: "Send this list to Canvas", sendSectionToCanvas: "Send this section to Canvas", newCanvas: (n) => "New " + n,
     pickCanvas: "Send to which Canvas?", sentToCanvas: (c, n, m) => "Sent to " + c + ": " + n + (n === 1 ? " card" : " cards") + (m ? " (" + m + " already there)" : ""),
-    cardsLost: (n) => ", " + n + " not found", cardNotInView: "This card isn't in the current filter", canvasBroken: "Couldn't read this Canvas file (broken JSON). Nothing was written.",
+    cardsLost: (n) => ", " + n + " not found", cardNotInView: "Card not found (its ID may have been removed)", canvasBroken: "Couldn't read this Canvas file (broken JSON). Nothing was written.",
     meName: "me",
     donate: "Support this plugin", donateDesc: "Card Table is built by one person in spare time. If it helps you, you can buy the author a coffee.",
     donateBtn: "Support on Ko-fi",
@@ -2140,7 +2140,7 @@ class 寫手 {
       try {
         const 原 = await v.read(檔);
         if (!轉整份(原, 名單).張) return { 張: 0 };
-        const 夾 = await 備好夾(this.app, this.衍生夾());       // CR-1.7.2-03(使用者 ok:備份也放進去)
+        const 夾 = await 備好夾(this.app, this.衍生夾(檔));     // CR-1.7.2-03(使用者 ok:備份也放進去);1.7.3-B1 看板的資料夾裡
         const 底 = 夾 + 檔.basename + " backup-" + 現在戳().replace(/[-:]/g, "").replace(" ", "-");
         let 路 = 底 + ".md", i = 1;
         while (v.getAbstractFileByPath(路)) { i++; 路 = 底 + " " + i + ".md"; }
@@ -2799,7 +2799,8 @@ function 畫連結(容器, 原, app, 來源檔) {
     a.title = 目標;
     a.onclick = (e) => {
       e.preventDefault(); e.stopPropagation();
-      try { app.workspace.openLinkText(目標, 來源檔 || "", e.metaKey || e.ctrlKey); } catch (x) {}
+      const 插 = app.plugins && app.plugins.plugins["card-table"];      // 1.7.3-B3
+      try { if (插) 插.開連結(目標, 來源檔 || "", e.metaKey || e.ctrlKey); else app.workspace.openLinkText(目標, 來源檔 || "", e.metaKey || e.ctrlKey); } catch (x) {}
     };
   } else {
     const a = 容器.createEl("a", { text: m[4] });
@@ -3064,6 +3065,7 @@ class 看板視圖 extends TextFileView {
        那時候標題已經存在,開好分區() 自己也會判斷有標題就不動。 */
   開分區如果是新的() {
     if (!this.file) return;
+    if (this.是Archive) return;                   // 1.7.3-B2:Archive 放多少區就有多少區,空的也不補
     if (this.分類清單.length) return;
     if (this.已開分區 === this.file.path) return;
     this.已開分區 = this.file.path;
@@ -4362,7 +4364,7 @@ class 看板視圖 extends TextFileView {
     const 單 = await 插.找連結(this.file, A, ids, 標);
     const 文 = this.T.moveOutAsk.replace("NAME", 原名).replace("CNT", String(張)).replace("FILE", this.Archive名()) + this.連結句(單);
     new 確認框(this.app, 文, this.T.moveOutYes, async () => {
-      const r = await 插.寫手.移出分區(this.file, 標, A, 插.衍生夾());
+      const r = await 插.寫手.移出分區(this.file, 標, A, 插.衍生夾(this.file));
       if (!r || !r.檔) return;
       this.狀態.封存看 = null;
       if (!(插.設定.看板檔案 || {})[r.檔]) { (插.設定.看板檔案 = 插.設定.看板檔案 || {})[r.檔] = true; await 插.存設定(); }   // D7
@@ -5552,7 +5554,7 @@ class 看板視圖 extends TextFileView {
   async 送到Canvas(卡們, 群名) {
     if (!卡們 || !卡們.length) return;
     if (this.狀態.編修) await this.收掉編修();
-    const 檔 = await new 選Canvas框(this.app, this.file, this.插件.衍生夾()).選();
+    const 檔 = await new 選Canvas框(this.app, this.file, this.插件.衍生夾(this.file)).選();
     if (!檔) return;
     const r = await this.插件.寫手.取多ID(this.file, 卡們, this.名單);
     if (!r) return;
@@ -6768,7 +6770,7 @@ class 看板視圖 extends TextFileView {
       if (a.classList.contains("internal-link")) {
         e.preventDefault(); e.stopPropagation();
         const 目標 = a.getAttribute("data-href") || a.getAttribute("href") || "";
-        try { this.app.workspace.openLinkText(目標, 來源, e.ctrlKey || e.metaKey); } catch (x) {}
+        try { this.插件.開連結(目標, 來源, e.ctrlKey || e.metaKey); } catch (x) {}      // 1.7.3-B3
       } else if (a.classList.contains("tag")) {
         e.preventDefault(); e.stopPropagation();
         try { this.app.internalPlugins.getPluginById("global-search").instance.openGlobalSearch("tag:" + a.textContent); } catch (x) {}
@@ -7296,7 +7298,7 @@ class 看板視圖 extends TextFileView {
       cx.drawImage(img, 0, 0);
       const blob = await new Promise(r => cv.toBlob(r, "image/png"));
       const buf = await blob.arrayBuffer();
-      const 夾 = await 備好夾(this.app, this.插件.衍生夾());     // CR-1.7.2-03:長圖也放衍生夾
+      const 夾 = await 備好夾(this.app, this.插件.衍生夾(this.file));     // CR-1.7.2-03:長圖也放衍生夾
       const 名 = 夾 + (this.file ? this.file.basename : "board") + "-" +
         現在戳().replace(/[: ]/g, "").replace(/-/g, "") + ".png";
       await this.app.vault.createBinary(名, buf);
@@ -7671,6 +7673,42 @@ class 看板視圖 extends TextFileView {
     this.要看的卡 = k.鍵;
     this.捲到卡(k.鍵, k);
   }
+  /* 1.7.3-B4(使用者 09-24:「跳到可以篩的離當日最近的那一個月」):從 Canvas / 連結跳過來的卡片不在畫面上 →
+     一步一步放寬「擋住它」的那一個篩選,看得到就停(使用者的篩選能留就留)。回傳畫面上的那張(找不到 null)。
+     ⚠ 過濾() 回傳另一批物件,一律用 ID 找。 */
+  露出卡(id) {
+    const s = this.狀態;
+    const 找 = () => this.過濾(this.卡片).concat(this.未寫日期(this.卡片)).find(x => x.ID === id) || null;
+    let k = 找();
+    const 原 = this.卡片.find(x => x.ID === id);
+    if (k || !原) return k;
+    if (this.是封存(原)) {                                   // 1. 封存區:打開設定面板右半的那一區
+      s.開行事曆 = false; s.設定模式 = true; s.封存看 = 原.分類; s.封存搜 = "";
+      this.設草 = this.設草 || this.建設草();
+      this.畫();
+      return 找();
+    }
+    const 步 = [
+      () => { if (s.區篩 && s.區篩 !== 原.分類) s.區篩 = null; if (s.指派 && s.指派 !== 原.指派) s.指派 = null; },
+      () => { this.__搜拆 = null; if (s.搜尋 && this.搜尋分數(原) < 0) { s.新主題 = ""; s.新內容 = ""; s.搜尋 = ""; this.__搜拆 = null; } },   // 搜尋的字在兩個輸入框
+      () => {
+        if (!this.是Archive && !this.插件.設定.排程顯示) this.插件.設定.排程顯示 = {};
+        const 設 = this.顯設;
+        if (原.完成 && !設.完成) 設.完成 = true;
+        if (!原.完成 && !設.未完成) 設.未完成 = true;
+        if (!this.是Archive) this.插件.存設定();
+      },
+      () => {                                                // 5. 時間:離今天最近、又看得到它的那一個月
+        if (!原.起日) { if (原.循環) s.篩 = { 型: "週期" }; return; }
+        const 今 = this.今, 迄 = 原.迄日 || 原.起日;
+        this.設游標(原.起日 <= 今 && 今 <= 迄 ? 今 : 迄 < 今 ? 迄 : 原.起日);
+        s.篩 = { 型: 層鍵["月"] };
+      },
+    ];
+    for (const f of 步) { f(); if ((k = 找())) break; }
+    this.畫();
+    return k;
+  }
 
   /* 捲到某一張卡片,然後閃一下。
      ⚠⚠ 不可以用「等固定幾毫秒再去找那一列」。那一列要等寫檔完成 → Obsidian 回頭
@@ -7868,7 +7906,7 @@ module.exports = class 卡片日誌看板 extends Plugin {
     }
     if (!this.設定.釘選主題 || typeof this.設定.釘選主題 !== "object") this.設定.釘選主題 = {};
     this.寫手 = new 寫手(this.app, this.T);
-    this.寫手.衍生夾 = () => this.衍生夾();
+    this.寫手.衍生夾 = (檔) => this.衍生夾(檔);
     this.分類序 = {};
 
     /* 動畫不再是一個選項。只剩下「展開/收合」和「動作之後閃一下」兩處,
@@ -8331,11 +8369,17 @@ module.exports = class 卡片日誌看板 extends Plugin {
     if (認(f)) return f;
     return [].concat(退路 || []).map(p => this.app.vault.getAbstractFileByPath(p)).find(認) || null;
   }
-  衍生夾() { return String(this.設定.移出資料夾 || "").replace(/^\/+|\/+$/g, "").trim() || 預設衍生夾; }
-  // 退路兩個:衍生夾(1.7.2 起)、看板旁邊(1.7.1 的預設)
+  /* 1.7.3-B1:設定空白 = 看板所在資料夾裡的 預設衍生夾(1.7.2 是 vault 最上層);沒給看板(版面診斷)= 最上層 */
+  衍生夾(檔) {
+    const 填 = String(this.設定.移出資料夾 || "").replace(/^\/+|\/+$/g, "").trim();
+    if (填) return 填;
+    const 父 = 檔 && 檔.parent && 檔.parent.path !== "/" ? 檔.parent.path + "/" : "";
+    return 父 + 預設衍生夾;
+  }
+  // 退路三個:衍生夾(1.7.3 起在看板的資料夾裡)、最上層的預設夾(1.7.2)、看板旁邊(1.7.1 的預設)
   找Archive(看) {
     const 名 = 淨檔名(看.basename + " Archive") + ".md", 旁 = 看.parent && 看.parent.path !== "/" ? 看.parent.path + "/" : "";
-    return this.找對方(看, "card-table-archive", "card-table-source", [this.衍生夾() + "/" + 名, 旁 + 名]);
+    return this.找對方(看, "card-table-archive", "card-table-source", [...new Set([this.衍生夾(看) + "/" + 名, 預設衍生夾 + "/" + 名, 旁 + 名])]);
   }
   找看板(A) { return this.找對方(A, "card-table-source", "card-table-archive", null); }
   /* 1.7.2-F1(PRD 5.3):搬之前(確認框之前)找出別的筆記和 Canvas 裡指到 源 這些 ID(Set,含 ^)或這個標題的連結。
@@ -8574,6 +8618,19 @@ module.exports = class 卡片日誌看板 extends Plugin {
 
   /* 1.6.9-F2:開那份看板(開著就用那個分頁),等畫好找到 ID 那張 → 捲過去閃一下;不在目前篩選裡 → Notice。
      看板筆記開起來會被 setViewState 的攔截切成看板,這裡不要自己再切一次。 */
+  /* 1.7.3-B3:卡片裡點 [[看板#^ct-…]] / [[#^ct-…]]。openLinkText 會開看板,但看板不理 #^ct-(停在原地),
+     所以目標是看板(或 Archive)就改走 開到卡;其他連結、Ctrl / Cmd + 點照舊交給 Obsidian。 */
+  開連結(目標, 來源, 新) {
+    const m = /^([^#|]*)#\^(ct-[A-Za-z0-9_-]+)$/.exec(String(目標 || "").trim());
+    const 檔 = m && !新 && (m[1] ? this.app.metadataCache.getFirstLinkpathDest(m[1], 來源 || "") : this.app.vault.getAbstractFileByPath(來源 || ""));
+    if (檔 && this.是看板檔(檔)) return this.開到卡(檔.path, "^" + m[2]);
+    this.app.workspace.openLinkText(目標, 來源 || "", 新);
+  }
+  是看板檔(檔) {
+    if ((this.設定.看板檔案 || {})[檔.path] === true) return true;
+    const fm = (this.app.metadataCache.getFileCache(檔) || {}).frontmatter;
+    return !!fm && String(fm["card-table"] || "") === "archive";
+  }
   async 開到卡(路徑, id) {
     const 檔 = this.app.vault.getAbstractFileByPath(路徑);
     if (!檔) return;
@@ -8585,8 +8642,8 @@ module.exports = class 卡片日誌看板 extends Plugin {
     const 試 = () => {
       const v = leaf.view;
       const 有 = v && v.getViewType && v.getViewType() === 視圖種類 && (v.卡片 || []).some(x => x.ID === id);
-      if (!有) { if (Date.now() < 截止) setTimeout(試, 100); return; }
-      const k = v.過濾(v.卡片).find(x => x.ID === id);      // 過濾 回傳的是另一批物件,用 ID 找,不用 indexOf
+      if (!有) { if (Date.now() < 截止) setTimeout(試, 100); else new Notice(this.T.cardNotInView); return; }   // 1.7.3-B4:ID 真的不在了才提示
+      const k = v.露出卡(id);                               // 1.7.3-B4:不在畫面上就放寬篩選
       if (k) v.浮到最上(k); else new Notice(this.T.cardNotInView);
     };
     試();
@@ -8658,6 +8715,18 @@ class 選Canvas框 extends SuggestModal {
    每一項:[Lucide 圖示名, 標題, 說明]
    ============================================================ */
 const 更新介紹 = {
+  "1.7.3": {
+    "zh-TW": [
+      ["crosshair", "點卡片 ID 一定跳得到", "卡片裡的 [[看板#^ct-…]] 連結、Canvas 上的卡片,點了會跳到那張卡片並閃一下;不在畫面上時,篩選會自動換到看得到的月份(或打開已完成、封存區)。"],
+      ["folder", "附件放在看板旁邊", "Archive、新的 Canvas、備份和長圖改放在看板所在資料夾的「Card Table attachments」。1.7.2 放在最上層的 Archive 照樣找得到。"],
+      ["archive", "Archive 不再多出空區", "Archive 的區全部搬回去之後,不會再被自動補上 1–5 五個空區。"]
+    ],
+    "en": [
+      ["crosshair", "Card ID links always land", "Clicking a [[board#^ct-…]] link in a card, or a card on a Canvas, jumps to that card and flashes it; if it's filtered out, the filter switches to the nearest month that shows it (or opens done cards / the archive zone)."],
+      ["folder", "Attachments next to the board", "Archive notes, new Canvases, backups and exported images now go to “Card Table attachments” inside the board's own folder. Archives made by 1.7.2 at the vault root are still found."],
+      ["archive", "No more empty Archive sections", "An Archive with every section moved back no longer gets five empty sections 1–5 added."]
+    ]
+  },
   "1.7.2": {
     "zh-TW": [
       ["link", "搬走連結不會斷", "封存區移到 Archive、或從 Archive 搬回來時,別的筆記和 Canvas 裡指到這些卡片的連結會一起更新;沒改到的會列出來。"],
@@ -8839,6 +8908,9 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.7.3",
+    ["點卡片裡的 ID 連結或 Canvas 上的卡片一定跳得到,篩選會自動換到看得到的月份;附件改放在看板所在的資料夾;空的 Archive 不再補 1–5。"],
+    ["Card ID links in cards and cards on a Canvas always jump to the card, switching the filter to a month that shows it; attachments go next to the board; empty Archives no longer get sections 1–5."]],
   ["1.7.2",
     ["封存區搬出、搬回時,別的筆記和 Canvas 的連結一起更新;搬回回到看板的封存區,還原先預覽、按 ✓ 才寫。",
      "Canvas 每排 4 張、Archive 整區包成群組;「複製卡片 ID」貼進卡片是連結、不會互嵌;外掛產生的檔案都放在 Card Table attachments。"],

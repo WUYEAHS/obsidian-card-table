@@ -137,7 +137,7 @@ Grouped the same way as in the plugin; **What's new** at the top lists what ever
 | Cards | How done cards look, section names, last edited time, comments and where they go |
 | Adding and editing | Submit key (see [Keyboard](#keyboard)), cursor and card position when editing, unpin when done |
 | Jump after an action | Whether each action scrolls to the card |
-| Note format | Folder for files the plugin creates (Archive notes, new Canvases, backups, exported images; `Card Table attachments` by default); convert every old card to the current format (backs up first) |
+| Note format | Folder for files the plugin creates (Archive notes, new Canvases, backups, exported images; by default `Card Table attachments` next to the board); convert every old card to the current format (backs up first) |
 
 ## The text format
 
@@ -191,7 +191,7 @@ The first line is the card: pin, title, dates, repeat, assignee. Below it come t
 **They keep working and change only when touched.** A card switches to the new syntax only when you edit it, tick it or change its date; nothing else in the note is touched.
 
 **One-click conversion.** Settings → Note format → **Convert everything to the new format** converts every note you have opened as a Card Table in one go.
-Each note's original text is first saved in the plugin's folder (`Card Table attachments/name backup-20260916-1420.md`). Edit times are kept, lines outside cards are left alone, and running it a second time changes nothing.
+Each note's original text is first saved in the plugin's folder (by default next to the board: `Card Table attachments/name backup-20260916-1420.md`). Edit times are kept, lines outside cards are left alone, and running it a second time changes nothing.
 
 Card Table 1.6.0 and older cannot read the new syntax, so update every device that opens these notes.
 If something looks wrong after converting, or you have any question, please email [jiajiunwu.y@gmail.com](mailto:jiajiunwu.y@gmail.com).

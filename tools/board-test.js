@@ -215,14 +215,14 @@ window.__ctBoardTest = 'running';
       const 圖檔 = 圖路 && app.vault.getAbstractFileByPath(圖路);
       let 寬 = 0;
       if (圖檔) { const b = new Uint8Array(await app.vault.readBinary(圖檔)); 寬 = (b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19]; }
-      ok('B7 export = 1440px-wide PNG, in the plugin folder (CR-03)', 寬 === 1440 && 圖檔.parent.path === P.衍生夾(), [圖路, 寬]);
+      ok('B7 export = 1440px-wide PNG, in the plugin folder (CR-03)', 寬 === 1440 && 圖檔.parent.path === P.衍生夾(f), [圖路, 寬]);
       if (圖檔) await app.vault.trash(圖檔, true);
     }
     // 12. 全部轉換(CR-1.7.2-03:備份放外掛的資料夾)
     const 前 = await 讀();
     const c = await P.寫手.轉新格式(f, v.名單);
     const 備 = c && c.備份 && app.vault.getAbstractFileByPath(c.備份);
-    ok('CR-03 convert backup in the plugin folder', !!備 && 備.parent.path === P.衍生夾() && (await app.vault.read(備)) === 前, c);
+    ok('CR-03 convert backup in the plugin folder', !!備 && 備.parent.path === P.衍生夾(f) && (await app.vault.read(備)) === 前, c);
     const 原設夾 = P.設定.移出資料夾; P.設定.移出資料夾 = '';
     ok('CR-03 empty setting → Card Table attachments', P.衍生夾() === 'Card Table attachments', P.衍生夾());
     P.設定.移出資料夾 = 原設夾;
@@ -641,6 +641,70 @@ window.__ctBoardTest = 'running';
           for (const x of 剩) await app.vault.trash(x, true);
         }
       }
+    }
+    /* 1.7.3:B1 附件夾在看板的資料夾裡、B2 空的 Archive 不補 1–5、B3 卡片裡的 ID 連結、B4 跳轉一定找得到 */
+    {
+      P.設定.看板檔案 = Object.assign({}, P.設定.看板檔案, { [f.path]: true });   // 上面 1.6.9-F2 關掉了
+      const 原填 = P.設定.移出資料夾; P.設定.移出資料夾 = '';
+      ok('1.7.3-B1 board in a/b → a/b/Card Table attachments', P.衍生夾({ parent: { path: 'a/b' } }) === 'a/b/Card Table attachments', P.衍生夾({ parent: { path: 'a/b' } }));
+      ok('1.7.3-B1 board at root → Card Table attachments', P.衍生夾(f) === 'Card Table attachments' && P.衍生夾() === 'Card Table attachments', P.衍生夾(f));
+      P.設定.移出資料夾 = 'X/夾';
+      ok('1.7.3-B1 filled setting wins', P.衍生夾({ parent: { path: 'a/b' } }) === 'X/夾', P.衍生夾({ parent: { path: 'a/b' } }));
+      P.設定.移出資料夾 = '';
+      // ④ 1.7.2 放在最上層的 Archive 照樣找得到
+      const 有根夾 = !!app.vault.getAbstractFileByPath('Card Table attachments');
+      if (!app.vault.getAbstractFileByPath('ZZ-ct-sub')) await app.vault.createFolder('ZZ-ct-sub');
+      if (!有根夾) await app.vault.createFolder('Card Table attachments');
+      const 子看 = await app.vault.create('ZZ-ct-sub/ZZ-sub.md', '## 1\n');
+      const 舊A = await app.vault.create('Card Table attachments/ZZ-sub Archive.md', '---\ncard-table: archive\n---\n');
+      await 等(600);
+      ok('1.7.3-B1 1.7.2 archive at root still found', P.找Archive(子看) === 舊A, P.找Archive(子看) && P.找Archive(子看).path);
+      // B2:空的 Archive 打開不寫檔
+      const 空A = await app.vault.create('ZZ-ct-sub/ZZ-empty Archive.md', '---\ncard-table: archive\n---\n');
+      const al = app.workspace.getLeaf('tab');
+      await al.setViewState({ type: v.getViewType(), state: { file: 空A.path } });
+      await 等(1500);
+      ok('1.7.3-B2 empty Archive: no 1–5 written', (await app.vault.read(空A)) === '---\ncard-table: archive\n---\n', await app.vault.read(空A));
+      al.detach();
+      for (const x of [子看, 舊A, 空A]) await app.vault.trash(x, true);
+      const 子夾 = app.vault.getAbstractFileByPath('ZZ-ct-sub'); if (子夾) await app.vault.trash(子夾, true);
+      const 根夾 = app.vault.getAbstractFileByPath('Card Table attachments');
+      if (!有根夾 && 根夾 && !根夾.children.length) await app.vault.trash(根夾, true);
+      P.設定.移出資料夾 = 原填;
+      // B4:五種擋住的情況
+      const 今 = v.今;
+      await app.vault.process(f, t => t.replace(/\s*$/, '\n\n## 露出\n' +
+        '- [ ] #露出別月 [due:: 2025-03-10]\n\t[ed:: 2026-09-10 09:00] ^ct-lc0001\n\n' +
+        '- [x] #露出完成 [due:: ' + 今 + ']\n\t[ed:: 2026-09-10 09:00] ^ct-lc0002\n\n' +
+        '- [ ] #露出無日\n\t[ed:: 2026-09-10 09:00] ^ct-lc0003\n\n' +
+        '- [ ] #露出搜尋 [due:: ' + 今 + ']\n\t[ed:: 2026-09-10 09:00] ^ct-lc0004\n\n' +
+        '## Archive/露出封\n- [ ] #露出封存 [due:: ' + 今 + ']\n\t[ed:: 2026-09-10 09:00] ^ct-lc0005\n'));
+      for (let t = 0; t < 4000 && !v.卡片.some(x => x.ID === '^ct-lc0005'); t += 100) await 等(100);
+      const 顯 = P.設定.排程顯示 = P.設定.排程顯示 || {};
+      const 緊 = () => { v.設游標(今); v.狀態.篩 = { 型: '今日' }; 顯.未完成 = true; 顯.完成 = false; v.狀態.區篩 = null; v.狀態.搜尋 = ''; v.狀態.新主題 = ''; v.狀態.新內容 = ''; v.狀態.設定模式 = false; v.狀態.封存看 = null; };
+      緊(); let k = v.露出卡('^ct-lc0001');
+      ok('1.7.3-B4 other month → that month', k && v.狀態.篩.型 === '本月' && v.狀態.游標 === '2025-03-10', [k && k.主題, v.狀態.篩, v.狀態.游標]);
+      緊(); k = v.露出卡('^ct-lc0002');
+      ok('1.7.3-B4 done card → show done', k && 顯.完成 === true && v.狀態.篩.型 === '今日', [k && k.主題, 顯]);
+      緊(); k = v.露出卡('^ct-lc0003');
+      ok('1.7.3-B4 undated card → found in the undated table, filter kept', k && v.狀態.篩.型 === '今日', [k && k.主題, v.狀態.篩]);
+      緊(); v.狀態.區篩 = '1'; v.狀態.新內容 = '沒有這個字xyz'; v.搜尋變動(); k = v.露出卡('^ct-lc0004');
+      ok('1.7.3-B4 section filter + search cleared', k && !v.狀態.區篩 && !v.狀態.搜尋 && !v.狀態.新內容, [k && k.主題, v.狀態.區篩, v.狀態.搜尋]);
+      緊(); k = v.露出卡('^ct-lc0005');
+      ok('1.7.3-B4 archived card → archive zone opens', k && v.看封存區 && v.狀態.封存看 === 'Archive/露出封', [k && k.主題, v.狀態.封存看]);
+      緊(); v.設草 = null; v.畫();
+      ok('1.7.3-B4 missing ID → null', v.露出卡('^ct-nope00') === null, '');
+      // B3:卡片裡點 [[看板#^ct-…]] 走 開到卡;一般連結照舊
+      const 叫 = []; const 原開 = P.開到卡, 原ol = app.workspace.openLinkText;
+      P.開到卡 = (p, id) => 叫.push(['卡', p, id]);
+      app.workspace.openLinkText = (t) => 叫.push(['ol', t]);
+      try {
+        P.開連結(f.basename + '#^ct-lc0001', 'x.md', false);
+        P.開連結('#^ct-lc0001', f.path, false);
+        P.開連結(f.basename + '#^ct-lc0001', 'x.md', true);
+        P.開連結(f.basename + '#露出', 'x.md', false);
+      } finally { P.開到卡 = 原開; app.workspace.openLinkText = 原ol; }
+      ok('1.7.3-B3 card-ID link → 開到卡; ctrl / heading → Obsidian', JSON.stringify(叫) === JSON.stringify([['卡', f.path, '^ct-lc0001'], ['卡', f.path, '^ct-lc0001'], ['ol', f.basename + '#^ct-lc0001'], ['ol', f.basename + '#露出']]), 叫);
     }
     out.push('--- 最後的檔案 ---\n' + 後);
   } catch (e) {

@@ -5,6 +5,15 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.7.3
+
+**Card ID links always land.** A hotfix for 1.7.2.
+
+### Fixed
+- Clicking a card-ID link inside a card (`[[board#^ct-…]]` or `[[#^ct-…]]`) now opens the board (reusing its tab) and jumps to that card with a flash. Before, the board opened and stayed where it was. Links to ordinary notes or headings, and Ctrl / Cmd-click, still go to Obsidian.
+- Clicking a card on a Canvas no longer says "This card isn't in the current filter". The board loosens only the filter that hides the card: it opens the archive zone, clears the section / assignee filter or a search that excludes it, shows done cards, or moves to the nearest month that contains it. Undated cards are found in the undated table. A notice now appears only when the ID no longer exists.
+- Files the plugin creates (Archive notes, new Canvases, conversion backups, exported images) go to `Card Table attachments` inside the board's own folder when the setting is empty. Archives made by 1.7.2 at the vault root are still found. A filled-in folder setting works as before.
+- An Archive note with no sections left is no longer filled with five empty sections 1–5.
 ## 1.7.2
 
 **Archive loop, closed.** Links follow sections that move between the board and its Archive note, restoring is previewed, and Canvas sends come as a grid.
