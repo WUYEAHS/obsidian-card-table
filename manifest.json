@@ -1,7 +1,7 @@
 {
   "id": "card-table",
   "name": "Card Table - Dated Tasks",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "minAppVersion": "1.6.0",
   "description": "A task-first card table: dates, assignees, pins, comments and repeats stay as plain text in the note. Link cards out through Canvas and move finished sections to an Archive note.",
   "author": "jiajiunwu",

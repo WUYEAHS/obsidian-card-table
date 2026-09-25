@@ -12,6 +12,7 @@
      head             每一塊標題列的子元素:class、圖示名、左緣(相對塊)、寬
      card <字>        含這段字的那張卡片:色條、📌、主題膠囊、✎ ⋯ 的位置和 class
      edit <字>        按那張卡片的「編輯」,回報編修框掛起來沒(結尾會收掉)
+     hit              每一類小鈕的點擊範圍大小,四個角點下去是不是自己(1.7.6)
      overflow         裝不下自己內容的元素(check4 報 a>b 時用這個找是哪一個)
      sel <選擇器>     符合的元素的 rect + 幾個常看的 computed style
 
@@ -121,6 +122,33 @@ window.__p = 'running';
     return 出.join('\n');
   }
 
+  /* hit(1.7.6-R1):每一類小鈕的點擊範圍(::after 的大小)+ 四個角往內 1px 用 elementFromPoint 取樣,
+     點到的不是自己(或自己的子孫)就報「被誰搶」。每類最多看 4 個。 */
+  if (指令 === 'hit') {
+    const 類 = ['.tk-色條', '.tk-溝釘', '.tk-溝', '.tk-頭鈕', '.tk-篩箭', '.tk-卡鈕', '.tk-曆鈕'];
+    const 名 = (e) => e ? (e.className && e.className.baseVal === undefined ? String(e.className).split(' ').filter(c => c.startsWith('tk-')).slice(0, 2).join('.') : e.tagName) || e.tagName : 'null';
+    const 出 = [];
+    類.forEach(sel => {
+      const 們 = [...b.querySelectorAll(sel)].filter(e => 看得見(e) && getComputedStyle(e).visibility !== 'hidden').slice(0, 4);
+      if (!們.length) { 出.push(sel + '  (畫面上沒有)'); return; }
+      const 錯 = new Set(); let 大 = '';
+      們.forEach(e => {
+        const r = e.getBoundingClientRect(), a = getComputedStyle(e, sel === '.tk-曆鈕' ? '::before' : '::after');
+        const z = parseFloat(getComputedStyle(b).zoom) || 1;      // CR-1.7.6-02:::after 的數字是放大前的,rect 是螢幕上的
+        const w = (parseFloat(a.width) * z) || r.width, h = (parseFloat(a.height) * z) || r.height;
+        // ::after 的位置 = 元素左上 + left/top(已經是 px)+ transform 的位移
+        const m = /matrix\([^,]+,[^,]+,[^,]+,[^,]+,\s*([-\d.]+),\s*([-\d.]+)\)/.exec(a.transform) || [0, 0, 0];
+        const x0 = r.left + ((parseFloat(a.left) || 0) + +m[1]) * z, y0 = r.top + ((parseFloat(a.top) || 0) + +m[2]) * z;
+        大 = 圓(w) + '×' + 圓(h) + '(鈕 ' + 圓(r.width) + '×' + 圓(r.height) + ')';
+        [[x0 + 1, y0 + 1], [x0 + w - 1, y0 + 1], [x0 + 1, y0 + h - 1], [x0 + w - 1, y0 + h - 1]].forEach(([x, y]) => {
+          const t = document.elementFromPoint(x, y);
+          if (!t || !(t === e || e.contains(t))) 錯.add(名(t));
+        });
+      });
+      出.push(sel + '  ' + 大 + (錯.size ? '  ✗ 被搶:' + [...錯].join(', ') : '  ✓'));
+    });
+    return 出.join('\n');
+  }
   if (指令 === 'overflow') {
     [...b.querySelectorAll('*')].forEach(el => {
       const cs = getComputedStyle(el);

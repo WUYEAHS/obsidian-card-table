@@ -1,10 +1,10 @@
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
-<img width="90%" alt="卡片看板 - 任務分類日誌" src="https://github.com/user-attachments/assets/3d8e6c49-bd63-4588-aecd-7e027b003af5" />
+<img width="76%" alt="看板和同一份筆記的純文字並排" src="https://github.com/WUYEAHS/obsidian-card-table/raw/main/readme-shots/split-en.png" /> <img width="19.5%" alt="手機上的看板" src="https://github.com/WUYEAHS/obsidian-card-table/raw/main/readme-shots/phone-en.png" />
 
 # Card Table - Dated Tasks 卡片看板 - 任務分類日誌
 
-**以任務為核心的卡片表格。** 靈感來自 Kanban 的表格工作方式,但日期、指派人、置頂、留言、循環全都是筆記裡的純文字。卡片可以放上 **Canvas**、跟你的其他筆記連線;做完的分類可以搬到連結的 **Archive 筆記**,用它自己的 Archive 模式開啟。
+**以任務為核心、帶日期的卡片表格。** 靈感來自 Kanban 的表格工作方式,但日期、指派人、置頂、留言、循環全都是筆記裡的純文字。卡片可以放上 **Canvas**、跟你的其他筆記連線;做完的分類可以搬到連結的 **Archive 筆記**,用它自己的 Archive 模式開啟。
 
 > [!IMPORTANT]
 > **提醒:** 這個外掛仍在積極開發中,接下來幾個月會經常變動。使用前請先備份你的資料與環境。非常歡迎回報問題和提供回饋!
@@ -81,6 +81,9 @@
 - **連結跟著走** —— 別的筆記和 Canvas 裡指到這些卡片或這一區的連結,搬的時候一起更新。
 
 ### Canvas 和卡片連結
+
+<img width="90%" alt="Canvas 上的卡片,和另一份筆記連線" src="https://github.com/WUYEAHS/obsidian-card-table/raw/main/readme-shots/canvas-en.png" />
+
 - **送到 Canvas** —— 一張、整份清單或一個封存區。一張卡片一個框,每排 4 張;封存區整區送出去會包成一個群組,標題是區名。已經在 Canvas 上的卡片會跳過。
 - **複製卡片 ID** —— 貼到 Canvas 或別的筆記,那裡就顯示整張卡片,點了回看板。貼進另一張卡片會變成一般連結(不預覽),卡片可以互相連,不會一層一層嵌。
 - **卡片 ID** —— `^ct-abc123` 只有在複製卡片 ID 或送到 Canvas 時才會加在卡片最後,讓連結找得到它。沒有 ID 的卡片用起來完全一樣。
@@ -132,11 +135,12 @@
 | 分類 | 可以設定 |
 | --- | --- |
 | 一般 | 語言、這台電腦是誰在用、個人使用 |
+| 輔助使用 | 看板大小(80–120%;80% 是 1.7.6 以前的大小,預設 100%;表格寬度不變;桌機、手機各一個) |
 | 時間篩選 | 打開時先看哪一段、一週怎麼算 |
 | 卡片外觀 | 已完成的長相、最後編輯時間、留言與留言位置 |
 | 新增與編輯 | 送出鍵(見 [鍵盤](#鍵盤))、編輯時游標和卡片的位置、完成時取消置頂 |
 | 動作完成後要不要跳轉 | 每一種動作要不要捲到那張卡片 |
-| 筆記格式 | 外掛產生的檔案放哪裡(Archive 筆記、新的 Canvas、備份、匯出的長圖;預設:看板旁邊的 `Card Table attachments`)、把舊卡片全部轉成現在的格式(會先備份) |
+| 筆記格式 | 外掛產生的檔案放哪裡(Archive 筆記、新的 Canvas、備份、匯出的長圖;預設:看板旁邊的 `Card Table attachments`)、把舊卡片全部轉成現在的格式(會先列出要改幾張、先備份) |
 
 ## 文字格式
 

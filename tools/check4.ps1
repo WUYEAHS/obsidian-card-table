@@ -47,6 +47,10 @@ $fxJs = (Join-Path $p "fixture.js").Replace('\', '/')
 Start-Sleep -Milliseconds 1200
 "fixture: " + ((& $o eval code="window.__fx" 2>&1) -join '')
 
+# CR-1.7.6-02/03 phone set: board size = settings.boardSize.phone / 80 (80% = original size), icon size on phones = 1 (fixed)
+$phoneSet = "(()=>{const p=app.plugins.plugins['card-table'], v=+p[String.fromCharCode(35373,23450)][String.fromCharCode(30475,26495,22823,23567)][String.fromCharCode(25163)]||80;" +
+  "document.body.style.setProperty('--tk-'+String.fromCharCode(26495,20493), String(v/80)); document.body.style.setProperty('--tk-'+String.fromCharCode(22294,20493),'1'); return 1})()"
+$restoreSet = "app.plugins.plugins['card-table'][String.fromCharCode(22871,40670,25802)](); 1"
 foreach ($lang in @("zh-TW", "en")) {
   SetLang $lang
 
@@ -72,8 +76,12 @@ foreach ($lang in @("zh-TW", "en")) {
     $vw = [int][math]::Round(($board + $ovh) * $zoom)
     SetW $vw
     "==================== $lang @ phone board ${board}px (device viewport $vw, zoom $([math]::Round($zoom, 2))) ===================="
+    # CR-1.7.6-02: 390 / 360 stand for phones, which use the phone set of board / icon size (setting, phone half),
+    # not the desktop one. 800 stays a desktop pane. Restored after the loop.
+    if ($board -lt 800) { & $o eval code="$phoneSet" 2>&1 | Out-Null; Start-Sleep -Milliseconds 800 }
     RunCheck
   }
+  & $o eval code="$restoreSet" 2>&1 | Out-Null
 }
 & $o dev:cdp method=Emulation.clearDeviceMetricsOverride 2>&1 | Out-Null
 SetLang "zh-TW"

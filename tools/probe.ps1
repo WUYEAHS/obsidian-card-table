@@ -8,7 +8,8 @@
 #   .\tools\probe.ps1 head               # every block header: class, icon, left edge, size
 #   .\tools\probe.ps1 card "text"        # the card containing <text>: strip, pin, chips, buttons
 #   .\tools\probe.ps1 edit "text"        # click its edit button, report the editor, then close it
-#   .\tools\probe.ps1 overflow           # elements that do not fit themselves (what check4 reports)
+#   .\tools\probe.ps1 hit                # tap-target size per button class + corner hit-test (1.7.6)
+#   .\tools\probe.ps1 overflow          # elements that do not fit themselves (what check4 reports)
 #   .\tools\probe.ps1 sel ".tk-plan"     # rect + common computed styles for a selector
 #
 # The argument may contain CJK: it is escaped to \uXXXX before it goes through the CLI.

@@ -24,9 +24,15 @@ function SetLang($lang) {
 }
 
 $m = (Join-Path $p "measure.js").Replace('\', '/')
+# CR-1.7.6-02: the numbers below are 100% numbers. Board size / icon size (--tk-<board>x / --tk-<icon>x,
+# CJK names built with fromCharCode) are forced to 1 for the run and restored with the plugin's own setter at the end.
+$base = "['--tk-'+String.fromCharCode(26495,20493),'--tk-'+String.fromCharCode(22294,20493)].forEach(k=>document.body.style.setProperty(k,'1')); 1"
+$restore = "app.plugins.plugins['card-table'][String.fromCharCode(22871,40670,25802)](); 1"
 $langs = @("zh-TW"); if ($En) { $langs += "en" }
 foreach ($lang in $langs) {
   if ($En) { SetLang $lang }
+  & $o eval code="$base" 2>&1 | Out-Null
+  Start-Sleep -Milliseconds 600
   "==================== $lang ===================="
   & $o eval code="eval(require('fs').readFileSync('$m','utf8'))" 2>&1 | Out-Null
   # the script is async (opens the editor, toggles themes); poll window.__m
@@ -37,4 +43,5 @@ foreach ($lang in $langs) {
   }
   $r
 }
+& $o eval code="$restore" 2>&1 | Out-Null
 if ($En) { SetLang "zh-TW"; "(language restored to zh-TW)" }

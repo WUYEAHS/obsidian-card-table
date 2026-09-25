@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260925v1";
-const 插件版本 = "1.7.5";
+const 看板版本 = "260925v2";
+const 插件版本 = "1.7.6";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -180,17 +180,23 @@ const 字典 = {
     updates: "更新內容", updatesDesc: "現在是 N。這一版的更新介紹,以及每一版加了什麼", updatesBtn: "看更新內容", allVersions: "所有版本",
     setGeneral: "一般", setLook: "卡片外觀", setEdit: "新增與編輯", setFormat: "筆記格式", setSupport: "支持",
     convertAll: "把舊寫法全部轉成新格式(測試中)",
-    convertAllDesc: "記住用卡片看板開的筆記有 N 份,把裡面 1.6.1 以前寫法的卡片一次換成新格式([due:: …]、[pin:: on]、[repeat:: …]、[cm:: …]、最後一行的 [ed:: …])。平常不需要按:舊寫法照讀,卡片被改到的時候會自己換。",
+    convertAllDesc: "記住用卡片看板開的筆記有 N 份,把裡面舊寫法的卡片一次換成新格式([主題] → #主題、#人 → @人、[due:: …]、[pin:: on]、[repeat:: …]、[cm:: …]、最後一行的 [ed:: …])。按下去會先列出每份筆記有幾張舊寫法。平常不需要按:舊寫法照讀,卡片被改到的時候會自己換。",
     convertBtn: "全部轉換",
     convertAsk: "⚠ 這會一次改寫下面這些筆記裡的每一張舊寫法卡片:\n\nLIST\n\n" +
       "・轉換前會在外掛的資料夾(設定 → 外掛產生的檔案放哪裡)存一份原文備份(「名字 backup-日期-時間」),但還是請先自己再備份一次。\n" +
       "・有用 Obsidian Sync 或好幾台裝置的話,先確認其他裝置都同步完了、沒有人正在編輯這幾份筆記。\n" +
-      "・1.6.0 以前的卡片看板讀不懂新寫法(置頂、循環、留言、區間會失效),其他裝置要先更新到 1.6.1。\n" +
+      "・1.6.2 以前的卡片看板讀不懂新寫法(主題、指派人、置頂、循環、留言、區間會失效),其他裝置要先更新到 1.6.3 以後。\n" +
       "・這個動作沒有復原鍵,要還原只能用備份。",
     convertYes: "我了解,全部轉換",
     convertNone: "沒有需要轉換的卡片",
-    convertDone: "✓ 已轉換 N 張卡片(F 份筆記),原文備份在每份筆記旁邊",
+    convertDone: "✓ 已轉換 N 張卡片(F 份筆記),原文備份在外掛的資料夾",
     convertFail: "有 N 份筆記沒有轉換(備份失敗或檔案剛被改過),原檔沒動",
+    // CR-1.7.6-03 輔助使用
+    setA11y: "輔助使用", boardSize: "看板大小", boardSizeReset: "回到預設(100%)",
+    boardSizeDesc: "整塊看板(字、圖示、間距)一起放大或縮小,表格左右寬度不變。80% 是 1.7.6 以前的大小,預設 100%。桌機、手機各記一個。",
+    // 1.7.6-D3:按下去先列出每份筆記偵測到的舊寫法
+    oldKinds: { 題括號: "[主題]", 井號人: "#人", 舊日期: "舊日期", 舊圖示: "📌 🔁 💬 ✎", 其他: "其他" },
+    oldUnit: "張",
     doneLook: "已完成的卡片長相", doneLookDesc: "做完的跟還沒做的要一眼分得出來",
     doneBoth: "淡化 + 劃掉", doneFade: "只淡化", doneStrike: "只劃掉", doneNone: "不變",
     saving: "儲存中…", saveFailed: "沒存進去,字還在框裡,再按一次儲存",
@@ -348,17 +354,21 @@ const 字典 = {
     updates: "What’s new", updatesDesc: "You are on N. This version's highlights, and what each version added", updatesBtn: "See what's new", allVersions: "All versions",
     setGeneral: "General", setLook: "Cards", setEdit: "Adding and editing", setFormat: "Note format", setSupport: "Support",
     convertAll: "Convert everything to the new format (testing)",
-    convertAllDesc: "N notes are remembered as Card Tables. Rewrite every card in them that still uses the pre-1.6.1 syntax to the new format ([due:: …], [pin:: on], [repeat:: …], [cm:: …], [ed:: …] as the last line). You normally don't need this: the old syntax is still read, and a card switches when it is changed.",
+    convertAllDesc: "N notes are remembered as Card Tables. Rewrite every card in them that still uses an old syntax to the new format ([topic] → #topic, #person → @person, [due:: …], [pin:: on], [repeat:: …], [cm:: …], [ed:: …] as the last line). Clicking it first lists how many old-format cards each note has. You normally don't need this: the old syntax is still read, and a card switches when it is changed.",
     convertBtn: "Convert all",
     convertAsk: "⚠ This rewrites every old-format card in these notes at once:\n\nLIST\n\n" +
       "• A copy of each note's original text is saved first in the plugin's folder (Settings → Folder for files the plugin creates) (“name backup-date-time”), but please make your own backup too.\n" +
       "• If you use Obsidian Sync or several devices, make sure they have finished syncing and nobody is editing these notes.\n" +
-      "• Card Table 1.6.0 and older cannot read the new format (pins, repeats, comments and ranges stop working); update your other devices to 1.6.1 first.\n" +
+      "• Card Table 1.6.2 and older cannot read the new format (topics, assignees, pins, repeats, comments and ranges stop working); update your other devices to 1.6.3 or later first.\n" +
       "• There is no undo; the backup is the only way back.",
     convertYes: "I understand, convert all",
     convertNone: "No cards need converting",
-    convertDone: "✓ Converted N cards in F notes; the originals are backed up next to each note",
+    convertDone: "✓ Converted N cards in F notes; the originals are backed up in the plugin's folder",
     convertFail: "N notes were not converted (backup failed or the file just changed); they were left untouched",
+    setA11y: "Accessibility", boardSize: "Board size", boardSizeReset: "Back to default (100%)",
+    boardSizeDesc: "Scales the whole board (text, icons, spacing) up or down; the table keeps its width. 80% is the size before 1.7.6; the default is 100%. Desktop and phone each keep their own value.",
+    oldKinds: { 題括號: "[topic]", 井號人: "#person", 舊日期: "old dates", 舊圖示: "📌 🔁 💬 ✎", 其他: "other" },
+    oldUnit: "cards",
     doneLook: "How done cards look", doneLookDesc: "Done and not-done should read apart at a glance",
     doneBoth: "Fade + strike through", doneFade: "Fade only", doneStrike: "Strike through only", doneNone: "No change",
     saving: "Saving…", saveFailed: "Not saved. Your text is still here, press save again",
@@ -496,8 +506,19 @@ const 預設設定 = {
      空的 = 預設衍生夾。鍵名沿用 1.6.3 的「移出資料夾」,以前填過的值照用(以前空的 = 看板旁邊,1.7.2 起改成預設資料夾) */
   移出資料夾: "",
   看過版本: "",          // 1.6.1:更新介紹看過哪一版(見 秀更新介紹)
+  /* CR-1.7.6-03 設定 → 輔助使用 → 看板大小(使用者 09-25):80–120%,每 1% 一格,預設 100。
+     **80% = 原本的大小**(zoom 1);100% = zoom 1.25。桌機、手機各一個值(設定會 Sync 到別台);手機預設 80(手機版面是 1.8 的事)。 */
+  看板大小: { 桌: 100, 手: 80 },
   版本: 插件版本
 };
+const 看板大小基 = 80;                // 看板大小 ÷ 這個 = CSS zoom(--tk-板倍)
+/* 1.7.6-U1 點擊範圍(px,0 = 不撐,--tk-點-<鍵>)+ CR-02 圖示大小(圖倍 %,--tk-圖倍)。
+   CR-1.7.6-03:使用者不調了(設定頁只留看板大小),是固定值;以前存進 data.json 的「點擊」在 onload 刪掉。 */
+const 點擊值 = {
+  桌: { 圖倍: 120, 條寬: 16, 釘寬: 16, 釘高: 18, 箭寬: 24, 溝寬: 22, 溝高: 26, 頭高: 26, 卡鈕高: 24 },
+  手: { 圖倍: 100, 條寬: 16, 釘寬: 16, 釘高: 18, 箭寬: 24, 溝寬: 22, 溝高: 26, 頭高: 26, 卡鈕高: 24 }
+};
+const 點變數 = (k) => k.endsWith("倍") ? "--tk-" + k : "--tk-點-" + k;     // CR-1.7.6-02:倍數沒有 px,也不給 check.js 歸 0
 /* 「這台電腦是誰在用」。故意不進 data.json —— 那個會被 Obsidian Sync 同步,
    同步過去就變成三台電腦都說自己是同一個人。
    ⚠ 走 app.loadLocalStorage / saveLocalStorage,不要自己碰 window.localStorage:
@@ -1055,6 +1076,30 @@ function 轉整份(文, 名單) {
     }
   });
   return { 文: 行.join("\n"), 張: 張 };
+}
+/* 1.7.6-D3:數一份筆記還有幾張舊寫法(「全部轉成新格式」的確認框先列出來)。只看第一行,一張卡可能算進好幾種;
+   其他 = 轉整份 會改到、但前面四種都沒算到的(例如 ed 還在第一行、舊的完成記錄)。純函式,不寫檔。 */
+function 數舊寫法(文, 名單) {
+  const 數 = { 題括號: 0, 井號人: 0, 舊日期: 0, 舊圖示: 0, 其他: 0 };
+  const 行 = String(文 || "").split("\n"), 規 = 人規則(名單);
+  const 連結頭Re = /^\[(?:[^\]\n]){1,120}\]\([^)\n]*\)\s*/;      // 跟 拆首行 一樣:開頭的 [文字](url) 不是主題
+  let 有張 = 0;
+  解析卡片(文, 名單).forEach(k => {
+    const m = 卡首Re.exec(行[k.起] || "");
+    if (!m) return;
+    let 本 = 拿欄(m[3]).剩.replace(/^[ \t]+/, "");
+    while (連結頭Re.test(本)) 本 = 本.replace(連結頭Re, "");
+    const 中 = [
+      ["題括號", 主題Re.test(本)],
+      ["井號人", 規.找.test(本) && !人At.test(本)],
+      ["舊日期", 本.search(標記Re) >= 0],
+      ["舊圖示", 本.search(置頂Re) >= 0 || 本.search(時戳清除Re) >= 0 || 本.search(循環標記Re) >= 0]
+    ].filter(x => x[1]);
+    中.forEach(x => 數[x[0]]++);
+    if (中.length) 有張++;
+  });
+  數.其他 = Math.max(0, 轉整份(文, 名單).張 - 有張);
+  return 數;
 }
 
 /* 卡片的身分:檔案 + 「[主題] 第一行內容」。
@@ -2704,7 +2749,7 @@ function 是送出(e) {
 let 要動畫 = () => true;
 function 鎖寬(節點) {
   try {
-    const w = Math.round(節點.getBoundingClientRect().width);
+    const w = 節點.offsetWidth;          // CR-1.7.6-02:offsetWidth 是放大前的寬度,跟 style.width 同一種單位(rect 在看板放大時會多 20%)
     if (w > 0) { 節點.__鎖寬 = true; 節點.style.width = w + "px"; }
   } catch (e) {}
 }
@@ -5018,7 +5063,9 @@ class 看板視圖 extends TextFileView {
       圖備(框, 圖名們, 13);
       框.setAttribute("aria-label", 提示);
       if (數 != null) 行.createDiv({ text: String(數) }).addClass("tk-頭數");
-      if (撐) 頭.insertBefore(行, 撐); else 容器.appendChild(行);
+      /* 1.7.6-U2(使用者 09-25:「archive icon 放錯地方了,因為手機是上下切割」):手機兩半上下疊,
+         🗄 N 畫在封存那一半自己的最上面;分類組照舊進標題列 */
+      if (撐 && !(窄 && 容器 !== 左)) 頭.insertBefore(行, 撐); else 容器.prepend(行);
       return 行;
     };
     const 輸入樣 = "flex:1 1 auto;min-width:0;height:26px;min-height:0;font-size:0.84em;padding:0 7px;margin:0;" +
@@ -5245,7 +5292,7 @@ class 看板視圖 extends TextFileView {
       const 對 = () => {
         const 點 = 右.querySelector(".tk-封點"), 目 = 點 ? 點.getBoundingClientRect().left : 右.getBoundingClientRect().left + 10;
         const 差 = 目 - 封組.getBoundingClientRect().left;
-        if (右.isConnected && 封組.isConnected && Math.abs(差) > 0.5) 封組.style.marginLeft = Math.max(0, (parseFloat(封組.style.marginLeft) || 0) + 差) + "px";
+        if (右.isConnected && 封組.isConnected && Math.abs(差) > 0.5) 封組.style.marginLeft = Math.max(0, (parseFloat(封組.style.marginLeft) || 0) + 差 / this.屏倍()) + "px";   // CR-1.7.6-02
       };
       對();      // ⚠ 只在這裡量一次:畫新增區 接著會讓內容從旁邊滑進來(translateX 14),動畫中量會差 14
     }
@@ -5647,6 +5694,7 @@ class 看板視圖 extends TextFileView {
   畫卡片工具選單(盒, k, 已封存, 具樣) {
     const T = this.T, s = this.狀態;
     const 更 = 膠囊(盒, "");
+    更.addClass("tk-卡鈕");                       // 1.7.6-U1 點擊範圍
     st(更, 具樣("var(--text-muted)", 26));
     圖(更, "ellipsis", 14);
     更.title = T.tools;
@@ -5867,7 +5915,7 @@ class 看板視圖 extends TextFileView {
       const r = g.getBoundingClientRect();
       const dx = Math.round(r.left * dpr) / dpr - r.left;
       const dy = Math.round(r.top * dpr) / dpr - r.top;
-      if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) g.style.transform = "translate(" + dx + "px," + dy + "px)";
+      if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) g.style.transform = "translate(" + dx / this.屏倍() + "px," + dy / this.屏倍() + "px)";
     });
   }
 
@@ -6398,7 +6446,8 @@ class 看板視圖 extends TextFileView {
       /* ⚠ 1.2:內容改成隨打隨存,所以這一顆不再是「儲存」而是「完成」——
          儲存是一個動作(你要記得按),完成是一個狀態(你已經寫完了)。 */
       const 乙 = 膠囊(盒, "");
-      st(乙, 具樣(編修中 ? "var(--text-accent)" : "var(--text-muted)", 20) +
+      乙.addClass("tk-卡鈕");                     // 1.7.6-U1 點擊範圍
+      st(乙,具樣(編修中 ? "var(--text-accent)" : "var(--text-muted)", 20) +
         (編修中 ? "border-color:var(--text-accent);" : ""));
       圖(乙, 編修中 ? "check" : "pencil", 13);
       // 1.7.1-F3(ADR §8):Archive 不能改內容 —— ✎ 不見、位置留著(原則 11:⋯ 不跳位置)。visibility:hidden 點不到也 tab 不到
@@ -6453,7 +6502,7 @@ class 看板視圖 extends TextFileView {
     }
   }
   切留言(k, 區) {
-    const 舊高 = Math.ceil(區.getBoundingClientRect().height);
+    const 舊高 = 區.offsetHeight;          // CR-1.7.6-02:放大前的高度,滑開() 用的 scrollHeight 也是
     if (this.狀態.留言展開[k.鍵]) delete this.狀態.留言展開[k.鍵];
     else this.狀態.留言展開[k.鍵] = true;
     const 格 = 區.closest ? 區.closest(".tk-格") : null;
@@ -6897,7 +6946,7 @@ class 看板視圖 extends TextFileView {
      做法:先量現在的高度,重畫那一格,再從舊高度滑到新高度 —— 起點要對,
      不要從 0 長出來,也不要先塌回去再彈開(那個「閃一下」就是這樣來的)。 */
   切內容(k, 區) {
-    const 舊高 = Math.ceil(區.getBoundingClientRect().height);
+    const 舊高 = 區.offsetHeight;          // CR-1.7.6-02:放大前的高度,滑開() 用的 scrollHeight 也是
     if (this.狀態.展開[k.鍵]) delete this.狀態.展開[k.鍵];
     else this.狀態.展開[k.鍵] = true;
     const 格 = 區.closest ? 區.closest(".tk-格") : null;
@@ -7065,12 +7114,16 @@ class 看板視圖 extends TextFileView {
       const 列 = this.找列(鍵);
       if (列) {
         const 差 = Math.round(列.getBoundingClientRect().top - ce.getBoundingClientRect().top - 目標);
-        if (差) ce.scrollTop += 差;
+        if (差) ce.scrollTop += 差 / this.屏倍();      // CR-1.7.6-02:差是螢幕上的 px,scrollTop 是放大前的
       }
       if (Date.now() < 截止) window.requestAnimationFrame(調);
     };
     window.requestAnimationFrame(調);
   }
+
+  /* CR-1.7.6-02:看板的 CSS zoom(設定「看板大小」)。getBoundingClientRect 量到的是螢幕上的 px(放大後),
+     scrollTop、style 的 px、offsetHeight 是放大前的 —— 拿 rect 的差去改 scrollTop / style 之前要除這個數。 */
+  屏倍() { return parseFloat(getComputedStyle(this.contentEl).zoom) || 1; }
 
   /* 只重畫「這一張卡片的內容欄」,不動整份清單。
      按編輯 / 開留言框都走這裡 —— 重畫整份清單會讓捲動位置對不回去,
@@ -7660,7 +7713,7 @@ class 看板視圖 extends TextFileView {
       try {
         const 列 = this.找列(k.鍵);
         const 區 = 列 && 列.querySelector(".tk-文欄");
-        if (區) 舊高 = Math.ceil(區.getBoundingClientRect().height);
+        if (區) 舊高 = 區.offsetHeight;          // CR-1.7.6-02:同 切內容
       } catch (e) {}
       // ⚠ 會把 k.鍵 更新成新的。1.6.2:最後一次沒寫進去就不關框(字還在,Notice 已經說了)
       if (!(await this.收掉編修(true))) return;
@@ -7973,6 +8026,10 @@ module.exports = class 卡片日誌看板 extends Plugin {
   async onload() {
     this.設定 = Object.assign({}, 預設設定, await this.loadData());
     this.設定.版本 = 插件版本;
+    // CR-1.7.6-03:點擊範圍 / 圖示大小不再是設定(1.7.6 開發中存過的值刪掉);看板大小補上沒存過的那一台(Object.assign 是淺的,不能共用 預設設定 那一份)
+    delete this.設定.點擊;
+    this.設定.看板大小 = Object.assign({}, 預設設定.看板大小, this.設定.看板大小);
+    this.套點擊();
     /* ⚠ 要在 registerView / addRibbonIcon **之前**註冊,
        不然第一次畫出來的分頁圖示會是空白的。 */
     addIcon(圖示名, 圖示SVG);
@@ -8174,7 +8231,17 @@ module.exports = class 卡片日誌看板 extends Plugin {
     this.app.workspace.onLayoutReady(() => this.秀更新介紹(false));
   }
 
-  onunload() {}
+  onunload() {
+    Object.keys(點擊值.桌).concat("板倍").forEach(k => document.body.style.removeProperty(點變數(k)));
+  }
+
+  /* 1.7.6:把這台裝置的看板大小、圖示大小、點擊範圍寫成 body 上的 CSS 變數。畫面不用重畫 —— CSS 自己跟著變。 */
+  套點擊() {
+    const 台 = this.app.isMobile ? "手" : "桌", 組 = 點擊值[台];
+    Object.keys(組).forEach(k => document.body.style.setProperty(點變數(k), k.endsWith("倍") ? String(組[k] / 100) : 組[k] + "px"));
+    const 大 = Math.min(120, Math.max(80, +this.設定.看板大小[台] || 預設設定.看板大小[台]));
+    document.body.style.setProperty("--tk-板倍", String(大 / 看板大小基));
+  }
 
   /* ============================================================
      1.6.1 即時預覽編輯器(使用者:「md 編輯時沒有即時顯示、不能 undo」)
@@ -8805,6 +8872,18 @@ class 選Canvas框 extends SuggestModal {
    每一項:[Lucide 圖示名, 標題, 說明]
    ============================================================ */
 const 更新介紹 = {
+  "1.7.6": {
+    "zh-TW": [
+      ["zoom-in", "看板變大、表格一樣寬", "桌機的看板整塊放大一級,圖示再大一點(✎ ⋯、已逾期、週期小一號),表格左右寬度不變;置頂的 📌 不再有底色。設定 → 輔助使用 →「看板大小」可以在 80–120% 之間調,80% 是原本的大小(手機預設就是 80%)。"],
+      ["pointer", "小鈕更好點", "完成色條、📌、篩選箭頭、收合箭頭、標題列和卡片上的小鈕,點得到的範圍變大了,畫面沒變。"],
+      ["file-cog", "轉換前先告訴你會改什麼", "「把舊寫法全部轉成新格式」按下去,先列出每份筆記有幾張 [主題]、#人 這些舊寫法;說明也補上 [主題] → #主題、#人 → @人。手機的分類設定裡,🗄 封存區的圖示放到下半。"]
+    ],
+    "en": [
+      ["zoom-in", "A bigger board, same width", "On desktop the whole board is drawn one step larger and icons a little larger still (✎ ⋯, Overdue and Repeating one step smaller), while the table keeps its width; a pinned card's 📌 no longer has a tint. Settings → Accessibility → “Board size” goes from 80% to 120%; 80% is the old size (and the phone default)."],
+      ["pointer", "Easier-to-hit buttons", "The done bar, 📌, filter arrows, fold arrows and the small buttons in headers and on cards have larger tap targets; nothing looks different."],
+      ["file-cog", "Conversion tells you first", "“Convert everything to the new format” now lists how many [topic], #person and other old-format cards each note has before it asks; the description mentions [topic] → #topic and #person → @person. On phones, the 🗄 archive icon in section settings sits with the archive half."]
+    ]
+  },
   "1.7.5": {
     "zh-TW": [
       ["swatch-book", "分類設定變清爽", "分類和封存的圖示搬到標題列;每一列只剩一個 ⋯(封存 / 搬移卡片 / 刪除)。「搬移卡片」把卡片搬到別區、分類留著。一次看得到 5 個分類,改顏色不會跳回最上面。"],
@@ -9021,6 +9100,9 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.7.6",
+    ["桌機看板放大一級、圖示再大一點,表格寬度不變(設定 → 輔助使用 可以調 80–120%);小鈕的點擊範圍變大;轉換舊寫法前先列出每份筆記有幾張;手機分類設定的封存圖示放到下半。"],
+    ["The desktop board is drawn one step larger with larger icons while the table keeps its width (Settings → Accessibility, 80–120%); larger tap targets; the old-format conversion lists what it will change first; the archive icon in phone section settings moved to the archive half."]],
   ["1.7.5",
     ["分類設定的圖示進標題列、每列只剩 ⋯,可以只搬卡片不刪分類,捲動停在對的地方;打勾後未完成 / 已完成一起顯示;critic 小修,拿掉三個用不到的設定。"],
     ["Section settings: icons in the title bar, one ⋯ per row, move cards without deleting the section, scrolling stays put; ticking shows To do and Done together; design-review fixes and three unused settings removed."]],
@@ -9346,6 +9428,20 @@ class 設定頁 extends PluginSettingTab {
           d.onChange((v) => { 存我是誰(v); this.插件.重畫所有看板(); });
         });
     }
+    /* ---- 輔助使用(CR-1.7.6-03,使用者 09-25)----
+       只留一條:整塊看板的大小(CSS zoom,表格寬度不變)。80% = 原本的大小,預設 100%,每 1% 一格。
+       改的是這台裝置(桌機 / 手機各一個值);拉的時候看板直接跟著變,不用重畫。 */
+    標(T.setA11y);
+    const 台 = this.app.isMobile ? "手" : "桌";
+    new Setting(c).setName(T.boardSize).setDesc(T.boardSizeDesc)
+      .addSlider(s => {
+        s.setLimits(80, 120, 1).setValue(+設.看板大小[台] || 預設設定.看板大小[台]).setDynamicTooltip()
+          .onChange(async (v) => { 設.看板大小[台] = v; this.插件.套點擊(); await 存(false); });
+        // onChange 放開才觸發;拖的時候先只換 CSS 變數,看板跟著變(不存)
+        s.sliderEl.addEventListener("input", () => document.body.style.setProperty("--tk-板倍", String(+s.sliderEl.value / 看板大小基)));
+      })
+      .addExtraButton(b => b.setIcon("rotate-ccw").setTooltip(T.boardSizeReset)
+        .onClick(async () => { 設.看板大小[台] = 預設設定.看板大小[台]; this.插件.套點擊(); await 存(false); this.display(); }));
 
     /* ---- 時間篩選 ---- */
     標(T.filterBlock);
@@ -9454,10 +9550,18 @@ class 設定頁 extends PluginSettingTab {
       .filter(f => f && f.extension === "md");
     new Setting(c).setName(T.convertAll).setDesc(T.convertAllDesc.replace("N", String(板們().length)))
       .addButton(b => b.setButtonText(T.convertBtn).setWarning()
-        .onClick(() => {
-          const 檔們 = 板們();
+        .onClick(async () => {
+          /* 1.7.6-D3:先數每份筆記的舊寫法(只讀),0 張的筆記不列;全部 0 就不開確認框 */
+          const 名單0 = 設.指派人 || [];
+          const 列們 = [];
+          for (const f of 板們()) {
+            const 數 = 數舊寫法(await this.app.vault.cachedRead(f), 名單0);
+            const 字 = Object.keys(數).filter(x => 數[x]).map(x => T.oldKinds[x] + " " + 數[x]).join(" · ");
+            if (字) 列們.push([f, "・" + f.path + ":" + 字 + " " + T.oldUnit]);
+          }
+          const 檔們 = 列們.map(x => x[0]);
           if (!檔們.length) { new Notice(T.convertNone); return; }
-          const 清單 = 檔們.map(f => "・" + f.path).join("\n");
+          const 清單 = 列們.map(x => x[1]).join("\n");
           new 確認框(this.app, T.convertAsk.replace("LIST", 清單), T.convertYes, async () => {
             const 名單 = 設.指派人 || [];
             let 張 = 0, 份 = 0, 敗 = 0;

@@ -63,8 +63,9 @@
    所以照主題的算法走:有 --line-width / --max-width 就用(Minimal 那一類),
    沒有就退回 Obsidian 自己的 --file-line-width,兩個都沒有才是 700px。
    ⚠ 只有桌機會掛這個 class(見 main.js 的 定窄),窄螢幕本來就用滿畫面。 */
+/* CR-1.7.6-02:看板放大(zoom)時 px 寬度也會跟著放大 → 除回去,表格左右寬度不變(% 不用除,它本來就照放大前的寬度算) */
 .tk-board.tk-定寬 > * {
-  max-width:min(var(--line-width, var(--file-line-width, 700px)), var(--max-width, 100%));
+  max-width:min(calc(var(--line-width, var(--file-line-width, 700px)) / var(--tk-板倍, 1)), var(--max-width, 100%));
   margin-left:auto;
   margin-right:auto;
 }
@@ -1326,12 +1327,12 @@
    已釘(tk-已釘)是永久狀態,直接套用同一套「發亮」樣式,不用等滑鼠移過去。
    CR-1.6.6-03:📌 不再疊在色條上,底下就是卡片自己的底色 —— 混色的第二個顏色回到 transparent
    (已完成 / 封存的列底色不一樣,跟著走才對)。 */
-.tk-board .tk-釘.tk-溝釘:hover,
-.tk-board .tk-釘.tk-溝釘.tk-已釘 {
+/* CR-1.7.6-02(使用者 09-25:「置頂的卡片 pin icon 不顯示 background」):已釘只靠 accent 色,不畫底色;沒釘的 hover 照舊有底 */
+.tk-board .tk-釘.tk-溝釘:not(.tk-已釘):hover {
   background-color:color-mix(in srgb, currentColor 22%, transparent);
 }
 @supports not (background: color-mix(in srgb, red 10%, transparent)) {
-  .tk-board .tk-釘.tk-溝釘:hover, .tk-board .tk-釘.tk-溝釘.tk-已釘 { background-color:var(--background-modifier-hover); }
+  .tk-board .tk-釘.tk-溝釘:not(.tk-已釘):hover { background-color:var(--background-modifier-hover); }
 }
 /* 1.7.5-U8(使用者 09-25:「hover 卡片不顯示 pin,hover 到色線時再顯示」)推翻 CR-1.6.6-05 的「滑過整列浮出」——
    桌機只有滑到色條(下一條)才出現。⚠ 手機留著:手機沒有滑鼠,點過一列 :hover 會黏著,這是手機唯一看得到 📌 的時候。 */
@@ -1364,3 +1365,41 @@
 .tk-board.tk-嵌卡 .tk-主題,
 .tk-board.tk-嵌卡 .tk-頭像 { cursor:inherit; }
 .tk-board.tk-嵌卡 .tk-色條:hover ~ .tk-釘.tk-溝釘.tk-已釘 { width:7px; color:var(--text-accent); }
+
+/* ---- 1.7.6-U1 點擊範圍 ----
+   畫面不變:小鈕多一層透明的 ::after 當點擊範圍。大小是固定值(main.js 的 點擊值,插件.套點擊() 寫到 body 的 --tk-點-*,0 = 不撐)。
+   ⚠ 不用 ::before(.tk-曆鈕 已經用它撐)。⚠ absolute 的子元素算進捲動容器的 scrollWidth —— 靠左邊的只往右撐(left:0)。
+   ⚠ 被父層切掉的撐不出去,這版不動:主題膠囊(自己 overflow:hidden)、常用主題的箭頭(.tk-常用列 17 高 overflow:hidden)、
+     卡片日期(.tk-題右 切掉)—— 要動就得改版面(probe hit 量過,1.7.6)。 */
+.tk-board .tk-溝, .tk-board .tk-頭鈕, .tk-board .tk-篩箭, .tk-board .tk-卡鈕 { position:relative; }
+.tk-board .tk-色條::after, .tk-board .tk-溝釘::after, .tk-board .tk-溝::after, .tk-board .tk-頭鈕::after,
+.tk-board .tk-篩箭::after, .tk-board .tk-卡鈕::after {
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:max(100%, var(--tk-點寬, 0px));
+  height:max(100%, var(--tk-點高, 0px));
+  transform:translate(-50%, -50%);
+}
+.tk-board .tk-色條::after, .tk-board .tk-溝釘::after, .tk-board .tk-溝::after { left:0; transform:translateY(-50%); }
+.tk-board .tk-色條 { --tk-點寬:var(--tk-點-條寬, 16px); }            /* 往右到文字線 18 前;高度不動(上面是 📌) */
+.tk-board .tk-溝釘 { --tk-點寬:var(--tk-點-釘寬, 16px); --tk-點高:var(--tk-點-釘高, 18px); }   /* 8–20 上下各撐 3,不碰色條(24 起) */
+.tk-board .tk-溝 { --tk-點寬:var(--tk-點-溝寬, 22px); --tk-點高:var(--tk-點-溝高, 26px); }
+.tk-board .tk-頭鈕 { --tk-點高:var(--tk-點-頭高, 26px); }
+/* 篩選箭頭貼在格子的左右邊、格子之間只隔 4:只往格子裡面撐(左箭頭往右、右箭頭往左),不然兩格的箭頭互搶 */
+.tk-board .tk-篩箭 { --tk-點寬:var(--tk-點-箭寬, 24px); }
+.tk-board .tk-篩箭:first-child::after { left:0; transform:translateY(-50%); }
+.tk-board .tk-篩箭:last-child::after { left:auto; right:0; transform:translateY(-50%); }
+/* ✎ ⋯ 左右相鄰,只撐高 */
+.tk-board .tk-卡鈕 { --tk-點高:var(--tk-點-卡鈕高, 24px); }
+/* ---- CR-1.7.6-02 看板大小(A)、圖示大小(B)----
+   A:整塊看板等比放大(CSS zoom),寬度不變(定寬那條除回去)。設定 → 輔助使用 → 看板大小(CR-1.7.6-03:80% = 原本 = zoom 1,預設 100% = 1.25)。Canvas / 嵌入的卡片不放大(框的大小照 100% 量)。
+   ⚠ zoom 底下 getBoundingClientRect 是放大後的數字,offsetHeight / scrollTop / style 是放大前的 —— 兩種不要混著算(main.js 屏倍())。
+   B:圖示只在畫面上放大(transform,不佔版面);✎ ⋯ 和已逾期 / 週期少 10%(使用者 09-25)。
+   ⚠ 行內寫了 transform 的 svg(日期條)不受影響 —— 行內贏。 */
+.tk-board:not(.tk-嵌卡) { zoom:var(--tk-板倍, 1); }
+.tk-board svg { transform:scale(var(--tk-圖倍, 1)); }
+.tk-board .tk-卡鈕 svg, .tk-board svg.lucide-ellipsis, .tk-board .tk-篩格.tk-小 svg {
+  transform:scale(max(1, calc(var(--tk-圖倍, 1) - 0.1)));
+}

@@ -5,6 +5,18 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.7.6
+
+**A bigger board and easier-to-hit buttons.** The desktop board is drawn one step larger and icons are larger, while the table keeps its width; small buttons also react over a larger area.
+
+### Changed
+- Board size (CR-1.7.6-02, -03): the whole board scales evenly and the table keeps the same width on screen. New settings group **Accessibility** → **Board size**, 80–120% in 1% steps: 80% is the size before 1.7.6, the default is 100% (a 125% zoom). Desktop and phone keep their own value; phones default to 80%. Canvas and embedded cards are not scaled.
+- Icons are drawn larger on top of that on desktop (120%; ✎ ⋯ and the Overdue / Repeating icons 110%). Fixed, not a setting.
+- A pinned card's 📌 no longer has a background tint; it is marked by colour only.
+- Larger tap targets (1.7.6-U1), drawn as an invisible layer so the layout stays the same: the done bar (16 px wide, stopping before the text), 📌 (16 × 18), the filter arrows (24 px, growing into their own cell only), the fold arrow in block headers (22 × 26), header icon buttons (26 px tall) and ✎ ⋯ on cards (24 px tall). Topic pills, the topic-row arrow and the card date are unchanged — their containers clip them, so enlarging them would change the layout.
+- "Convert everything to the new format" (1.7.6-D3) first lists how many old-format cards each note has (`[topic]`, `#person`, old dates, old icons, other) and skips notes with none. The description now mentions `[topic]` → `#topic` and `#person` → `@person`; the warning says other devices need 1.6.3 or later; the done message says where the backup is.
+- Phone section settings (1.7.6-U2): the 🗄 archive count sits at the top of the archive half (the two halves are stacked on phones), not in the title bar.
+
 ## 1.7.5
 
 **A tidier section settings panel.** Also finishes the small fixes left over from the 1.7.4 design review.

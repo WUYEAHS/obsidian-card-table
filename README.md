@@ -1,11 +1,10 @@
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
-<img width="90%" alt="Card Table - Dated Tasks board" src="https://github.com/user-attachments/assets/37b5914d-21df-48c9-a949-2a59c9fef3e9" />
-<img width="30%" alt="Card Table - Dated Tasks on a phone" src="https://github.com/user-attachments/assets/2e09a693-d1c4-4196-bdea-693612a90d99" />
+<img width="76%" alt="The board next to the same note as plain text" src="https://github.com/WUYEAHS/obsidian-card-table/raw/main/readme-shots/split-en.png" /> <img width="19.5%" alt="The board on a phone" src="https://github.com/WUYEAHS/obsidian-card-table/raw/main/readme-shots/phone-en.png" />
 
 # Card Table - Dated Tasks
 
-**A task-first card table.** Inspired by the Kanban table way of working, but dates, assignees, pins, comments and repeats all stay as plain text inside the note. Cards can go onto a **Canvas** and link out to your other notes, and finished sections move to a linked **Archive note** that opens in its own Archive mode.
+**A task-first dated card table.** Inspired by the Kanban table way of working, but dates, assignees, pins, comments and repeats all stay as plain text inside the note. Cards can go onto a **Canvas** and link out to your other notes, and finished sections move to a linked **Archive note** that opens in its own Archive mode.
 
 > [!IMPORTANT]
 > **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!
@@ -82,6 +81,9 @@ then reload Obsidian and enable **Card Table - Dated Tasks**.
 - **Links follow** — links in other notes and Canvases to the moved cards or section are updated in the same step.
 
 ### Canvas and card links
+
+<img width="90%" alt="Cards on a Canvas, linked to another note" src="https://github.com/WUYEAHS/obsidian-card-table/raw/main/readme-shots/canvas-en.png" />
+
 - **Send to Canvas** — one card, the list, or an archive section. Each card is its own frame, four to a row; an archive section comes wrapped in a group named after it. Cards already on the Canvas are skipped.
 - **Copy card ID** — paste it into a Canvas or another note and the whole card shows there; a click goes back to the board. Pasted into another card it becomes a plain link (no preview), so cards can point at each other without nesting.
 - **Card ID** — `^ct-abc123` is added to the end of a card only when you copy its ID or send it to a Canvas, so links can find it. A card without one works exactly the same.
@@ -133,11 +135,12 @@ Grouped the same way as in the plugin; **What's new** at the top lists what ever
 | Group | What you can set |
 | --- | --- |
 | General | Language, who uses this device, solo mode |
+| Accessibility | Board size (80–120%; 80% is the size before 1.7.6, default 100%; the table keeps its width; desktop and phone separately) |
 | Time filters | Range on open, how weeks are counted |
 | Cards | How done cards look, last edited time, comments and where they go |
 | Adding and editing | Submit key (see [Keyboard](#keyboard)), cursor and card position when editing, unpin when done |
 | Jump after an action | Whether each action scrolls to the card |
-| Note format | Folder for files the plugin creates (Archive notes, new Canvases, backups, exported images; by default `Card Table attachments` next to the board); convert every old card to the current format (backs up first) |
+| Note format | Folder for files the plugin creates (Archive notes, new Canvases, backups, exported images; by default `Card Table attachments` next to the board); convert every old card to the current format (lists what it will change and backs up first) |
 
 ## The text format
 

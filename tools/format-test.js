@@ -10,7 +10,7 @@
   const stub = { Plugin: C, TextFileView: C, PluginSettingTab: C, Setting: C, Notice: C, Menu: C, Modal: C, SuggestModal: C, MarkdownRenderChild: C,
     WorkspaceLeaf: C, debounce: f => f, setIcon: () => {}, addIcon: () => {} };
   const M = new Function('require', 'module', src +
-    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 擺ID, 照打段, 去卡縮排, 抓分區, 淨檔名, 截寬, 題限, 補ID, Canvas加節點, 成對方區, 接到尾, 月範圍字, 搬回尾Re, 換連結字, 連結尾, 嵌卡改連結, 顯示md};')(
+    '\n;return {拆首行, 組首行, 蓋卡, 解析卡片, 定位文, 換日期, 改零件, 讀留言, 組留言行文, 顯示內文, 鍵由行們, 轉整份, 照打行, 讀編行, 擺ID, 照打段, 去卡縮排, 數舊寫法, 抓分區, 淨檔名, 截寬, 題限, 補ID, Canvas加節點, 成對方區, 接到尾, 月範圍字, 搬回尾Re, 換連結字, 連結尾, 嵌卡改連結, 顯示md};')(
     () => stub, { exports: {} });
   const out = [];
   const eq = (name, a, b) => out.push((a === b ? 'ok   ' : 'FAIL ') + name + (a === b ? '' : '\n   got: ' + JSON.stringify(a) + '\n  want: ' + JSON.stringify(b)));
@@ -60,6 +60,13 @@
   eq('convert text', conv.文, ['## 1', '', '- [ ] [pin:: on] #訂貨 [start:: 2026-09-11] [due:: 2026-09-14] @欣明',
     '\t- 每樣兩箱,週五前要到', '\t- 打給廠商了', '\t[cm:: 2026-09-11 14:20|欣明] 報價回來了', '\t[ed:: 2026-09-10 09:12]'].join('\n'));
   eq('convert idempotent', M.轉整份(conv.文, 名單).張, 0);
+  // 1.7.6-D3:數舊寫法(確認框先列出來)
+  eq('1.7.6-D3 count legacy', JSON.stringify(M.數舊寫法(legacyDoc, 名單)), '{"題括號":1,"井號人":1,"舊日期":1,"舊圖示":1,"其他":0}');
+  eq('1.7.6-D3 count after convert = 0', JSON.stringify(M.數舊寫法(conv.文, 名單)), '{"題括號":0,"井號人":0,"舊日期":0,"舊圖示":0,"其他":0}');
+  const 混 = ['- [ ] [[客戶A]] 回電 [due:: 2026-09-20]', '\t[ed:: 2026-09-20 10:00]',
+    '- [ ] [訂貨 點貨] [due:: 2026-09-15] #欣明', '- [ ] [看](https://x.y) [報價] [due:: 2026-09-15]', '- [ ] #新 [due:: 2026-09-15] @欣明 #欣明'].join('\n');
+  eq('1.7.6-D3 count mixed: [[link]] not a topic, link+[topic], @ wins',
+    (({ 其他, ...前 }) => JSON.stringify(前))(M.數舊寫法(混, 名單)), '{"題括號":2,"井號人":1,"舊日期":0,"舊圖示":0}');
   const f = (k) => JSON.stringify([k.基鍵, k.主題, k.起日, k.迄日, k.置頂, k.指派, k.循環, k.內容行, k.留言, k.編修戳]);
   eq('parse same after convert', f(M.解析卡片(conv.文, 名單)[0]), f(M.解析卡片(legacyDoc, 名單)[0]));
   const kN = M.解析卡片(conv.文, 名單)[0];

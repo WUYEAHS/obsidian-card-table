@@ -26,6 +26,14 @@ function 掃(){
   const bb=b.getBoundingClientRect();
   const o={ 板橫向溢出:b.scrollWidth>b.clientWidth+1 ? (b.scrollWidth+'>'+b.clientWidth) : false,
     溢出元素:[], 切字:[], 超出左右邊界:[] };
+  // 1.7.6-U1:小鈕的點擊範圍(::after)會讓元素自己的 scrollWidth 變大,那是刻意的 ——
+  // 板橫向溢出 在上面已經帶著點擊範圍量過了;逐個元素掃的時候先把點擊範圍歸 0,掃完再套回來。
+  // CR-1.7.6-02:圖示大小(--tk-圖倍)也是只在畫面上放大(transform),一樣歸回 1;看板大小(--tk-板倍)不動,照實際設定量
+  const 點鍵=[...document.body.style].filter(k=>k.startsWith('--tk-點-')||k==='--tk-圖倍');
+  const 點原=點鍵.map(k=>document.body.style.getPropertyValue(k));
+  點鍵.forEach(k=>document.body.style.setProperty(k,k==='--tk-圖倍'?'1':'0px'));
+  // 看板放大(zoom ≠ 1)時 scrollWidth 是整數、會多進位 1–2px(實測 callout-icon 20>18、圖示框 17>15,換成 100% 就沒有)→ 容許 2
+  const 容=(parseFloat(getComputedStyle(b).zoom)||1)!==1?2:1;
   [...b.querySelectorAll('*')].forEach(el=>{
     const cs=getComputedStyle(el);
     if(cs.display==='none'||cs.display==='contents') return;
@@ -38,11 +46,11 @@ function 掃(){
     // 例外:CR-1.6.6-04,📌 的 icon(9)刻意比底色膠囊(7)大,左右各露 1px。
     // ⚠ 上限 +3:再大就是真的做壞了(1.6.6 曾經把 12px 的 icon 塞進 7px 的盒子,被切掉半邊)。
     const 露出的釘=el.classList.contains('tk-溝釘') && el.scrollWidth<=el.clientWidth+3;
-    if(!點擊區 && !露出的釘 && el.scrollWidth>el.clientWidth+1 && cs.overflowX!=='auto' && cs.overflowX!=='scroll'){
+    if(!點擊區 && !露出的釘 && el.scrollWidth>el.clientWidth+容 && cs.overflowX!=='auto' && cs.overflowX!=='scroll'){
       if(o.溢出元素.length<14) o.溢出元素.push(nm.slice(0,34)+'  '+el.scrollWidth+'>'+el.clientWidth);
     }
     // 文字被切掉(葉節點才算)
-    if(el.children.length===0 && el.textContent.trim() && el.scrollWidth>el.clientWidth+1){
+    if(el.children.length===0 && el.textContent.trim() && el.scrollWidth>el.clientWidth+容){
       if(o.切字.length<14) o.切字.push(nm.slice(0,26)+' 「'+el.textContent.trim().slice(0,16)+'」 '+el.scrollWidth+'>'+el.clientWidth);
     }
     // 跑出板子左右邊界
@@ -50,6 +58,7 @@ function 掃(){
       if(o.超出左右邊界.length<14) o.超出左右邊界.push(nm.slice(0,30)+'  L'+Math.round(r.left-bb.left)+' R'+Math.round(r.right-bb.right));
     }
   });
+  點鍵.forEach((k,i)=>document.body.style.setProperty(k,點原[i]));      // 還原成量之前的值(check4 的手機組也是這樣設的,不要叫 套點擊 蓋回桌機那組)
   return o;
 }
 // 未完成 → 已完成 → 封存區,三個畫面的結果併在一起(每一項標是哪個畫面);卡片數各記一個
