@@ -28,8 +28,8 @@ const { Plugin, TextFileView, PluginSettingTab, Setting, Notice, Menu, Modal, Wo
 const 視圖種類 = "card-table";
 /* 準則第九章:版本號格式 YYMMDDvN,程式和說明文件同一組,畫面上看得到。
    manifest.json 另外用 semver —— 那是 Obsidian 自己要認的,兩者並存。 */
-const 看板版本 = "260924v3";
-const 插件版本 = "1.7.4";
+const 看板版本 = "260925v1";
+const 插件版本 = "1.7.5";
 // ⚠ 要跟 manifest.json 的 fundingUrl 一致
 const 贊助網址 = "https://ko-fi.com/jiajiunwu";
 
@@ -68,7 +68,7 @@ const 字典 = {
     /* 1.7.1(ADR-002)看板 ↔ Archive。N = 幾個、FILE = 對方檔名、NAME = 看板名 */
     linksUpdate: "別的筆記和 Canvas 裡指到這一區的 N 個連結會一起更新(M 份筆記、K 個 Canvas)。",
     linksFailed: "這些筆記裡的連結沒改到:", moveBackAsk: "把「NAME」搬回〈FILE〉?\n這一區的 CNT 張卡片會回到看板的封存區。", moveBackYes: "搬回",
-    movedBackTail: "搬回", movedBackZone: "已搬回〈FILE〉的封存區:NAME(CNT 張)", moveBack: "搬回 FILE", openArchive: "開啟 FILE", archiveOf: "NAME的 Archive", archivedOn: "封存 D", archiveNoAdd: "Archive 不能新增卡片(可以搜尋、打勾、留言)",
+    movedBackTail: "搬回", movedBackZone: "已搬回〈FILE〉的封存區:NAME(CNT 張)", moveBack: "搬回 FILE", openArchive: "開啟 FILE", archiveOf: "Archive - NAME", archivedOn: "封存 D", archiveNoAdd: "Archive 不能新增卡片(可以搜尋、打勾、留言)",
     deleteAllSection: "整批刪除這一區(刪掉就沒了)", deleteAllYes: "刪除",
     deleteAllAsk: "整批刪除「NAME」?\n這一區的 CNT 張卡片會直接從筆記裡刪掉,\n不留檔、沒辦法復原。",
     moveOutFolder: "外掛產生的檔案放哪裡", moveOutFolderDesc: "Archive 筆記、新的 Canvas、轉格式的備份、匯出的長圖都放這個資料夾,沒有就建。空白 = 看板所在資料夾裡的「Card Table attachments」。已經有的檔案不搬。",
@@ -136,8 +136,8 @@ const 字典 = {
     sections: "分類", sectionDesc: "",
     sectionsHint: "先打開一個看板,這裡才會列出你的分類。", autoColor: "自動",
     jumps: "動作完成後要不要跳轉", jumpDesc: "把篩選調到看得到那張卡片的地方,並捲過去",
-    jumpDone: "標成已完成 → 自動勾選「已完成」", jumpTodo: "移回未完成 → 自動勾選「未完成」",
-    jumpArchive: "封存 → 跳到那張卡片", jumpToday: "設為今日",
+    jumpDone: "卡片勾選已完成", jumpTodo: "卡片回復至未完成",
+    jumpToday: "已逾期卡片「設為今日」",
     calMonthTotal: "這個月 D 張 ‧ N 天有卡片", thisMonth: "回到本月", wholeYear: "整年",
     changing: "更改中…", cancelWord: "取消", more: "更多", less: "收合",
     finish: "完成", undoEdit: "復原這一次編輯(全部刪掉了也退得回來)",
@@ -145,7 +145,7 @@ const 字典 = {
     ambiguous: "有兩張卡片的第一行一模一樣,分不出要改哪一張。先把其中一張的第一行改掉一點,再試一次",
     dupWarn: "這一行跟另一張卡片一模一樣,之後會分不出誰是誰",
     boardReady: "✓ 已建立 1 2 3 4 5 五個分區",
-    jumpAdd: "新增卡片", jumpAddDesc: "新增完把畫面帶到那張卡片並閃一下",
+    jumpAdd: "新增卡片送出", jumpAddDesc: "新增完把畫面帶到那張卡片並閃一下",
     editPos: "按下編輯之後,那張卡片停在哪裡",
     editPosDesc: "內容很長的時候,編修框會一次撐開很多行。不處理的話瀏覽器會把畫面拉到框的底部。",
     editPosKeep: "原地不動（預設）", editPosTop: "拉到最上面", editPosNone: "交給瀏覽器",
@@ -164,9 +164,8 @@ const 字典 = {
     sendKey: "送出鍵", sendKeyDesc: "新增卡片、編輯內容、寫留言、改留言都用同一套",
     sendKeyCombo: "Enter 換行；Shift / Ctrl / ⌘ + Enter 送出（預設）", sendKeyEnter: "Enter 送出；Shift + Enter 換行",
     useComments: "使用留言功能", useCommentsDesc: "關掉之後卡片上不再有留言鈕,也不顯示留言。筆記裡已經寫好的留言不會被刪掉,再打開就回來。",
-    hoverHighlight: "滑過卡片時高亮", hoverHighlightDesc: "滑鼠停在卡片上時,整張卡片亮一點。",
     showEditTime: "顯示最後編輯時間", showEditTimeDesc: "卡片右上角的最後編輯時間。關掉只是不顯示,筆記裡的 [ed:: …] 時戳照樣會寫(分辨同名卡片要用)。",
-    jumpPin: "置頂 → 跳到那張卡片",
+    jumpPin: "卡片置頂",
     pinTopic: "釘選這個主題", unpinTopic: "取消釘選", topicsPinHint: "所有主題(可以打字查,📌 釘選的會一直排在最前面)",
     showTopics: "展開常用主題", hideTopics: "收起常用主題", topicFull: "主題最多 3 個",
     topicCut: "主題最多 6 個中文字(英文 12 個字母),多的截掉了",
@@ -199,11 +198,11 @@ const 字典 = {
     needArchiveFirst: "要先封存才能刪除",
     cycleEdit: "改循環", cycleEvery: "每", cycleDay: "天", cycleWeek: "週", cycleMonth: "個月",
     cycleOff: "取消循環", cycleNone: "不循環", cycleSaved: "✓ 循環已改成 N",
-    customColor: "自訂顏色", resetColor: "重設為自動",
+    customColor: "自訂顏色",
     // ---- 1.5 ----
     editCursor: "按下編輯之後游標在哪裡", editCursorDesc: "電腦版按下編輯會直接把游標放進內容:放在最前面或最後面(手機不會自動聚焦)",
     cursorStart: "最前面（預設）", cursorEnd: "最後面",
-    showSectionName: "顯示分類名稱", showSectionNameDesc: "把分類的標題當成狀態顯示(例如把紅色那一區取名「等回復」),寫在主題後面。點名字可以換分類;卡片完成之後改顯示「已完成」。",
+    showSectionName: "顯示分類名稱",
     changeSection: "點一下換分類", changeSectionMenu: "換分類",
     unpinOnDone: "完成時自動取消置頂", unpinOnDoneDesc: "置頂的卡片標成完成,同時取消置頂",
     sectionExists: "已經有叫這個名字的分類了",
@@ -220,7 +219,7 @@ const 字典 = {
     filterSection: "只看「N」這一區",
     sectionLimit: "分類最少 1 個、最多 10 個", sectionNameEmpty: "分類名稱不能空白",
     sectionReserved: "分類名稱不能有「封存」或 archive,那是封存區專用的",
-    moveCardsTo: "裡面有 N 張卡片,要搬到哪一個分類?", willDelete: "刪除「N」", undoDelete: "不刪了",
+    moveCardsTo: "裡面有 N 張卡片,要搬到哪一個分類?", willDelete: "刪除「N」", undoDelete: "不刪了", moveCardsOut: "搬移卡片到…", undoMove: "不搬了", willMove: "「N」的卡片",
     willRemove: "移除「N」(卡片裡的名字不會動)",
     useAssignees: "使用指派人", addPerson: "新增指派人"
   },
@@ -238,7 +237,7 @@ const 字典 = {
     moveOutFailed: "Move out failed: the archive was not written, the note was left untouched",
     linksUpdate: "N links to this section in other notes and Canvases will be updated too (M notes, K Canvases).",
     linksFailed: "Links not updated in: ", moveBackAsk: "Move “NAME” back to “FILE”?\nThe CNT cards in this section go back to the board's archive zone.", moveBackYes: "Move back",
-    movedBackTail: "moved back", movedBackZone: "Moved back to the archive zone of “FILE”: NAME (CNT)", moveBack: "Move back to FILE", openArchive: "Open FILE", archiveOf: "Archive of NAME", archivedOn: "archived D", archiveNoAdd: "No new cards in an archive (search, tick and comment still work)",
+    movedBackTail: "moved back", movedBackZone: "Moved back to the archive zone of “FILE”: NAME (CNT)", moveBack: "Move back to FILE", openArchive: "Open FILE", archiveOf: "Archive - NAME", archivedOn: "archived D", archiveNoAdd: "No new cards in an archive (search, tick and comment still work)",
     deleteAllSection: "Delete this whole section (gone for good)", deleteAllYes: "Delete",
     deleteAllAsk: "Delete “NAME” entirely?\nThe CNT cards in this section are removed from the note,\nwith no copy kept and no way back.",
     moveOutFolder: "Folder for files the plugin creates", moveOutFolderDesc: "Archive notes, new Canvases, conversion backups and exported images go here; created if missing. Empty = “Card Table attachments” in the board's own folder. Existing files are not moved.",
@@ -305,8 +304,8 @@ const 字典 = {
     sections: "Sections", sectionDesc: "",
     sectionsHint: "Open a board first and your sections will be listed here.", autoColor: "Automatic",
     jumps: "Jump after an action", jumpDesc: "Move the filter to where the card is visible, and scroll to it",
-    jumpDone: "Marked done → tick Done", jumpTodo: "Back to to do → tick To do",
-    jumpArchive: "Archived → jump to the card", jumpToday: "Move to today",
+    jumpDone: "Card ticked done", jumpTodo: "Card back to to do",
+    jumpToday: "Overdue card “Move to today”",
     calMonthTotal: "D cards this month across N days", thisMonth: "This month", wholeYear: "Year",
     changing: "Changing…", cancelWord: "Cancel", more: "more", less: "less",
     finish: "Done", undoEdit: "Undo this edit (works even if you deleted everything)",
@@ -314,7 +313,7 @@ const 字典 = {
     ambiguous: "Two cards have the same first line, so I cannot tell which one to change. Edit one of them a little and try again",
     dupWarn: "This line is identical to another card, they will be hard to tell apart later",
     boardReady: "✓ Created sections 1 2 3 4 5",
-    jumpAdd: "Adding a card", jumpAddDesc: "After adding, scroll to the new card and flash it",
+    jumpAdd: "New card submitted", jumpAddDesc: "After adding, scroll to the new card and flash it",
     editPos: "Where a card sits when you start editing",
     editPosDesc: "A long card opens a tall editor. Left alone, the browser scrolls to the bottom of it.",
     editPosKeep: "Leave it where it is (default)", editPosTop: "Pull it to the top", editPosNone: "Let the browser decide",
@@ -333,9 +332,8 @@ const 字典 = {
     sendKey: "Submit key", sendKeyDesc: "The same for adding cards, editing content, writing and editing comments",
     sendKeyCombo: "Enter for a new line; Shift / Ctrl / ⌘ + Enter to submit (default)", sendKeyEnter: "Enter to submit; Shift + Enter for a new line",
     useComments: "Use comments", useCommentsDesc: "When off, cards have no comment button and comments are hidden. Comments already in the note are kept and come back when you turn this on.",
-    hoverHighlight: "Highlight card on hover", hoverHighlightDesc: "Lightens the whole card while the mouse is over it.",
     showEditTime: "Show last edited time", showEditTimeDesc: "The last-edited time on each card. Turning it off only hides it; the [ed:: …] stamp is still written to the note (it tells identical cards apart).",
-    jumpPin: "Pinned → jump to the card",
+    jumpPin: "Card pinned",
     pinTopic: "Pin this title", unpinTopic: "Unpin this title", topicsPinHint: "All titles (type to search; pinned ones always come first)",
     showTopics: "Show titles", hideTopics: "Hide titles", topicFull: "Up to 3 titles",
     topicCut: "A title fits 6 CJK characters (12 letters); the rest was trimmed",
@@ -368,11 +366,11 @@ const 字典 = {
     needArchiveFirst: "Archive it first, then you can delete it",
     cycleEdit: "Repeat", cycleEvery: "every", cycleDay: "day(s)", cycleWeek: "week(s)", cycleMonth: "month(s)",
     cycleOff: "Stop repeating", cycleNone: "No repeat", cycleSaved: "✓ Repeat set to N",
-    customColor: "Custom colour", resetColor: "Back to automatic",
+    customColor: "Custom colour",
     // ---- 1.5 ----
     editCursor: "Cursor position when editing", editCursorDesc: "On desktop, Edit puts the cursor straight into the content: at the start or the end (phones do not focus automatically)",
     cursorStart: "Start (default)", cursorEnd: "End",
-    showSectionName: "Show section names", showSectionNameDesc: "Show each card's section heading as its status (for example, name the red section “Waiting”), shown after the title. Tap the name to move the card to another section; done cards show Done instead.",
+    showSectionName: "Show section names",
     changeSection: "Click to move to another section", changeSectionMenu: "Change section",
     unpinOnDone: "Unpin when marked done", unpinOnDoneDesc: "A pinned card that is marked done is unpinned at the same time",
     sectionExists: "A section with that name already exists",
@@ -389,7 +387,7 @@ const 字典 = {
     filterSection: "Show only “N”",
     sectionLimit: "Keep between 1 and 10 sections", sectionNameEmpty: "A section needs a name",
     sectionReserved: "Section names cannot contain “archive”, that name belongs to the archive section",
-    moveCardsTo: "N cards inside. Move them to:", willDelete: "Delete “N”", undoDelete: "Keep it",
+    moveCardsTo: "N cards inside. Move them to:", willDelete: "Delete “N”", undoDelete: "Keep it", moveCardsOut: "Move cards to…", undoMove: "Don't move", willMove: "Cards in “N”",
     willRemove: "Remove “N” (names in cards are left alone)",
     useAssignees: "Use assignees", addPerson: "Add assignee"
   }
@@ -460,7 +458,6 @@ const 預設設定 = {
      有人喜歡留在原地慢慢清單子,所以三個各自可以關。 */
   跳轉_未完成到完成: true,
   跳轉_完成到未完成: true,
-  跳轉_封存: true,              // 1.4.6:封存之後要不要自動勾「含封存」並跳過去(以前是一定會)
   跳轉_置頂: true,              // 1.4.7:置頂之後要不要跳到那張卡片
   /* 1.4.7 */
   週起始: "一",                 // 一 = 週一 / 日 = 週日。影響「本周」的範圍和行事曆的第一欄
@@ -474,7 +471,6 @@ const 預設設定 = {
   釘選主題: {},
   /* 1.5 */
   編輯游標: "前",               // 前 = 按編輯時游標在最前面(預設)/ 後 = 最後面
-  滑過高亮: false,              // 1.6.3 C20:滑過卡片整張亮一點
   顯示分類名稱: false,          // 卡片上寫出分類標題(桌機在完成圓點上方、手機在主題右邊)
   完成取消置頂: false,          // 置頂的卡片標成完成時,順便取消置頂
   週模式: "週曆",               // 週曆 = 照星期 / 七天 = 包含今天的那一週改成今天起七天 / 月初 = 每月 1 號起每七天(1.6)
@@ -1936,7 +1932,7 @@ class 寫手 {
   }
 
   /* 1.6 分類設定按 ✓:新增、刪除(卡片搬到指定的分類)、改名,**一次原子寫入**做完。
-     計畫 = { 新增: [名…], 刪: [[舊名, { 名, 新 }]…], 改名: [[舊, 新]…] }
+     計畫 = { 新增: [名…], 刪: [[舊名, { 名, 新 }]…], 搬: [[舊名, { 名, 新 }]…](1.7.5,只搬不刪), 改名: [[舊, 新]…] }
        ・新增的標題插在第一個封存區前面(沒有封存區就放最後)
        ・刪掉的那一段,底下所有非空白的行搬到目標那一段的最上面(跟 搬分類 同一個位置),標題拿掉
        ・改名只改**原本就有**的標題 —— 新增的分類剛好叫某個舊名字時,不會被一起改到
@@ -1955,6 +1951,8 @@ class 寫手 {
       const 有 = (n) => 塊.some(b => b.名 === n);
       if (計畫.刪.some(([舊]) => !有(舊)) || 計畫.改名.some(([舊]) => !有(舊))) return { 誤: this.T.lost };
       if (計畫.刪.some(([, 到]) => !到.新 && !有(到.名))) return { 誤: this.T.lost };
+      const 搬們 = 計畫.搬 || [];
+      if (搬們.some(([舊, 到]) => !有(舊) || (!到.新 && !有(到.名)))) return { 誤: this.T.lost };
       const 補空行 = (b) => { if (b && b.身.length && b.身[b.身.length - 1].trim() !== "") b.身.push(""); };
       // ① 新增
       計畫.新增.forEach(n => {
@@ -1963,6 +1961,14 @@ class 寫手 {
         if (封 > 0) { 補空行(塊[封 - 1]); 塊.splice(封, 0, 新塊); }
         else { 補空行(塊[塊.length - 1]); 塊.push(新塊); }
       });
+      // 跳過標題底下的空白行,插在第一個非空白行前面;標題底下沒有空白行就補一行
+      const 插進 = (目, 搬) => {
+        let 插 = 0;
+        while (插 < 目.身.length && 目.身[插].trim() === "") 插++;
+        if (插 === 0) { 目.身.unshift(""); 插 = 1; }
+        目.身.splice(插, 0, ...搬);
+        目.動 = true;
+      };
       // ② 刪除 + 搬家
       計畫.刪.forEach(([舊, 到]) => {
         const 走們 = 塊.filter(b => b.名 === 舊 && !b.新 && !b.刪);
@@ -1970,13 +1976,16 @@ class 寫手 {
         if (!目) return;
         const 搬 = [];
         走們.forEach(b => { b.身.forEach(t => { if (t.trim()) 搬.push(t); }); b.刪 = true; });
-        if (!搬.length) return;
-        // 跳過標題底下的空白行,插在第一個非空白行前面;標題底下沒有空白行就補一行
-        let 插 = 0;
-        while (插 < 目.身.length && 目.身[插].trim() === "") 插++;
-        if (插 === 0) { 目.身.unshift(""); 插 = 1; }
-        目.身.splice(插, 0, ...搬);
-        目.動 = true;
+        if (搬.length) 插進(目, 搬);
+      });
+      // ②b 1.7.5-U5 只搬不刪:整段內容搬到目標那一區的最上面(跟 ② 同一個位置),標題留著、底下留一行空白
+      搬們.forEach(([舊, 到]) => {
+        const 走們 = 塊.filter(b => b.名 === 舊 && !b.新 && !b.刪);
+        const 目 = 塊.find(b => b.名 === 到.名 && !!b.新 === !!到.新 && !b.刪 && 走們.indexOf(b) < 0);
+        if (!目) return;
+        const 搬 = [];
+        走們.forEach(b => { const 有字 = b.身.some(t => t.trim()); b.身.forEach(t => { if (t.trim()) 搬.push(t); }); if (有字) { b.身 = [""]; b.動 = true; } });
+        if (搬.length) 插進(目, 搬);
       });
       if (計畫.刪.some(([舊]) => 塊.some(b => b.名 === 舊 && !b.新 && !b.刪))) return { 誤: this.T.lost };
       // ③ 改名(同時對映,兩個分類互換名字也可以)
@@ -3407,7 +3416,6 @@ class 看板視圖 extends TextFileView {
     根.toggleClass("tk-窄", this.窄);
     根.toggleClass("tk-密", this.密);
     根.toggleClass("tk-觸", this.觸);
-    根.toggleClass("tk-滑亮", !!this.插件.設定.滑過高亮);     // 1.6.3 C20
     /* ⚠ 手機底部多留 84px:手機版 Obsidian 的底部導覽列是浮在畫面上的,
        不留的話最後一張卡片永遠被它蓋住、捲也捲不出來。 */
     根.style.padding = this.觸 ? "8px 8px 84px" : (this.密 ? "8px 8px 24px" : "10px 14px 24px");
@@ -3571,7 +3579,8 @@ class 看板視圖 extends TextFileView {
     }
     列.setAttribute("aria-label", T.backToToday);
     const 回 = () => { this.回到今天(); this.畫(); };
-    列.createDiv({ text: 日期範圍字(this.今) }).addClass("tk-今字");
+    // 1.7.5-U18(critic U20,使用者:「日期前方增加文字 寫 今日」):三處都寫同一個日期,這一處說清楚它是今天
+    列.createDiv({ text: T.today + " " + 日期範圍字(this.今) }).addClass("tk-今字");
     列.onclick = 回;
     列.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 回(); } };
   }
@@ -4068,7 +4077,8 @@ class 看板視圖 extends TextFileView {
       溝.onclick = 回;
       溝.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); 回(e); } };
     }
-    else if (s.設定模式 && this.設草) 圖備(溝, ["settings", "cog"], 14);
+    // 1.7.5-U4:設定模式的溝留空(以前畫一個不能按的齒輪;分類 / 封存兩個圖示在標題列上)
+    else if (s.設定模式 && this.設草) {}
     else {
       const 詳 = !!s.詳細;
       溝.setAttribute("role", "button"); 溝.setAttribute("tabindex", "0");
@@ -4096,7 +4106,7 @@ class 看板視圖 extends TextFileView {
       }
       小鈕(["ellipsis"], T.sectionsAndPeople, 切設定, !!s.設定模式);
       if (s.開行事曆) { this.畫行事曆(外塊, 全); return; }
-      this.畫設定面板(外塊); return;
+      this.畫設定面板(外塊, 頭); return;
     }
 
     // ---- 詳細編輯模式:1.6.6-U4(使用者:「header 日期拿掉,圓點跟常用主題一樣放第一排」)——
@@ -4198,7 +4208,14 @@ class 看板視圖 extends TextFileView {
       // U34(mockup v16 #7,使用者「新增框換 square-pen」):空白時的圖示用 Lucide 原版 square-pen
       提示圖: ["square-pen", "pen-square", "pen-line"]
     });
-    if (內即) this.內輸 = 內即;
+    if (內即) {
+      this.內輸 = 內即;
+      /* 1.7.5-U7:詳細編輯的框很高,編輯器只有打了字的那幾行高 —— 點下面的空白也要開始打字(游標放最後) */
+      if (詳) 入.addEventListener("mousedown", (e) => {
+        if (e.target && e.target.closest && e.target.closest(".cm-content")) return;
+        e.preventDefault(); 內即.聚焦(true);
+      });
+    }
     else {
       const 內輸 = 入.createEl("textarea");
       內輸.addClass("tk-新入字");
@@ -4254,7 +4271,7 @@ class 看板視圖 extends TextFileView {
   /* 1.6.3(mockup v12 Q26)封存區 = 設定面板的**右半邊**(以前自己一塊)。
      這個函式只畫內容:小標(archive + 幾區)→ 每一區一列 → 選到的那一區的搜尋和主題。
      外面的塊、標題列、✓ / ↩ 都是設定面板的(見 畫設定面板)。 */
-  畫封存半(容器, 全, 小標) {
+  畫封存半(容器, 全, 小標, 記捲) {
     const T = this.T, s = this.狀態, 草 = this.設草;
     const 標題們 = this.分類清單.filter(x => /archive|封存/i.test(x));
     /* 使用者 09-20:「分類區設定 按封存 會顯示一個預覽 跳到右邊分類封存區」——
@@ -4299,7 +4316,7 @@ class 看板視圖 extends TextFileView {
         return b;
       };
       const 移字 = T.moveOut.replace("FILE", this.Archive名());
-      具鈕(["log-out", "arrow-right-from-line", "arrow-right"], 移字, () => this.問移出(標, 原名, 張));
+      // 1.7.5-U9(使用者:「⋯ 已經有了,外面不需要」):外面的 →(移出)拿掉,只留 ⋯
       具鈕(["ellipsis"], T.more, (e) => {
         const m = new Menu();
         m.addItem(i => i.setTitle(T.restoreSection).setIcon("archive-restore").onClick(() => this.還原封存區(標, 原名)));
@@ -4328,6 +4345,7 @@ class 看板視圖 extends TextFileView {
       列.createDiv({ text: String(this.卡片.filter(k => k.分類 === x.原).length) }).addClass("tk-頭數");
       const 位 = 列.createDiv(); 位.addClass("tk-封具"); 位.addClass("tk-空位");   // 佔位:張數跟上面幾列對齊
     });
+    if (記捲) 記捲(表, "封");
     if (!s.封存看) return;
     const 搜排 = 容器.createDiv(); 搜排.addClass("tk-封搜");
     const 搜 = 搜排.createDiv(); 搜.addClass("tk-封搜框");
@@ -4353,6 +4371,7 @@ class 看板視圖 extends TextFileView {
     if (!草 || 草.分類.some(x => x.還原 && x.原 === 標)) return;
     草.分類.push({ id: 草.下號++, 原: 標, 名: 原名.replace(搬回尾Re, ""), 色: null, 原色: null, 刪: false, 搬到: null, 還原: true });   // 1.7.2-B1:`名字 (搬回 日)` 回 `名字`
     this.狀態.封存看 = 標; this.狀態.封存搜 = "";
+    this.__捲底 = "分";          // 1.7.5-U10:還原項加在左半最後面 → 捲到底
     this.畫();
   }
 
@@ -4957,16 +4976,23 @@ class 看板視圖 extends TextFileView {
   }
   離開設定模式(然後) {
     const 走 = () => {
-      this.狀態.設定模式 = false; this.設草 = null;
+      this.狀態.設定模式 = false; this.設草 = null; this.__捲位 = null;   // 下次打開從最上面開始
       if (然後) 然後(); else this.畫新增區(this.區.新增, this.卡片);
     };
     if (!this.草改過()) { 走(); return; }
     new 確認框(this.app, this.T.discardAsk, this.T.discard, 走).open();
   }
 
-  畫設定面板(外塊) {
+  畫設定面板(外塊, 頭) {
     const T = this.T, 草 = this.設草, 窄 = this.密;
-    const 重畫 = (焦點) => { this.__設焦點 = 焦點 || null; this.畫新增區(this.區.新增, this.卡片); };
+    // 1.7.5-B1 / U10:重畫會換掉整塊面板(捲動框是新的)→ 位置記在 this.__捲位(捲的時候記),畫完放回去;底 = 那一邊捲到最下面
+    const 重畫 = (焦點, 底) => { this.__設焦點 = 焦點 || null; if (底) this.__捲底 = 底; this.畫新增區(this.區.新增, this.卡片); };
+    const 記捲 = (框, 鍵) => {
+      const 位 = this.__捲位 = this.__捲位 || {};
+      框.addEventListener("scroll", () => { 位[鍵] = 框.scrollTop; });
+      const 放 = () => { 框.scrollTop = this.__捲底 === 鍵 ? 框.scrollHeight : (位[鍵] || 0); };
+      放(); setTimeout(() => { 放(); if (this.__捲底 === 鍵) { this.__捲底 = null; 位[鍵] = 框.scrollTop; } }, 0);
+    };
     const 淨 = (v) => String(v || "").replace(/[\r\n]+/g, " ").trim();
     const 本體 = 外塊.createDiv();
     本體.addClass("tk-設定面板");
@@ -4981,15 +5007,18 @@ class 看板視圖 extends TextFileView {
                     : "border-left:1px solid var(--background-modifier-border);"));
     /* 1.6:兩半的標題**只放圖示**(分類 swatch-book、封存 archive),名字在滑鼠提示
        (使用者 09-20 v13 連說兩次「不要文字」)。
-       1.6.3(v13 #8):圖示後面接**數量**(幾個分類 / 幾區封存)。 */
+       1.6.3(v13 #8):圖示後面接**數量**(幾個分類 / 幾區封存)。
+       1.7.5-U4(使用者 09-25):兩個小標搬進**標題列**(齒輪拿掉,溝留空),兩半的內容往上一行。
+       插在「撐」前面:[溝] 🎨 N 👁 … 🗄 N ……(撐)…… ↩ ✓ ⋯。容器參數留著不用(畫封存半 照舊傳)。 */
+    const 撐 = 頭 && 頭.querySelector(".tk-撐");
     const 小標 = (容器, 圖名們, 提示, 數) => {
-      const 行 = 容器.createDiv();
-      st(行, "display:flex;align-items:center;gap:6px;min-height:22px;min-width:0;");
-      const 框 = 行.createDiv();
-      st(框, "display:inline-flex;align-items:center;line-height:0;color:var(--text-muted);");
-      圖備(框, 圖名們, 15);
+      const 行 = createDiv();
+      st(行, "display:flex;align-items:center;gap:6px;min-width:0;flex:0 0 auto;");
+      const 框 = 行.createDiv(); 框.addClass("tk-頭圖");
+      圖備(框, 圖名們, 13);
       框.setAttribute("aria-label", 提示);
       if (數 != null) 行.createDiv({ text: String(數) }).addClass("tk-頭數");
+      if (撐) 頭.insertBefore(行, 撐); else 容器.appendChild(行);
       return 行;
     };
     const 輸入樣 = "flex:1 1 auto;min-width:0;height:26px;min-height:0;font-size:0.84em;padding:0 7px;margin:0;" +
@@ -5039,12 +5068,12 @@ class 看板視圖 extends TextFileView {
     /* 1.6.5-U7(C24;使用者 09-22 在 Review 上選了方案 1):
        分類小標右邊一顆 eye —— 切換卡片上要不要顯示 `#分類名` 那個小字。
        ⚠ **色條不受影響**:1.6.3 之後色條同時是打勾鈕,藏起來等於拿掉打勾的入口。
-       用的是既有的設定 `顯示分類名稱`(設定頁那一條照舊),不另外開一個鍵。 */
+       用的是既有的設定 `顯示分類名稱`(1.7.5-U2 起設定頁那一條拿掉了,只剩這顆 👁),不另外開一個鍵。 */
     const 分標 = 小標(左, ["swatch-book", "palette"], T.sections, 活.length);
     {
       const 開 = !!this.插件.設定.顯示分類名稱;
       const 眼 = 分標.createDiv();
-      st(眼, 圖鈕樣 + "margin-left:auto;" + (開 ? "color:var(--text-accent);" : ""));
+      st(眼, 圖鈕樣 + (開 ? "color:var(--text-accent);" : ""));
       眼.setAttribute("role", "button"); 眼.setAttribute("tabindex", "0");
       眼.setAttribute("aria-label", T.showSectionName);
       圖備(眼, 開 ? ["eye"] : ["eye-off", "eye-closed"], 14);
@@ -5056,10 +5085,11 @@ class 看板視圖 extends TextFileView {
       };
     }
     /* U41(Q39 / Q40):分類多的時候這一段自己捲(細深灰捲軸,見 styles.css 的 .tk-細捲),
-       不要把整塊面板撐長、把卡片清單推到看不見的地方。mockup v16 的高度是 92。 */
+       不要把整塊面板撐長、把卡片清單推到看不見的地方。
+       1.7.5-U6(使用者:「至少一次顯示 5 個」):92 → 134 = 5 列 × 22 + 4 × 6 */
     const 分表 = 左.createDiv();
     分表.addClass("tk-細捲");
-    st(分表, "display:flex;flex-direction:column;gap:6px;min-width:0;max-height:92px;overflow-y:auto;");
+    st(分表, "display:flex;flex-direction:column;gap:6px;min-width:0;max-height:134px;overflow-y:auto;");
     const 張數 = {};
     this.卡片.forEach(k => { 張數[k.分類] = (張數[k.分類] || 0) + 1; });
     // 1.6.7-U6:拖曳排序(只有桌機、超過一個分類才畫把手)
@@ -5109,46 +5139,64 @@ class 看板視圖 extends TextFileView {
       const n = 項.原 ? (張數[項.原] || 0) : 0;
       st(列.createDiv({ text: n ? String(n) : "" }),
         "flex:0 0 18px;width:18px;text-align:right;font-size:0.7em;color:var(--text-faint);font-variant-numeric:tabular-nums;");
-      if (項.色) 小圖鈕(列, ["rotate-ccw"], T.resetColor, () => { 項.色 = null; 重畫(); });
-      /* 1.6.3(mockup v7)封存整個分類:按 ✓ 儲存時標題改成 `## Archive/分類名`(舊版照樣當封存);再按一次取消 */
+      /* 1.7.5-U5(使用者 09-25):列 = [把手][色][名字][張][⋯]。↺ 重設為自動拿掉;🗄 封存、✕ 刪除收進 ⋯,
+         多一項「搬移卡片到…」(只搬不刪,標題留著)。三個動作都是草稿,按 ✓ 才寫(同一次原子寫入)。 */
       if (項.還原) {
-        // CR-1.7.2-02:還原項只有「不還原了」(放在 🗄 的位置);✕ 的位置留空,張數才跟上面幾列對齊
+        // CR-1.7.2-02:還原項只有「不還原了」(放在 ⋯ 的位置)
         小圖鈕(列, ["undo-2", "undo", "rotate-ccw"], T.cancelRestore, () => {
           草.分類 = 草.分類.filter(x => x !== 項);
           if (this.狀態.封存看 === 項.原) this.狀態.封存看 = null;
           this.畫();
         });
-        小圖鈕(列, ["x"], "", () => {}, true).style.visibility = "hidden";
         return;
       }
-      if (項.原) {
-        /* 使用者 09-20:「按封存 會顯示一個預覽 跳到右邊分類封存區」——
-           按下去除了記在草稿,還把右半邊切到這一區的預覽(清單就只剩那一區的卡片);再按一次收回去。 */
-        const 封 = 小圖鈕(列, ["archive"], 項.封存 ? T.unarchiveSection : T.archiveSection, () => {
-          項.封存 = !項.封存;
-          const st狀 = this.狀態;
-          if (項.封存) st狀.封存看 = 項.原;
-          else if (st狀.封存看 === 項.原) st狀.封存看 = null;
-          st狀.封存搜 = "";
-          this.__設焦點 = null;
-          this.畫();          // ⚠ 不是 重畫():預覽會換掉**卡片清單**,只重畫新增區看不到
-        });
-        if (項.封存) { 封.style.color = "var(--color-orange, #e08a2e)"; 列.style.opacity = "0.55"; }
-      }
+      if (項.封存) 列.style.opacity = "0.55";
+      /* 使用者 09-20:「按封存 會顯示一個預覽 跳到右邊分類封存區」——
+         按下去除了記在草稿,還把右半邊切到這一區的預覽(清單就只剩那一區的卡片);再按一次收回去。 */
+      const 切封 = () => {
+        項.封存 = !項.封存;
+        const st狀 = this.狀態;
+        if (項.封存) { st狀.封存看 = 項.原; this.__捲底 = "封"; }      // 1.7.5-U10:右半捲到底,看得到新的預覽列
+        else if (st狀.封存看 === 項.原) st狀.封存看 = null;
+        st狀.封存搜 = "";
+        this.__設焦點 = null;
+        this.畫();          // ⚠ 不是 重畫():預覽會換掉**卡片清單**,只重畫新增區看不到
+      };
+      // 挑目的地(刪除的「搬到哪」和「搬移卡片」共用)
+      const 挑到 = (e, 題, 做) => {
+        const m = new Menu();
+        m.addItem(it => it.setTitle(題).setDisabled(true));
+        活.filter(x => x !== 項 && !x.還原).forEach(x => m.addItem(it => it
+          .setTitle(淨(x.名) || "—").setIcon("arrow-right").onClick(() => 做(x))));
+        m.showAtMouseEvent(e);
+      };
       const 最後一個 = 活.length <= 1;
-      小圖鈕(列, ["x"], 最後一個 ? T.sectionLimit : T.deleteSection, (e) => {
+      const 刪 = (e) => {
         if (最後一個) { new Notice(T.sectionLimit); return; }
         if (!項.原) { 草.分類 = 草.分類.filter(x => x !== 項); 重畫(); return; }
         if (!n) { 項.刪 = true; 重畫(); return; }
         // 裡面有卡片:先問要搬到哪一個分類
+        挑到(e, T.moveCardsTo.replace("N", String(n)), (x) => { 項.刪 = true; 項.搬到 = x.id; delete 項.搬走; 重畫(); });
+      };
+      const 更 = 小圖鈕(列, ["ellipsis"], T.more, (e) => {
         const m = new Menu();
-        m.addItem(it => it.setTitle(T.moveCardsTo.replace("N", String(n))).setDisabled(true));
-        活.filter(x => x !== 項).forEach(x => m.addItem(it => it
-          .setTitle(淨(x.名) || "—").setIcon("arrow-right")
-          .onClick(() => { 項.刪 = true; 項.搬到 = x.id; 重畫(); })));
+        if (項.原) m.addItem(i => i.setTitle(項.封存 ? T.unarchiveSection : T.archiveSection).setIcon("archive").onClick(切封));
+        if (項.原 && n && !最後一個) {
+          if (項.搬走 != null) m.addItem(i => i.setTitle(T.undoMove).setIcon("undo-2").onClick(() => { delete 項.搬走; 重畫(); }));
+          else m.addItem(i => i.setTitle(T.moveCardsOut).setIcon("arrow-right")
+            .onClick(() => setTimeout(() => 挑到(e, T.moveCardsTo.replace("N", String(n)), (x) => { 項.搬走 = x.id; 重畫(); }), 0)));
+        }
+        if (項.原) m.addSeparator();
+        m.addItem(i => {
+          i.setTitle(最後一個 ? T.sectionLimit : T.deleteSection).setIcon("trash-2")
+            .onClick(() => setTimeout(() => 刪(e), 0));
+          try { i.setWarning(true); if (最後一個) i.setDisabled(true); } catch (err) {}
+        });
         m.showAtMouseEvent(e);
-      }, 最後一個);
+      });
+      if (項.封存 || 項.搬走 != null) 更.style.color = "var(--color-orange, #e08a2e)";   // 有待存的動作:⋯ 變色(以前是 🗄 變色)
     });
+    記捲(分表, "分");
     if (活.length < 分類上限) {
       const 加 = 左.createDiv();
       加.setAttribute("role", "button");
@@ -5159,7 +5207,7 @@ class 看板視圖 extends TextFileView {
       加.onclick = () => {
         const id = 草.下號++;
         草.分類.push({ id: id, 原: null, 名: "", 色: null, 原色: null, 刪: false, 搬到: null });
-        重畫("分" + id);
+        重畫("分" + id, "分");        // 1.7.5-B1:新的那一列在最下面 → 捲到底
       };
     }
     // 準備刪掉的分類列在最底下,可以反悔
@@ -5175,12 +5223,32 @@ class 看板視圖 extends TextFileView {
         項.刪 = false; 項.搬到 = null; 重畫();
       });
     });
+    // 1.7.5-U5:準備「只搬卡片」的也列在這裡(跟刪除同一種淡字),可以反悔
+    活.filter(x => x.搬走 != null).forEach(項 => {
+      const 到 = 活.find(y => y.id === 項.搬走 && y !== 項);
+      if (!到) { delete 項.搬走; return; }
+      const 行 = 左.createDiv();
+      st(行, "display:flex;align-items:center;gap:6px;min-width:0;font-size:0.72em;color:var(--text-faint);");
+      st(行.createDiv({ text: T.willMove.replace("N", 淨(項.名) || "—") + "  → " + (淨(到.名) || "—") }),
+        "flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;");
+      小圖鈕(行, ["undo-2", "undo", "rotate-ccw"], T.undoMove, () => { delete 項.搬走; 重畫(); });
+    });
 
     /* ---- 右半:封存區(1.6.3 mockup v12 Q26)----
        以前這一半是指派人。使用者 09-20:「指派人顏色統一、使用者不能改、只能在全域 setting 設定;
        新增卡片的 ⋯ 留給封存區」—— 名單和「使用指派人」開關搬到 Obsidian 設定頁(見 class 設定頁)。
        ⚠ 左半是**草稿**(按 ✓ 才寫)。右半的封存區:還原也是草稿(CR-1.7.2-02,進左半);移出 / 整批刪除是立即生效(各自有確認框)。 */
-    this.畫封存半(右, this.卡片, 小標);
+    this.畫封存半(右, this.卡片, 小標, 記捲);
+    /* 1.7.5-U4:桌機兩半左右並排 → 標題列的 🗄 對齊右半邊封存列的圓點(看得出它管的是右邊那一半);手機上下疊,就接在 👁 後面 */
+    const 封組 = 撐 && 撐.previousElementSibling;
+    if (!窄 && 封組) {
+      const 對 = () => {
+        const 點 = 右.querySelector(".tk-封點"), 目 = 點 ? 點.getBoundingClientRect().left : 右.getBoundingClientRect().left + 10;
+        const 差 = 目 - 封組.getBoundingClientRect().left;
+        if (右.isConnected && 封組.isConnected && Math.abs(差) > 0.5) 封組.style.marginLeft = Math.max(0, (parseFloat(封組.style.marginLeft) || 0) + 差) + "px";
+      };
+      對();      // ⚠ 只在這裡量一次:畫新增區 接著會讓內容從旁邊滑進來(translateX 14),動畫中量會差 14
+    }
 
     if (this.__設焦點) {
       const el = 本體.querySelector('[data-設="' + this.__設焦點 + '"]');
@@ -5232,12 +5300,17 @@ class 看板視圖 extends TextFileView {
         return [x.原, 到.原 ? { 名: 到.原, 新: false } : { 名: 淨(到.名), 新: true }];
       }).concat([...併].map(([x, y]) => [x.原, y.原 ? { 名: y.原, 新: false } : { 名: 淨(y.名), 新: true }])),
       改名: 活.filter(x => x.原 && (x.封存 || 淨(x.名) !== x.原)).map(x => [x.原, x.封存 ? 封存題(淨(x.名)) : 淨(x.名)]),
+      // 1.7.5-U5:只搬卡片、標題留著(刪除贏:已經在 刪 裡的不會在 活 裡)
+      搬: 活.filter(x => x.原 && !x.還原 && x.搬走 != null).map(x => {
+        const 到 = 活.find(y => y.id === x.搬走 && y !== x);
+        return 到 ? [x.原, 到.原 ? { 名: 到.原, 新: false } : { 名: 淨(到.名), 新: true }] : null;
+      }).filter(Boolean),
       順序: 順序.length > 1 ? 順序 : null
     };
 
     this.__存設中 = true;
     try {
-      if (計畫.新增.length || 計畫.刪.length || 計畫.改名.length || 計畫.順序) {
+      if (計畫.新增.length || 計畫.刪.length || 計畫.搬.length || 計畫.改名.length || 計畫.順序) {
         const ok = await this.插件.寫手.改分類們(this.file, 計畫);
         if (!ok) return;             // 寫手已經說過為什麼了;草稿留著,可以再按一次
       }
@@ -5284,7 +5357,7 @@ class 看板視圖 extends TextFileView {
 
       await this.插件.存設定();
       s.設定模式 = false;
-      this.設草 = null;
+      this.設草 = null; this.__捲位 = null;
       const 還了 = 草.分類.filter(x => x.還原).map(x => 淨(x.名));      // CR-1.7.2-02:說出還原到哪一區
       new Notice(還了.length ? "↩ " + [...new Set(還了)].join("、") : T.saved);
       this.插件.重畫所有看板();
@@ -5341,8 +5414,11 @@ class 看板視圖 extends TextFileView {
       頂塊.style.borderBottomWidth = "0";
     }
     // 1.6:清單表也能收合,標題前面一顆篩選圖示(跟時間篩選收起來時的標題列同一個語言)
-    const 單塊 = this.畫卡片塊(根, { 標題: this.篩選標題(), 色: this.篩選色(), 卡們: 其餘, 帶工具: !頂.length, 全: 全,
-      收合鍵: 清單收合鍵, 前圖示: ["filter", "list-filter"], 隱張數: true });
+    /* 1.7.5-U11(critic U7):看封存區時清單不管時間篩選(見 合顯示),標題列就不寫日期,寫「🗄 已封存 · ##名字」 */
+    const 封看 = this.看封存區 ? this.狀態.封存看 : null;
+    const 單塊 = this.畫卡片塊(根, { 標題: 封看 ? T.archivedTag + " · ##" + (封存原名(封看) || 封看) : this.篩選標題(),
+      色: this.篩選色(), 卡們: 其餘, 帶工具: !頂.length, 全: 全,
+      收合鍵: 清單收合鍵, 前圖示: 封看 ? ["archive"] : ["filter", "list-filter"], 隱張數: true });
     if (頂.length) {
       單塊.style.borderTopLeftRadius = "0";
       單塊.style.borderTopRightRadius = "0";
@@ -5401,7 +5477,7 @@ class 看板視圖 extends TextFileView {
       // 1.5.1:置頂表的標題列只放 📌 圖示,字留在 aria-label
       const 圖框 = 頭.createDiv();
       圖框.addClass("tk-頭圖");
-      圖(圖框, 設.圖示, 14);
+      圖(圖框, 設.圖示, 13);   // 1.7.5-U13:跟清單 / 未定的頭圖一樣 13
       圖框.setAttribute("aria-label", 設.標題);
     }
     /* 1.6.3(mockup v15 Q30、v16):**張數在日期前面** —— 掃的時候先看到「幾張」,再看是哪一天 */
@@ -5460,7 +5536,7 @@ class 看板視圖 extends TextFileView {
         "box-shadow:none;display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;" +
         "max-width:44%;overflow:hidden;white-space:nowrap;" +
         "color:" + c + ";border:1px solid " + 透明(c, 0.5) + ";background:" + 透明(c, 0.14) + ";");
-      const 字 = 區鈕.createSpan({ text: "#" + 截寬(this.狀態.區篩, 12) });
+      const 字 = 區鈕.createSpan({ text: "##" + 截寬(this.狀態.區篩, 12) });   // 1.7.5-U3:section 跟筆記的 ## 一樣,主題才是 #
       st(字, "flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;");
       圖(區鈕, "x", 12);
       區鈕.title = this.狀態.區篩;
@@ -5884,7 +5960,7 @@ class 看板視圖 extends TextFileView {
     // 1.6.6-U3(使用者:「色條變粗 + 卡片淡底」):不加外框,免得破所見即所得(原則 10)。
     if (this.狀態.編修 === k.鍵) 列.addClass("tk-編修列");
     this.畫色條(列, k);
-    /* 📌 在色條上面(✓ 的上方,使用者 09-19 v7 留言):釘住的一直在;沒釘的滑過卡片才出現,色條往下讓位 */
+    /* 📌 在色條上面(✓ 的上方,使用者 09-19 v7 留言):釘住的一直在;沒釘的滑到色條才出現(1.7.5-U8;手機照舊滑過整列),色條往下讓位 */
     if (!未定 && !this.是封存(k)) {
       const 釘 = this.畫釘(列, k);
       釘.addClass("tk-溝釘");
@@ -6311,7 +6387,12 @@ class 看板視圖 extends TextFileView {
     /* 已封存的卡片:封存 / 取消封存 / 刪除都在卡頭的「⋯」(1.6.3 B5 起桌機也一樣)。
        ⚠ UX 的順序是有意的 —— 封存(可回復) → 刪除(不可回復)。沒封存之前看不到刪除。
        ⚠ 封存的卡片不給編輯、不給留言:收起來的東西要改,先「取消封存」,那是一個明確的動作。 */
-    if (已封存) return;
+    if (已封存) {
+      // 1.7.5-U14(R11):✎ 不能用 → 位置留著(跟 Archive 看板同一招),日期右緣才跟一般卡片對齊
+      const 空 = 膠囊(盒, ""); st(空, 具樣("var(--text-muted)", 20)); 圖(空, "pencil", 13);
+      空.style.visibility = "hidden";
+      return;
+    }
 
     {
       /* ⚠ 1.2:內容改成隨打隨存,所以這一顆不再是「儲存」而是「完成」——
@@ -7612,8 +7693,9 @@ class 看板視圖 extends TextFileView {
      點一下是換分類的選單 —— 跟點左邊色條同一個,換分類就是換狀態。 */
   畫分類名(容器, k) {
     const c = this.插件.分類色(k.分類);
-    // 1.5.1:不要框,就是一行 `#等回復` 小字 —— 框圈跟主題膠囊、張數徽章長得太像
-    const 名 = 膠囊(容器, "#" + k.分類);
+    // 1.5.1:不要框,就是一行小字 —— 框圈跟主題膠囊、張數徽章長得太像
+    // CR-1.7.5-01(使用者:「不加 #,不然會跟主題搞混」):只寫分類名,# 留給主題
+    const 名 = 膠囊(容器, k.分類);
     st(名, "display:inline-block;max-width:100%;min-width:0;min-height:0;line-height:1.3;padding:0;" +
       "box-sizing:border-box;font-size:" + ("0.66em") + ";font-weight:600;" +
       "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;box-shadow:none;" +
@@ -7647,11 +7729,17 @@ class 看板視圖 extends TextFileView {
       if (取消釘) p.頂 = false;
     }), this.名單);
     if (!ok) return;
-    // ② CR-1.6.3-01:未完成 / 已完成是各自獨立的複選,不自動切開關(打一個勾不該動到使用者自己選的顯示範圍);
-    //    那張卡片 2 秒內留在畫面上、色條是 ↺(見 合顯示)
+    // 1.7.5-U1(推翻 CR-1.6.3-01):跳轉開著 → 未完成 + 已完成兩個都打開,卡片才不會 2 秒後不見
     const 要跳 = 變完成 ? this.插件.設定.跳轉_未完成到完成 : this.插件.設定.跳轉_完成到未完成;
+    if (要跳) await this.兩者都顯();
     this.記剛動過(k, 變完成 ? T.movedDone : T.movedTodo, () => this.切完成(k));
     if (要跳) this.浮到最上(k);
+  }
+  async 兩者都顯() {
+    const 設 = this.顯設;
+    if (設.未完成 && 設.完成) return;
+    設.未完成 = 設.完成 = true;
+    if (!this.是Archive) await this.插件.存設定();
   }
 
   /* 記下「剛剛動過」,三秒內圓點是反悔鈕 */
@@ -7856,17 +7944,13 @@ class 看板視圖 extends TextFileView {
     const 到 = 已封存 ? (指定到 || k.原分類 || this.分類清單.find(x => !/archive|封存/i.test(x)) || "紅色") : 封存區;
     const ok = await this.插件.寫手.搬分類(this.file, k, 到, this.名單);
     if (!ok) return;
-    /* 1.4.6:要不要自動勾篩選並跳過去,三種各自一個設定。
-       封存 → 看「封存」那一個;取消封存 → 卡片回到未完成或已完成,看那一個。 */
+    /* 封存這個方向只剩「2 秒內反悔還原」會走到(單張封存 1.6.3 拿掉了),一律跳 ——
+       1.7.5-R1 拿掉了 跳轉_封存 設定。取消封存 → 看完成 / 未完成那一個,跳的話兩個都開(1.7.5-U1)。 */
     const 設定 = this.插件.設定;
-    const 要跳 = !已封存 ? 設定.跳轉_封存 !== false
-      : (k.完成 ? 設定.跳轉_未完成到完成 !== false : 設定.跳轉_完成到未完成 !== false);
+    const 要跳 = !已封存 || (k.完成 ? 設定.跳轉_未完成到完成 !== false : 設定.跳轉_完成到未完成 !== false);
     if (要跳) {
-      let 調 = false;
-      if (!已封存 && !設.封存) { 設.封存 = true; 調 = true; }
-      if (已封存 && k.完成 && !設.完成) { 設.完成 = true; 調 = true; }
-      if (已封存 && !k.完成 && !設.未完成) { 設.未完成 = true; 調 = true; }
-      if (調) await this.插件.存設定();
+      if (!已封存 && !設.封存) { 設.封存 = true; if (!this.是Archive) await this.插件.存設定(); }
+      if (已封存) await this.兩者都顯();
     }
     this.記剛動過(k, 已封存 ? T.movedBack.replace("N", 到) : T.movedArchive,
       () => 已封存 ? this.切封存(k, false) : this.切封存(k, true, 原));      // 1.6.2:復原封存 = 回到原本那一區
@@ -8527,6 +8611,11 @@ module.exports = class 卡片日誌看板 extends Plugin {
     /* CR-1.7.2-04(使用者 09-24:320px 上限):一般筆記裡嵌的卡片最高 320px、超過自己捲(300 行的卡片以前有 4000px)。
        Canvas 不加 —— Canvas 的框是 量框() 量整張的高度(量框 不在 .markdown-embed 裡,所以也不會被限住) */
     if (el.closest(".markdown-embed") && !el.closest(".canvas-node")) { 殼.addClass("tk-嵌筆"); 殼.addClass("tk-細捲"); }
+    /* 1.7.5-U16(critic U17:Canvas 裡左 16、右 28):Obsidian 在 .markdown-preview-view 上寫 scrollbar-gutter:stable,
+       永遠替捲軸留 12px。Canvas 的框是 量框() 量整張的高度、不會捲,那 12px 是白留的 → 這一層改 auto(需要捲的時候照樣有捲軸)。
+       ⚠ 是 Obsidian 的元素、不是我們的:只在 Canvas 裡改,一般筆記的嵌入不碰(那裡 320px 會捲,tk-細捲 自己處理)。 */
+    const 板面 = el.closest(".canvas-node") && el.closest(".markdown-preview-view");
+    if (板面) 板面.style.scrollbarGutter = "auto";
     const 列 = 殼.createDiv({ cls: "tk-列" });
     列.style.setProperty("--tk-sec", this.分類色(分類, 序));
     if (k.完成) 列.addClass("tk-完劃");
@@ -8716,6 +8805,18 @@ class 選Canvas框 extends SuggestModal {
    每一項:[Lucide 圖示名, 標題, 說明]
    ============================================================ */
 const 更新介紹 = {
+  "1.7.5": {
+    "zh-TW": [
+      ["swatch-book", "分類設定變清爽", "分類和封存的圖示搬到標題列;每一列只剩一個 ⋯(封存 / 搬移卡片 / 刪除)。「搬移卡片」把卡片搬到別區、分類留著。一次看得到 5 個分類,改顏色不會跳回最上面。"],
+      ["circle-check", "打勾之後看得到卡片", "打勾或取消打勾,未完成和已完成會一起打開,卡片不會一下就不見(設定頁的兩個跳轉開關可以關)。"],
+      ["sparkles", "小地方", "分類篩選寫 ##名字,卡片上的分類名稱不帶 #(# 只給主題);看封存區時標題列寫「已封存」;滑過卡片不再浮出 📌(滑到色條才有);今日列寫「今日」;Canvas 上的卡片左右一樣寬。拿掉三個用不到的設定。"]
+    ],
+    "en": [
+      ["swatch-book", "Tidier section settings", "The section and archive icons moved to the title bar; each row has one ⋯ (archive / move cards / delete). “Move cards to…” empties a section but keeps it. Five sections show before scrolling, and changing a colour no longer jumps to the top."],
+      ["circle-check", "Ticked cards stay in view", "Ticking or un-ticking a card turns on both To do and Done, so it doesn't vanish (the two jump settings turn this off)."],
+      ["sparkles", "Small things", "The section filter reads ##name and section names on cards drop the # (# is for topics); an archived section's list says “Archived”; hovering a card no longer shows 📌 (hover the colour bar); the today row says “Today”; Canvas cards have even margins. Three unused settings removed."]
+    ]
+  },
   "1.7.4": {
     "zh-TW": [
       ["layout-dashboard", "Canvas 的卡片框夠高", "新送到 Canvas 的長卡片,框照實際量的高度放,不用再捲才看得到最後幾行。"],
@@ -8920,6 +9021,9 @@ const 更新前言 = {
    ⚠ 升版時在最前面加一筆,中英兩份,一版兩三句就好。
    1.6.3(A1):更新視窗在這一版的 CHANGELOG 下面列最近 10 版(不含這一版,見 畫版本摘要 的 上限、略過)。 */
 const 版本摘要 = [
+  ["1.7.5",
+    ["分類設定的圖示進標題列、每列只剩 ⋯,可以只搬卡片不刪分類,捲動停在對的地方;打勾後未完成 / 已完成一起顯示;critic 小修,拿掉三個用不到的設定。"],
+    ["Section settings: icons in the title bar, one ⋯ per row, move cards without deleting the section, scrolling stays put; ticking shows To do and Done together; design-review fixes and three unused settings removed."]],
   ["1.7.4",
     ["Canvas 上新送的卡片框照實際高度,不用捲;編輯時長內容在同一個地方換行,巢狀清單也對齊;設定頁的說明跟上現在的行為。"],
     ["New Canvas cards get frames as tall as the card; long content wraps at the same place while editing and nested lists line up; settings descriptions match current behaviour."]],  ["1.7.3",
@@ -9274,10 +9378,6 @@ class 設定頁 extends PluginSettingTab {
 
     /* ---- 卡片外觀 ---- */
     標(T.setLook);
-    // 1.6.3 C20:滑過卡片要不要整張亮一點(預設不要)
-    new Setting(c).setName(T.hoverHighlight).setDesc(T.hoverHighlightDesc)
-      .addToggle(t => t.setValue(!!設.滑過高亮)
-        .onChange(async (v) => { 設.滑過高亮 = v; await 存(true); }));
     new Setting(c).setName(T.doneLook).setDesc(T.doneLookDesc)
       .addDropdown(d => {
         [["淡化劃掉", T.doneBoth], ["淡化", T.doneFade], ["劃掉", T.doneStrike], ["無", T.doneNone]]
@@ -9285,9 +9385,7 @@ class 設定頁 extends PluginSettingTab {
         d.setValue(設.完成樣式 || "淡化劃掉");
         d.onChange(async (v) => { 設.完成樣式 = v; await 存(true); });
       });
-    new Setting(c).setName(T.showSectionName).setDesc(T.showSectionNameDesc)
-      .addToggle(t => t.setValue(!!設.顯示分類名稱)
-        .onChange(async (v) => { 設.顯示分類名稱 = v; await 存(true); }));
+    // 1.7.5-U2:「顯示分類名稱」只在設定模式分類旁邊的 👁 切(同一件事一個入口)
     new Setting(c).setName(T.showEditTime).setDesc(T.showEditTimeDesc)
       .addToggle(t => t.setValue(設.顯示編輯時間 !== false)
         .onChange(async (v) => { 設.顯示編輯時間 = v; await 存(true); }));
@@ -9331,10 +9429,11 @@ class 設定頁 extends PluginSettingTab {
       .addToggle(t => t.setValue(!!設.完成取消置頂)
         .onChange(async (v) => { 設.完成取消置頂 = v; await 存(false); }));
 
-    /* ---- 動作後跳轉 ----(說明寫在大標上,六個開關就不再各寫一次)
+    /* ---- 動作後跳轉 ----(說明寫在大標上,五個開關就不再各寫一次)
        1.4.6:未完成 / 已完成 / 封存 三個各自獨立(順序跟看板上「顯示」那一格一樣) */
     標(T.jumps, T.jumpDesc);
-    [["跳轉_完成到未完成", T.jumpTodo], ["跳轉_未完成到完成", T.jumpDone], ["跳轉_封存", T.jumpArchive],
+    // CR-1.7.5-01:每一列寫**觸發的動作**(不是結果),勾選在前
+    [["跳轉_未完成到完成", T.jumpDone], ["跳轉_完成到未完成", T.jumpTodo],
      ["跳轉_置頂", T.jumpPin], ["跳轉_設回今日", T.jumpToday], ["跳轉_新增", T.jumpAdd]].forEach(([k, 名]) => {
       new Setting(c).setName(名)
         .addToggle(t => t.setValue(設[k] !== false)

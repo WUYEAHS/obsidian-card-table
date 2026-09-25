@@ -5,6 +5,32 @@
 >
 > **Notice:** This project is entirely built by AI agents using Claude. The project developer has limited experience with programming languages.
 
+## 1.7.5
+
+**A tidier section settings panel.** Also finishes the small fixes left over from the 1.7.4 design review.
+
+### Changed
+- Section settings (⋯ on the new-card block): the section and archive icons with their counts now sit in the title bar (the unclickable gear is gone). Each section row ends in a single ⋯ with Archive / Move cards to… / Delete. **Move cards to…** moves every card into another section and keeps the now-empty section. The "back to automatic colour" button is gone.
+- The section list shows 5 sections before it scrolls. Changing a colour keeps your scroll position. Adding a section, restoring an archived section, or archiving one scrolls to the bottom so you can see the new row.
+- Archive-zone rows have a single ⋯. Move-out is still in that menu.
+- Ticking a card done, or un-ticking it, turns on both To do and Done, so the card stays in view. Turn this off with the two jump settings.
+- The section filter pill reads `##name`, like a heading in the note (topics stay `#topic`).
+- Section names on cards (the 👁 switch) no longer start with `#`, so they don't look like topics.
+- The jump settings are named after what you do: "Card ticked done", "Card back to to do", "Card pinned", "Overdue card 'Move to today'", "New card submitted".
+- While you view an archived section, the list title reads "Archived · ##name" instead of a date.
+- On desktop, hovering a card no longer shows 📌; hover the colour bar to pin. Mobile is unchanged.
+- In detailed edit, clicking anywhere in the tall content box starts typing.
+- The today row reads "Today 09-25(Fri)", and the day cell drops the space before the weekday: `9/25(Fri)`. Archive notes are titled "Archive - NAME".
+
+### Removed
+- Settings: "Archived → jump to the card" (single-card archiving is gone), "Highlight card on hover", and the duplicate "Show section names" switch. Use the 👁 next to the sections in the board settings instead.
+
+### Fixed
+- Cards on a Canvas have the same margin on both sides (Obsidian reserved a 12px scrollbar gap on the right).
+- Archived cards keep the ✎ slot empty, so their dates line up with other cards.
+- "Show less" sits where "Show more" was (bottom right). The pinned-table 📌 is 13px like the other title icons.
+- Archive-zone rows without a ⋯ keep a ⋯-wide gap, so the card counts line up.
+
 ## 1.7.4
 
 **The last 1.7: what you edit is what you read.** Closes the 1.7 round; next is 1.8 (mobile layout).

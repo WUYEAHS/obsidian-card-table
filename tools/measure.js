@@ -269,19 +269,19 @@ document.body.classList.remove('theme-dark', 'theme-light'); document.body.class
 }
 
 // ---------- M14 行事曆、分類設定的內容從 18 開始 ----------
-// 1.6.7-U6:分類設定加了拖曳把手之後,原本贏過小標圖示的是色圓的 input(左緣 18),
-// 現在色圓被把手擠到右邊,贏的變成小標圖示的 svg path(圖示本身的墨跡不會貼齊 box 邊緣,是 icon 的固有內縮)——
-// 把手本身這一列的左緣還是 18(見 main.js 的把手 flex:0 0 14px,沒有額外 margin),量到的數字改了是圖示墨跡的關係,不是版面歪了。
+// 1.6.7–1.7.4 量的是葉子元素,贏的是 svg 的 path(墨跡),目標被改成 19.9 遷就它;1.7.5 起量盒子,兩個都是 18。
 for (const [名, 開, 關, 目標] of [
   ['行事曆', () => { v.狀態.開行事曆 = true; }, () => { v.狀態.開行事曆 = false; }, 18],
   // ⚠ 設定模式要連 設草 一起建,不然 畫新增區內 會當成沒開、畫回平常的新增卡片(量到的是別的東西)
-  ['分類設定', () => { v.狀態.設定模式 = true; v.設草 = v.建設草(); }, () => { v.狀態.設定模式 = false; v.設草 = null; }, 19.9]]) {
+  ['分類設定', () => { v.狀態.設定模式 = true; v.設草 = v.建設草(); }, () => { v.狀態.設定模式 = false; v.設草 = null; }, 18]]) {
   開(); v.畫(); await 睡(500);
   const 塊 = b.querySelector('.tk-新塊');
   const 身 = 塊 && 塊.children[1];
   if (身) {
     const x0 = 基(塊);
-    const 左 = Math.min(...[...身.querySelectorAll('*')].filter(e => 看得見(e) && e.children.length === 0).map(e => e.getBoundingClientRect().left - x0));
+    // 1.7.5(critic M14):量**盒子**,不量圖示的墨跡 —— svg 當一整塊(裡面的 path 不算),目標回到 18
+    const 葉 = (e) => e.tagName.toLowerCase() === 'svg' || (e.children.length === 0 && !e.closest('svg'));
+    const 左 = Math.min(...[...身.querySelectorAll('*')].filter(e => 看得見(e) && 葉(e)).map(e => e.getBoundingClientRect().left - x0));
     記('M14 ' + 名, '內容最左邊在 ' + 目標, 近(左, 目標), 圓(左));
   } else 記('M14 ' + 名, '內容最左邊在 ' + 目標, false, '沒找到內容');
   關(); v.畫(); await 睡(300);
@@ -291,11 +291,14 @@ for (const [名, 開, 關, 目標] of [
 {
   v.狀態.設定模式 = true; v.設草 = v.建設草(); v.畫(); await 睡(500);
   const 具 = b.querySelector('.tk-新塊 .tk-封列 .tk-封具:not(.tk-空位)');
+  // 1.7.5-U9(使用者:「⋯ 已經有了,外面不需要」):外面的 → 拿掉,只剩 ⋯
   const 鈕 = 具 ? [...具.children].filter(看得見) : [];
-  if (鈕.length >= 2) {
-    const 隙 = 鈕[1].getBoundingClientRect().left - 鈕[0].getBoundingClientRect().right;
-    記('M23', '封存區那一列的 → 和 ⋯ 相距 4(U40:群組內 4px)', 近(隙, 4), 圓(隙) + 'px');
-  } else 記('M23', '封存區那一列的 → 和 ⋯(U40)', false, '找不到 → / ⋯(fixture 要有一個有名字的封存區)');
+  if (具) 記('M23', '封存區那一列外面只有 ⋯(1.7.5-U9)', 鈕.length === 1 && 鈕[0].getAttribute('aria-label') === v.T.more,
+    鈕.map(x => x.getAttribute('aria-label')).join(' / '));
+  else 記('M23', '封存區那一列只有 ⋯(1.7.5-U9)', false, '找不到封存列(fixture 要有一個有名字的封存區)');
+  // CR-1.7.5-02:佔位(沒有 ⋯ 的列)跟 ⋯ 一樣寬,張數才對齊(U9 拿掉 → 之後佔位還是 52)
+  const 寬們 = [...b.querySelectorAll('.tk-新塊 .tk-封列 .tk-封具')].map(x => Math.round(x.getBoundingClientRect().width * 10) / 10);
+  記('M23b', '封存列的佔位跟 ⋯ 一樣寬(張數對齊,CR-1.7.5-02)', 寬們.length > 1 && Math.max(...寬們) - Math.min(...寬們) <= 1, 寬們.join(' / '));
   v.狀態.設定模式 = false; v.設草 = null; v.畫(); await 睡(300);
 }
 

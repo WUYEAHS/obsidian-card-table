@@ -404,9 +404,9 @@
   -webkit-mask-image:linear-gradient(180deg, #000 calc(100% - 1.1em), transparent);
   mask-image:linear-gradient(180deg, #000 calc(100% - 1.1em), transparent);
 }
-/* 「查看更多」:收著的時候釘在右下角(壓在淡出的那一截上);展開的時候接在內容後面 */
+/* 「查看更多」:收著的時候釘在右下角(壓在淡出的那一截上);展開的時候「收合」自己一行、一樣靠右(1.7.5-U12:成對的鈕同一個位置) */
 .tk-board .tk-更多.tk-更多-收 { position:absolute; right:0; bottom:0; margin:0; }
-.tk-board .tk-更多.tk-更多-開 { position:static; display:inline-block; margin:2px 0 0 5px; }
+.tk-board .tk-更多.tk-更多-開 { position:static; display:block; width:fit-content; margin:2px 0 0 auto; }
 /* 新增卡片的內容框、留言框:長得像原本的輸入框(表單底色 + 細框),點框的任何地方都是打字 */
 .tk-board .tk-即時框 {
   border:1px solid var(--background-modifier-border);
@@ -997,7 +997,7 @@
 }
 .tk-board .tk-年字 { letter-spacing:0.1em; padding-left:0.1em; }
 .tk-board .tk-週連 { margin:0 3px; color:var(--text-muted); }
-.tk-board .tk-週名 { margin-left:3px; }
+.tk-board .tk-週名 { margin-left:0; }   /* 1.7.5-U15:括號前不留空格(9/24(四)),跟卡片、標題列一樣 */
 /* 手機 / 分頁很窄:格子照比例縮(先桌機,手機之後再調) */
 .tk-board.tk-密 .tk-篩條 { padding-right:6px; }
 .tk-board.tk-密 .tk-篩格 { width:auto; flex:1 1 0; min-width:0; }
@@ -1266,7 +1266,7 @@
      一起拿掉(CLAUDE.md 的坑 #1:死掉的 CSS 規則最難發現)。 */
 .tk-board .tk-封具 { display:flex; align-items:center; gap:4px; flex:0 0 auto; }
 /* 沒有 → ⋯ 的那幾列(「以前單張封存的卡片」、預覽列)照樣佔 52 寬,張數才跟上面幾列對齊 */
-.tk-board .tk-封具.tk-空位 { visibility:hidden; flex:0 0 52px; width:52px; }
+.tk-board .tk-封具.tk-空位 { visibility:hidden; flex:0 0 24px; width:24px; }   /* CR-1.7.5-02:= ⋯ 的寬(U9 拿掉 → 之後),張數才對齊 */
 .tk-board .tk-封鈕 {
   flex:0 0 24px;
   width:24px; height:22px;
@@ -1333,9 +1333,9 @@
 @supports not (background: color-mix(in srgb, red 10%, transparent)) {
   .tk-board .tk-釘.tk-溝釘:hover, .tk-board .tk-釘.tk-溝釘.tk-已釘 { background-color:var(--background-modifier-hover); }
 }
-/* CR-1.6.6-05(使用者:「沒有 pin 的時候要維持隱藏狀態」):滑過那一列 📌 才浮出來(0.7)。
-   ⚠ 掛在整列上,不是只掛色條 —— 不然要先精準滑到 7px 寬的色條才看得到那顆鈕(原則 11「點」)。 */
-.tk-board .tk-列:hover .tk-釘.tk-溝釘 { opacity:0.7; }
+/* 1.7.5-U8(使用者 09-25:「hover 卡片不顯示 pin,hover 到色線時再顯示」)推翻 CR-1.6.6-05 的「滑過整列浮出」——
+   桌機只有滑到色條(下一條)才出現。⚠ 手機留著:手機沒有滑鼠,點過一列 :hover 會黏著,這是手機唯一看得到 📌 的時候。 */
+.is-mobile .tk-board .tk-列:hover .tk-釘.tk-溝釘 { opacity:0.7; }
 /* hover 才是「最亮」的狀態(跟 ✎ 這些鈕一樣):色跳到 --text-normal。
    CR-1.6.6-05(使用者:「pin 沒有 hover 跟色線一樣會一起拉寬」):色條 hover 變 11,
    📌 **要跟著變 11** —— 兩個是同一個視覺單位。平常維持 7(CR-04:「background 大小不要動」)。 */
@@ -1346,10 +1346,6 @@
 .tk-board .tk-列 .tk-釘.tk-溝釘.tk-已釘 { opacity:1; color:var(--text-accent); }
 .tk-board .tk-列 .tk-釘.tk-溝釘.tk-已釘:hover,
 .tk-board .tk-色條:hover ~ .tk-釘.tk-溝釘.tk-已釘 { color:var(--interactive-accent); }
-/* 1.6.3 C20:設定「滑過卡片時高亮」(預設關)。用 background-image 疊一層,已完成 / 封存的底色照樣看得到 */
-.tk-board.tk-滑亮 .tk-列:hover {
-  background-image:linear-gradient(var(--background-modifier-hover), var(--background-modifier-hover));
-}
 /* 1.6.9-F2 嵌入的卡片(Canvas、![[…#^ct-…]]、hover 預覽)。外層掛 tk-board tk-窄,長相全部沿用看板的卡片規則;
    這裡只補兩件事:它不是捲動容器(.tk-board 本來是整頁高、自己捲),以及它不能按(做法 A,唯讀)——
    色條滑過不變粗、不出 ✓,整張的游標是「點了回看板」。 */

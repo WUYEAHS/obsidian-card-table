@@ -47,6 +47,11 @@ if ($ver -notmatch [regex]::Escape($want)) { Write-Host 'FAIL version mismatch';
 $theme = obsidian eval code="app.customCss.theme || '(default)'"
 Write-Host "theme: $theme"
 if ($theme -notmatch '\(default\)') { Write-Host 'FAIL not the default theme - switch to the default theme before testing'; exit 1 }
+# 1.7.5-P2 (owner 09-25): tests and measurements run at Obsidian zoom 100%. At 120% the board tab is narrow,
+# Canvas zooms out past the point where it renders node content, and the 4 Canvas tests read 0 cards.
+# Set it here (measure / check4 run after this and keep it); Ctrl+= in Obsidian goes back to your own zoom.
+$zoom = obsidian eval code="(()=>{const w=require('electron').webFrame;const z=w.getZoomFactor();if(Math.abs(z-1)>0.01)w.setZoomFactor(1);return z})()"
+Write-Host "zoom: $zoom -> 1"
 
 # 1.6.5: bring Obsidian to the front BEFORE measuring. A covered window throttles timers and
 # board/editor tests fail for no reason (cost us ~5 wasted runs in 1.6.5). Do not remove.

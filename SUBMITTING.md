@@ -73,7 +73,7 @@ Obsidian 的社群外掛審核分兩關:一隻機器人跑靜態檢查,然後一
    要回應的話,可以先把固定不變的那些搬進 `styles.css`,留下真正跟資料有關的
    (分類顏色、指派人顏色)繼續用 inline。
 
-3. **`description` 開頭**。現在是 "Read one markdown note as…",沒有踩到
+3. **`description` 開頭**。現在是 "A task-first card table: …"(1.7.5 起;目錄 `community-plugins.json` 那份另外發 PR 才會跟著換),沒有踩到
    「不可以用 This plugin 開頭」「不可以出現 Obsidian」那兩條,不用改。
 
 ## 五、送審前最後跑一次

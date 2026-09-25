@@ -78,6 +78,18 @@ window.__ctBoardTest = 'running';
     段 = 卡段(await 讀(), '[訂貨]');
     ok('undo with same object', /^- \[ \]/.test(段[0]), 段[0]);
     ok('only one ed line', 段.filter(t => t.includes('[ed::')).length === 1, 段);
+    // 1.7.5-U1:跳轉開著,只開「未完成」時打勾 → 未完成 + 已完成兩個都開;跳轉關著 → 開關不動
+    {
+      const 顯 = P.設定.排程顯示 = P.設定.排程顯示 || {};
+      const 訂 = () => v.卡片.find(x => x.主題 === '訂貨');    // ⚠ 每次重新拿:舊物件的 k.完成 是過期的
+      顯.未完成 = true; 顯.完成 = false; P.設定.跳轉_未完成到完成 = true;
+      await v.切完成(訂()); await 等(400);
+      ok('1.7.5-U1 tick → to-do + done both shown', 顯.未完成 === true && 顯.完成 === true, 顯);
+      顯.完成 = false; P.設定.跳轉_完成到未完成 = false;
+      await v.切完成(訂()); await 等(400);
+      ok('1.7.5-U1 jump off → switches untouched', 顯.完成 === false && 顯.未完成 === true, 顯);
+      顯.完成 = true; P.設定.跳轉_完成到未完成 = true;
+    }
     // 3. 改日期(區間)
     k = v.卡片.find(x => x.主題 === '巡田');
     await v.設日期(k, '2026-09-20', '2026-09-22'); await 等(400);
@@ -458,6 +470,35 @@ window.__ctBoardTest = 'running';
       ok('U6c auto color pinned after position change', P.分類色('3') === 舊色A, [舊色A, P.分類色('3')]);
       v.狀態.設定模式 = false; v.設草 = null;
 
+      // 1.7.5-U5 只搬不刪:寫手直接叫一次、舊名不在就不寫、再走一次草稿(⋯ 搬移卡片 → ✓)
+      await P.寫手.改分類們(f, { 新增: [], 刪: [], 搬: [['乙', { 名: '甲甲', 新: false }]], 改名: [] });
+      文 = await 讀();
+      ok('1.7.5-U5 move only: 乙 heading kept, empty', JSON.stringify(區段(文, '乙')) === JSON.stringify(['## 乙']), 區段(文, '乙'));
+      ok('1.7.5-U5 move only: 乙 cards now under 甲甲', /#乙卡[\s\S]*內容乙/.test((區段(文, '甲甲') || []).join('\n')), 區段(文, '甲甲'));
+      const 前5 = 文;
+      const r5 = await P.寫手.改分類們(f, { 新增: [], 刪: [], 搬: [['不存在', { 名: '甲甲', 新: false }]], 改名: [] });
+      ok('1.7.5-U5 missing section writes nothing', !r5 && (await 讀()) === 前5, r5);
+      v.設草 = v.建設草(); 草 = v.設草;
+      草.分類.find(x => x.原 === '甲甲').搬走 = 草.分類.find(x => x.原 === '乙').id;
+      await v.存設草();
+      文 = await 讀();
+      ok('1.7.5-U5 draft move: 甲甲 empty, both cards under 乙',
+        JSON.stringify(區段(文, '甲甲')) === JSON.stringify(['## 甲甲']) && /#甲卡/.test((區段(文, '乙') || []).join('\n')) && /#乙卡/.test((區段(文, '乙') || []).join('\n')),
+        [區段(文, '甲甲'), 區段(文, '乙')]);
+
+      // 1.7.5-B1:分類清單(9 區 > 5 列會捲)重畫之後捲動位置不變;按 + 新增 → 捲到底
+      v.狀態.設定模式 = true; v.設草 = v.建設草(); v.畫(); await 等(300);
+      const 捲框 = () => v.區.新增.querySelector('.tk-設定面板 .tk-細捲');
+      let 框 = 捲框();
+      框.scrollTop = 30; 框.dispatchEvent(new Event('scroll')); await 等(50);
+      v.畫新增區(v.區.新增, v.卡片); await 等(300);            // 改顏色走的就是這個重畫
+      ok('1.7.5-B1 redraw keeps the section list scroll', Math.abs(捲框().scrollTop - 30) <= 1, 捲框().scrollTop);
+      const 加 = [...v.區.新增.querySelectorAll('.tk-設定面板 [role=button]')].find(b => /新增分類|Add section/.test(b.getAttribute('aria-label') || ''));
+      if (加) 加.click(); await 等(400);
+      框 = 捲框();
+      ok('1.7.5-B1 add section scrolls to the bottom', !!加 && 框.scrollTop >= 框.scrollHeight - 框.clientHeight - 1, [!!加, 框.scrollTop, 框.scrollHeight, 框.clientHeight]);
+      v.狀態.設定模式 = false; v.設草 = null; v.__捲位 = null; v.畫();
+
       // 清掉這一段自己加的分類,不留在檔案裡影響後面的檢查
       await P.寫手.改分類們(f, { 新增: [], 刪: [['乙', { 名: '1', 新: false }], ['甲甲', { 名: '1', 新: false }]], 改名: [] });
     }
@@ -602,6 +643,7 @@ window.__ctBoardTest = 'running';
         // 1.6.9-F2:Canvas 裡 4 張畫成卡片;嵌入的筆記 1 張;看板筆記自己的閱讀模式 0 張
         const cl = app.workspace.getLeaf('tab'); 開們.push(cl);
         await cl.openFile(cv);
+        app.workspace.setActiveLeaf(cl, { focus: true });   // 1.7.5:Canvas 只畫看得到的分頁;沒切過去時偶爾 0 張(兩次跑一次)
         const 嵌數 = await 等到(() => { const n = cl.view.containerEl.querySelectorAll('.canvas-node .tk-嵌卡').length; return n >= 4 ? n : 0; });
         ok('1.6.9-F2 canvas: 4 embedded cards drawn as cards', 嵌數 === 4, 嵌數);
         ok('CR-04 canvas cards have no 320px cap', cl.view.containerEl.querySelectorAll('.tk-嵌筆').length === 0, '');

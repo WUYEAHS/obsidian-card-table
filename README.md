@@ -5,7 +5,7 @@
 
 # Card Table - Dated Tasks
 
-**A task-first card table.** Inspired by the Kanban plugin's table mode view. Every task is a card, and these cards form a table. Features include unique time-filtering functions, **multi-user collaboration**, and one card layout that looks the same on desktop and phone.
+**A task-first card table.** Inspired by the Kanban table way of working, but dates, assignees, pins, comments and repeats all stay as plain text inside the note. Cards can go onto a **Canvas** and link out to your other notes, and finished sections move to a linked **Archive note** that opens in its own Archive mode.
 
 > [!IMPORTANT]
 > **Reminder:** This plugin is still under active development and will change frequently over the next few months. Please back up your data/environment before using it. Bug reports and feedback are highly appreciated!
@@ -134,7 +134,7 @@ Grouped the same way as in the plugin; **What's new** at the top lists what ever
 | --- | --- |
 | General | Language, who uses this device, solo mode |
 | Time filters | Range on open, how weeks are counted |
-| Cards | How done cards look, section names, last edited time, comments and where they go |
+| Cards | How done cards look, last edited time, comments and where they go |
 | Adding and editing | Submit key (see [Keyboard](#keyboard)), cursor and card position when editing, unpin when done |
 | Jump after an action | Whether each action scrolls to the card |
 | Note format | Folder for files the plugin creates (Archive notes, new Canvases, backups, exported images; by default `Card Table attachments` next to the board); convert every old card to the current format (backs up first) |

@@ -1,9 +1,9 @@
 {
   "id": "card-table",
   "name": "Card Table - Dated Tasks",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "minAppVersion": "1.6.0",
-  "description": "A task-first card table inspired by Kanban's table view: every task is a card, with unique time filters, multi-user collaboration, and the same card layout on desktop and mobile.",
+  "description": "A task-first card table: dates, assignees, pins, comments and repeats stay as plain text in the note. Link cards out through Canvas and move finished sections to an Archive note.",
   "author": "jiajiunwu",
   "authorUrl": "https://github.com/WUYEAHS",
   "fundingUrl": "https://ko-fi.com/jiajiunwu",
